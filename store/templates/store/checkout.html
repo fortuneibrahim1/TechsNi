@@ -1,0 +1,102 @@
+{% extends 'store/base.html' %}
+
+{% block title %}Checkout - TechsNi Store{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-7 mx-auto">
+        <div class="card shadow-sm border-0 p-4 mb-4 rounded-0">
+            <h3 class="mb-4 fw-bold text-dark border-bottom pb-3">Shipping & Payment Details</h3>
+            
+            {% if saved_addresses %}
+                <!-- Quick Address Book Selector -->
+                <div class="mb-4 p-3 bg-light border">
+                    <label for="address_picker" class="form-label fw-bold text-dark small text-uppercase tracking-wider">Quick Select from Saved Address Book:</label>
+                    <select id="address_picker" class="form-select rounded-0" onchange="populateAddress(this)">
+                        <option value="">-- Choose a saved location or type below --</option>
+                        {% for addr in saved_addresses %}
+                            <option value="{{ addr.street_address }}, LGA: {{ addr.lga }}, {{ addr.state }} State" data-phone="{{ addr.phone_number }}" {% if addr.is_default %}selected{% endif %}>
+                                {{ addr.state }} - {{ addr.lga }} ({{ addr.street_address|truncatechars:35 }}) {% if addr.is_default %}[DEFAULT]{% endif %}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-text small text-muted mt-1">Selecting an address above will instantly autofill your shipping details and phone number.</div>
+                </div>
+            {% endif %}
+
+            <form method="POST">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="shipping_address" class="form-label fw-semibold">Delivery Address</label>
+                    <textarea class="form-control rounded-0" id="shipping_address" name="shipping_address" rows="3" required placeholder="Enter your full street address, city, and landmarks...">{{ default_address }}</textarea>
+                    <div class="form-text small text-muted">Defaults to your saved or primary address. Edit above if you want it delivered elsewhere.</div>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="phone_number" class="form-label fw-semibold">Phone Number</label>
+                    <input type="text" class="form-control rounded-0" id="phone_number" name="phone_number" value="{{ default_phone }}" required placeholder="e.g. 08012345678">
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">Payment Option</label>
+                    <select class="form-select rounded-0" name="payment_choice" id="payment_choice" onchange="updatePaymentDisplay()">
+                        <option value="full">Full Payment (100% Upfront) - ₦<span id="full-amount-label">{{ items_subtotal }}</span></option>
+                        {% if show_partial_option %}
+                            <option value="partial">Partial Payment ({{ global_settings.default_deposit_percentage }}% Deposit) - ₦<span id="deposit-amount-label"></span> Due Now</option>
+                        {% endif %}
+                    </select>
+                    
+                    <div class="form-text small text-muted mt-1" id="payment-notice">
+                        {% if show_partial_option %}
+                            <span class="text-success fw-semibold">Your subtotal is ₦{{ items_subtotal }}. You can choose Partial Payment to pay a {{ global_settings.default_deposit_percentage }}% deposit now.</span>
+                        {% else %}
+                            <span class="text-danger">Your subtotal is ₦{{ items_subtotal }}. Orders below ₦{{ global_settings.partial_payment_threshold|floatformat:0 }} require full upfront payment.</span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <button type="submit" class="btn btn-danger rounded-0 w-100 py-2 fs-5 fw-bold">Place Store Order</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    const subtotal = parseFloat("{{ items_subtotal }}") || 0;
+    const depositPercentage = parseFloat("{{ global_settings.default_deposit_percentage }}") || 80;
+    const depositAmount = subtotal * (depositPercentage / 100);
+    const balanceAmount = subtotal - depositAmount;
+
+    // Populate dynamic amounts into the dropdown labels safely on load
+    document.addEventListener("DOMContentLoaded", function() {
+        const depositLabel = document.getElementById('deposit-amount-label');
+        if (depositLabel) {
+            depositLabel.innerText = depositAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        }
+    });
+
+    function updatePaymentDisplay() {
+        const choice = document.getElementById('payment_choice').value;
+        const notice = document.getElementById('payment-notice');
+        
+        if (choice === 'partial') {
+            notice.innerHTML = `<span class="text-info fw-bold">ℹ️ You selected Partial Payment. You will pay a ${depositPercentage}% deposit of <strong>₦${depositAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}</strong> now, and the remaining balance of ₦${balanceAmount.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} upon delivery verification.</span>`;
+        } else {
+            notice.innerHTML = `<span class="text-success fw-semibold">Your subtotal is ₦${subtotal.toLocaleString()}. Full 100% upfront payment selected.</span>`;
+        }
+    }
+
+    function populateAddress(selectElement) {
+        const selectedOption = selectElement.options[selectElement.selectedIndex];
+        const addressText = selectedOption.value;
+        const phone = selectedOption.getAttribute('data-phone');
+        
+        if (addressText) {
+            document.getElementById('shipping_address').value = addressText;
+        }
+        if (phone) {
+            document.getElementById('phone_number').value = phone;
+        }
+    }
+</script>
+{% endblock %}

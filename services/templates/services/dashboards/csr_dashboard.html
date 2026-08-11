@@ -1,0 +1,90 @@
+{% extends 'services/dashboards/base_dashboard.html' %}
+{% block title %}Customer Service Helpdesk{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-headset text-info me-2"></i> Customer Service Helpdesk Dashboard</h2>
+    <div class="badge bg-dark fs-6 p-2">
+        <i class="bi bi-star-fill text-warning me-1"></i> Average Rating: <strong>{{ avg_rating }}/5.0</strong>
+    </div>
+</div>
+
+<div class="row mb-5">
+    <!-- Unassigned Pending Queue -->
+    <div class="col-md-6 mb-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-danger text-white fw-bold">
+                <i class="bi bi-exclamation-circle-fill me-1"></i> Unassigned Queue (Pending Agent)
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Customer</th>
+                                <th>Subject</th>
+                                <th>Source</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ticket in pending_tickets %}
+                            <tr>
+                                <td>{{ ticket.customer.get_full_name|default:ticket.customer.username }}</td>
+                                <td>{{ ticket.subject }}</td>
+                                <td><span class="badge bg-secondary text-uppercase">{{ ticket.app_source }}</span></td>
+                                <td class="text-end">
+                                    <a href="{% url 'csr_claim_ticket' ticket.id %}" class="btn btn-sm btn-success fw-bold">
+                                        <i class="bi bi-hand-index-thumb"></i> Claim
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="4" class="text-center text-muted py-4">No unassigned pending tickets in queue.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Active Tickets Assigned to Me -->
+    <div class="col-md-6 mb-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-header bg-primary text-white fw-bold">
+                <i class="bi bi-chat-text-fill me-1"></i> My Active Helpdesk Tickets
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Customer</th>
+                                <th>Subject</th>
+                                <th>Status</th>
+                                <th class="text-end">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for ticket in my_tickets %}
+                            <tr>
+                                <td>{{ ticket.customer.get_full_name|default:ticket.customer.username }}</td>
+                                <td>{{ ticket.subject }}</td>
+                                <td><span class="badge bg-info text-dark">{{ ticket.get_status_display }}</span></td>
+                                <td class="text-end">
+                                    <a href="{% url 'csr_ticket_detail' ticket.id %}" class="btn btn-sm btn-outline-primary fw-bold">
+                                        <i class="bi bi-eye"></i> Open Chat
+                                    </a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="4" class="text-center text-muted py-4">You have no active tickets assigned right now.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

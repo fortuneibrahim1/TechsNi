@@ -1,0 +1,445 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}TechsNi{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --brand-red: {% if active_promo_theme and active_promo_theme.accent_color %}{{ active_promo_theme.accent_color }}{% else %}#cc0001{% endif %};
+            --brand-dark: {% if active_promo_theme and active_promo_theme.background_color %}{{ active_promo_theme.background_color }}{% else %}#111111{% endif %};
+            --brand-text: {% if active_promo_theme and active_promo_theme.text_color %}{{ active_promo_theme.text_color }}{% else %}#333333{% endif %};
+            --brand-surface: #1a1a1a;
+            --brand-border: #333333;
+        }
+        body {
+            background-color: #f4f6f9;
+            color: #333333;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            overflow-x: hidden;
+            margin: 0;
+        }
+
+        /* App Layout with Sidebar */
+        .app-wrapper {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        /* Sidebar Styling */
+        .app-sidebar {
+            width: 260px;
+            background-color: var(--brand-dark);
+            color: #ffffff;
+            position: fixed;
+            top: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 1040;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid var(--brand-border);
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+        }
+
+        .sidebar-brand-box {
+            padding: 20px;
+            font-size: 1.25rem;
+            font-weight: 800;
+            border-bottom: 1px solid var(--brand-border);
+            background-color: rgba(0,0,0,0.2);
+            letter-spacing: -0.5px;
+        }
+        .sidebar-brand-box span {
+            color: var(--brand-red);
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 15px 0;
+            margin: 0;
+            flex-grow: 1;
+        }
+
+        .sidebar-menu .menu-header {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #777777;
+            padding: 10px 20px 5px;
+            font-weight: 700;
+        }
+
+        .sidebar-menu li a {
+            display: flex;
+            align-items: center;
+            padding: 11px 20px;
+            color: #b0b0b0;
+            text-decoration: none;
+            font-size: 0.88rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            gap: 12px;
+        }
+
+        .sidebar-menu li a:hover, .sidebar-menu li a.active {
+            color: #ffffff;
+            background-color: rgba(204, 0, 1, 0.15);
+            border-left: 4px solid var(--brand-red);
+            padding-left: 16px;
+        }
+
+        .sidebar-menu li a i {
+            font-size: 1rem;
+            width: 20px;
+            text-align: center;
+        }
+
+        .sidebar-footer {
+            padding: 15px 20px;
+            border-top: 1px solid var(--brand-border);
+            background-color: rgba(0,0,0,0.3);
+            font-size: 0.82rem;
+        }
+
+        /* Main Content Area adjustments for sidebar */
+        .app-main {
+            margin-left: 260px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            transition: margin 0.3s ease;
+        }
+
+        /* Top Utility Bar */
+        .utility-bar {
+            background-color: #ffffff;
+            color: #333333;
+            padding: 10px 24px;
+            font-size: 0.85rem;
+            border-bottom: 1px solid #e5e5e5;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+        }
+        .utility-bar a {
+            color: #333333;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        .utility-bar a:hover {
+            color: var(--brand-red);
+        }
+        .role-chip {
+            background-color: #f1f3f5;
+            color: var(--brand-red);
+            font-family: monospace;
+            font-weight: 700;
+            padding: 3px 8px;
+            font-size: 0.75rem;
+            border-radius: 4px;
+            border: 1px solid #ced4da;
+        }
+
+        /* Main Store Header */
+        .corporate-header {
+            background-color: #ffffff;
+            border-bottom: 1px solid #e5e5e5;
+            padding: 14px 24px;
+        }
+        .brand-logo {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: #111111;
+            text-decoration: none;
+            letter-spacing: -0.5px;
+        }
+        .brand-logo span {
+            color: var(--brand-red);
+        }
+        .btn-cart-pro {
+            background-color: var(--brand-red);
+            color: #ffffff;
+            font-weight: 600;
+            border: none;
+            padding: 6px 16px;
+            font-size: 0.85rem;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+        .btn-cart-pro:hover {
+            opacity: 0.9;
+            color: #ffffff;
+        }
+        .btn-wishlist-pro {
+            background-color: #ffffff;
+            color: #111111;
+            font-weight: 600;
+            border: 1px solid #ced4da;
+            padding: 6px 16px;
+            font-size: 0.85rem;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+        .btn-wishlist-pro:hover {
+            background-color: #f8f9fa;
+            border-color: #adb5bd;
+            color: var(--brand-red);
+        }
+
+        .dropdown-menu {
+            border: 1px solid rgba(0,0,0,0.1);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border-radius: 4px;
+            padding: 4px 0;
+        }
+        .dropdown-item {
+            font-size: 0.85rem;
+            padding: 8px 16px;
+            color: #333;
+        }
+        .dropdown-item:hover {
+            background-color: #f5f5f5;
+            color: var(--brand-red);
+        }
+
+        footer {
+            background-color: var(--brand-dark);
+            color: #999999;
+            padding: 25px 0;
+            margin-top: auto;
+            font-size: 0.85rem;
+            border-top: 1px solid var(--brand-border);
+        }
+
+        /* --- ADVANCED GLOBAL MOBILE RESPONSIVE ADAPTATION ENGINE --- */
+        .table-responsive {
+            width: 100%;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Mobile Backdrop Overlay */
+        .sidebar-backdrop {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1035;
+        }
+        .sidebar-backdrop.show {
+            display: block;
+        }
+
+        @media (max-width: 991.98px) {
+            .app-sidebar {
+                transform: translateX(-100%);
+            }
+            .app-sidebar.mobile-open {
+                transform: translateX(0);
+            }
+            .app-main {
+                margin-left: 0;
+            }
+            .corporate-header, .utility-bar {
+                padding-left: 15px;
+                padding-right: 15px;
+            }
+            main.container-fluid {
+                padding: 12px !important;
+            }
+            table.table th, table.table td {
+                padding: 8px 10px;
+                font-size: 0.82rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    {% if active_promo_theme %}
+    <!-- Active Promo Banner Notification -->
+    <div class="text-center text-white py-1 fw-bold small" style="background-color: var(--brand-red); position: relative; z-index: 1050;">
+        🎉 ACTIVE EVENT: {{ active_promo_theme.name|upper }} PROMO IS LIVE! SPECIAL DISCOUNTS APPLIED ACROSS STORE.
+    </div>
+    {% endif %}
+
+    <!-- Mobile Sidebar Backdrop -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
+
+    <div class="app-wrapper">
+        <!-- APP SIDEBAR NAVIGATION -->
+        <nav class="app-sidebar" id="appSidebar">
+            <div class="sidebar-brand-box d-flex justify-content-between align-items-center">
+                <a href="{% url 'store_home' %}" class="text-white text-decoration-none">Techs<span>Ni</span></a>
+                <button class="btn btn-sm btn-dark text-white d-lg-none border-0" onclick="toggleSidebar()"><i class="fas fa-times"></i></button>
+            </div>
+
+            <ul class="sidebar-menu">
+                <li class="menu-header">Store Navigation</li>
+                <li><a href="{% url 'store_home' %}"><i class="fas fa-store"></i> Store Front</a></li>
+                <li><a href="{% url 'store_cart' %}"><i class="fas fa-shopping-cart"></i> Shopping Cart</a></li>
+                <li><a href="{% url 'customer_wishlist' %}"><i class="fas fa-heart"></i> My Wishlist</a></li>
+                
+                <!-- CUSTOMER SUPPORT & LIVE CHAT (Unified Gateway) -->
+                <li class="menu-header">Support & Helpdesk</li>
+                <li><a href="{% url 'customer_support_chat' %}"><i class="fas fa-comments text-primary"></i> Support Chat & Bot</a></li>
+                
+                <!-- CUSTOMER SERVICE REPRESENTATIVE MODULE -->
+                {% if request.user.role == 'customer_service' or request.user.role == 'general_manager' or request.user.is_superuser %}
+                <li><a href="{% url 'csr_dashboard' %}"><i class="fas fa-headset text-warning"></i> CSR Helpdesk Dashboard</a></li>
+                {% endif %}
+
+                <!-- CEO / SUPERUSER MODULES -->
+                {% if request.user.is_superuser or request.user.role == 'CEO' %}
+                <li class="menu-header">CEO Control</li>
+                <li><a href="{% url 'store_ceo_dashboard' %}"><i class="fas fa-chart-line text-warning"></i> CEO Dashboard</a></li>
+                <li><a href="{% url 'ceo_manage_return_policy' %}"><i class="fas fa-file-contract text-warning"></i> Manage Return Policy</a></li>
+                <li><a href="{% url 'management_return_dashboard' %}"><i class="fas fa-undo-alt text-warning"></i> Management Returns</a></li>
+                {% endif %}
+
+                <!-- GENERAL MANAGER MODULES -->
+                {% if request.user.role == 'general_manager' or request.user.is_superuser %}
+                <li class="menu-header">General Manager Control</li>
+                <li><a href="{% url 'general_manager_dashboard' %}"><i class="fas fa-user-tie text-warning"></i> General Manager Dashboard</a></li>
+                <li><a href="{% url 'management_return_dashboard' %}"><i class="fas fa-undo-alt text-warning"></i> Management Returns</a></li>
+                {% endif %}
+
+                <!-- MANAGER MODULES -->
+                {% if request.user.role == 'store_manager' or request.user.role == 'manager' or request.user.is_superuser %}
+                <li class="menu-header">Manager Control</li>
+                <li><a href="{% url 'store_manager_dashboard' %}"><i class="fas fa-tasks text-info"></i> Manager Dashboard</a></li>
+                <li><a href="{% url 'store_manager_dashboard' %}" onclick="setTimeout(() => switchManagerTab('map-section'), 100);"><i class="fas fa-map-marked-alt text-info"></i> Live Fleet Tracking Map</a></li>
+                <li><a href="{% url 'management_return_dashboard' %}"><i class="fas fa-undo-alt text-info"></i> Management Returns</a></li>
+                {% endif %}
+
+                <!-- FINANCE MODULES -->
+                {% if request.user.role == 'store_finance' or request.user.is_superuser %}
+                <li class="menu-header">Finance & Ledger</li>
+                <li><a href="{% url 'store_finance_dashboard' %}"><i class="fas fa-wallet text-success"></i> Finance Dashboard</a></li>
+                {% endif %}
+
+                <!-- INVENTORY / STORE KEEPER MODULES -->
+                {% if request.user.role == 'store_keeper' or request.user.is_superuser %}
+                <li class="menu-header">Inventory Control</li>
+                <li><a href="{% url 'store_keeper_dashboard' %}"><i class="fas fa-boxes text-primary"></i> Inventory Dashboard</a></li>
+                {% endif %}
+
+                <!-- RIDER MODULES -->
+                {% if request.user.role == 'rider' or request.user.is_superuser %}
+                <li class="menu-header">Delivery Logistics</li>
+                <li><a href="{% url 'store_rider_dashboard' %}"><i class="fas fa-motorcycle text-danger"></i> Rider Dashboard</a></li>
+                {% endif %}
+
+                <li class="menu-header">Portal Gateway</li>
+                <li><a href="{% url 'portal_gateway' %}"><i class="fas fa-th-large"></i> Go to Portal Gateway</a></li>
+            </ul>
+
+            <div class="sidebar-footer">
+                <div class="text-muted small">Logged in as:</div>
+                <div class="fw-bold text-white text-truncate">
+                    {% if request.user.get_full_name %}{{ request.user.get_full_name }}{% else %}{{ request.user.username }}{% endif %}
+                </div>
+                <div class="small text-muted mb-2">@{{ request.user.username }}</div>
+                
+                <div>
+                    {% if request.user.role and request.user.role != 'customer' and not request.user.is_superuser %}
+                        <span class="badge bg-success font-monospace text-wrap w-100 py-1" style="font-size: 0.72rem;">
+                            STAFF ID: {% if request.user.employee_id %}{{ request.user.employee_id }}{% elif request.user.staff_id %}{{ request.user.staff_id }}{% else %}NOT ASSIGNED{% endif %}
+                        </span>
+                    {% elif request.user.is_superuser %}
+                        <span class="badge bg-warning text-dark font-monospace text-wrap w-100 py-1" style="font-size: 0.72rem;">
+                            CEO SUPERUSER
+                        </span>
+                    {% else %}
+                        <span class="badge bg-primary font-monospace text-wrap w-100 py-1" style="font-size: 0.72rem;">
+                            CUST ID: {% if request.user.customer_id_number %}{{ request.user.customer_id_number }}{% else %}TECH-CUST-{{ request.user.id }}{% endif %}
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+        </nav>
+
+        <!-- MAIN APP CONTENT CONTAINER -->
+        <div class="app-main">
+            <!-- TOP UTILITY BAR -->
+            <div class="utility-bar">
+                <div class="d-flex align-items-center gap-2 gap-md-3">
+                    <button class="btn btn-sm btn-outline-dark d-lg-none" id="sidebarToggleBtn" onclick="toggleSidebar()">
+                        <i class="fas fa-bars"></i>
+                    </button>
+                    <div class="dropdown">
+                        <a class="dropdown-toggle fw-medium text-dark text-decoration-none text-truncate" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false" style="max-width: 180px; display: inline-block;">
+                            Account: <span class="text-secondary">{% if request.user.get_full_name %}{{ request.user.get_full_name }}{% else %}{{ request.user.username }}{% endif %}</span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><h6 class="dropdown-header text-uppercase text-muted">Manage Profile</h6></li>
+                            <li><a class="dropdown-item" href="{% url 'user_profile' %}">Profile & Credentials</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                            <li><a class="dropdown-item text-danger fw-semibold" href="{% url 'delete_account' %}">Delete Account</a></li>
+                        </ul>
+                    </div>
+                    <span class="role-chip d-none d-sm-inline-block">ROLE: {{ request.user.role|default:"CUSTOMER"|upper }}</span>
+                </div>
+                
+                <div class="d-flex align-items-center gap-3">
+                    <form action="{% url 'logout' %}" method="post" class="m-0">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-danger fw-semibold py-0 px-2">Logout</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- CORPORATE HEADER -->
+            <header class="corporate-header">
+                <div class="container-fluid d-flex justify-content-between align-items-center px-2 px-md-3">
+                    <a class="brand-logo fs-5 fs-md-4" href="{% url 'store_home' %}">TechsNi<span>Store</span></a>
+                    <div class="d-flex align-items-center gap-2">
+                        <a href="{% url 'customer_wishlist' %}" class="btn btn-wishlist-pro px-2 px-md-3">
+                            <i class="fas fa-heart text-danger me-1"></i> <span class="d-none d-sm-inline">Wishlist</span>
+                        </a>
+                        <a href="{% url 'store_cart' %}" class="btn btn-cart-pro px-2 px-md-3">
+                            <i class="fas fa-shopping-cart me-1"></i> <span class="d-none d-sm-inline">Cart</span>
+                        </a>
+                    </div>
+                </div>
+            </header>
+
+            <!-- CONTENT BODY -->
+            <main class="container-fluid p-2 p-md-4">
+                {% block content %}
+                {% endblock %}
+            </main>
+
+            <!-- FOOTER -->
+            <footer>
+                <div class="container text-center px-3">
+                    <p class="mb-0 small">&copy; 2026 TechsNi Systems</p>
+                </div>
+            </footer>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('appSidebar');
+            const backdrop = document.getElementById('sidebarBackdrop');
+            sidebar.classList.toggle('mobile-open');
+            backdrop.classList.toggle('show');
+        }
+    </script>
+</body>
+</html>

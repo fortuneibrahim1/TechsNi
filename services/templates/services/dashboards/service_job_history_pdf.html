@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>TechsNi Service Job History Report</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; color: #333; }
+        h2 { color: #b30000; text-align: center; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px 12px; font-size: 12px; text-align: left; }
+        th { background-color: #f4f4f4; color: #333; }
+        .text-right { text-align: right; }
+    </style>
+</head>
+<body onload="window.print();">
+    <h2>TechsNi Service Job History Report</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Client Name</th>
+                <th>Assigned Staff</th>
+                <th>Status</th>
+                <th>Total (₦)</th>
+                <th>Invoice</th>
+                <th>Archived Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in archives %}
+            <tr>
+                <td>#{{ item.job_id }}</td>
+                <td>{{ item.client_name }}</td>
+                <td>{{ item.assigned_staff }}</td>
+                <td>{{ item.job_flow_status }}</td>
+                <td>₦{{ item.total_amount }}</td>
+                <td>{{ item.invoice_number }}</td>
+                <td>{{ item.archived_at|date:"Y-m-d H:i" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" style="text-align: center; color: #777;">No archived job records found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

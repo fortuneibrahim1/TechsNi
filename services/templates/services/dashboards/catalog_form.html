@@ -1,0 +1,47 @@
+{% extends 'services/dashboards/base_dashboard.html' %}
+{% block content %}
+<div class="container py-4" style="max-width: 700px;">
+    <div class="card shadow-sm border-0 rounded-4 p-4 bg-white">
+        <h2 class="fw-bold mb-4 text-danger">{{ action }} Instruction Catalog</h2>
+        
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label fw-bold text-dark">Catalog Title (e.g., How to Register)</label>
+                <input type="text" name="title" class="form-control" value="{{ catalog.title }}" required>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold text-dark">Detailed Instruction Write-up</label>
+                <textarea name="description" rows="6" class="form-control" required>{{ catalog.description }}</textarea>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold text-dark">Display Order (Number)</label>
+                <input type="number" name="order" class="form-control" value="{{ catalog.order|default:0 }}">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-bold text-dark">Catalog Display Image (Optional)</label>
+                <input type="file" name="image" class="form-control">
+                {% if catalog.image %}
+                <small class="text-muted">Current: {{ catalog.image.name }}</small>
+                {% endif %}
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label fw-bold text-dark">Instruction Unique PDF (Optional)</label>
+                <input type="file" name="pdf_document" class="form-control">
+                {% if catalog.pdf_document %}
+                <small class="text-muted">Current: {{ catalog.pdf_document.name }}</small>
+                {% endif %}
+            </div>
+
+            <div class="d-flex justify-content-between">
+                <a href="{% url 'manage_catalogs' %}" class="btn btn-outline-secondary">Cancel</a>
+                <button type="submit" class="btn btn-danger px-4 fw-bold">Save Catalog</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

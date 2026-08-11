@@ -1,0 +1,57 @@
+{% extends 'store/base.html' %}
+
+{% block title %}Dispatch Media Logs - TechsNi Store{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <div class="card shadow-sm border-0 p-4 rounded-3">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="fw-bold mb-1"><i class="fas fa-shipping-fast text-warning me-2"></i> Dispatch & Media Audit Logs</h2>
+                <p class="text-muted small mb-0">Review all uploaded proof of delivery images, dispatch notes, and logistics logs.</p>
+            </div>
+            <a href="{% url 'ceo_dashboard' %}" class="btn btn-outline-dark btn-sm fw-bold">
+                <i class="fas fa-arrow-left me-1"></i> Back to CEO Control Panel
+            </a>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table align-middle table-hover">
+                <thead class="table-light">
+                    <tr>
+                        <th>Order ID</th>
+                        <th>Rider / Staff</th>
+                        <th>Dispatch Status</th>
+                        <th>Proof / Media</th>
+                        <th>Timestamp</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Loop through your dispatch logs passed from views.py -->
+                    {% for log in dispatch_logs %}
+                        <tr>
+                            <td class="fw-bold">#{{ log.order.id }}</td>
+                            <td>{{ log.rider.username|default:"N/A" }}</td>
+                            <td><span class="badge bg-info text-dark">{{ log.status|default:"Dispatched" }}</span></td>
+                            <td>
+                                {% if log.media_proof %}
+                                    <a href="{{ log.media_proof.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-image me-1"></i> View Proof
+                                    </a>
+                                {% else %}
+                                    <span class="text-muted small">No media attached</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ log.timestamp|date:"Y-m-d H:i" }}</td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">No dispatch logs or media proofs recorded yet.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

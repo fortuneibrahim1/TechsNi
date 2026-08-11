@@ -1,0 +1,106 @@
+{% extends 'services/dashboards/base_dashboard.html' %}
+{% load static %}
+
+{% block title %}Part-Payments Management - TechsNi Portal{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+    <div>
+        <h2 class="fw-bold mb-1">Part-Payments & Deposits Management</h2>
+        <p class="text-muted mb-0">Track all customer part-payments, balances, job dates, and current workflow statuses.</p>
+    </div>
+    <div class="d-flex gap-2">
+        <a href="?export=csv&status={{ selected_status }}&date_from={{ date_from }}&date_to={{ date_to }}&q={{ search_query }}" class="btn btn-success btn-sm fw-bold">
+            <i class="fas fa-file-excel me-1"></i> Export Excel
+        </a>
+        <button onclick="window.print();" class="btn btn-dark btn-sm fw-bold">
+            <i class="fas fa-print me-1"></i> Print / PDF
+        </button>
+    </div>
+</div>
+
+<!-- Filters & Search Form -->
+<form method="get" class="row g-3 mb-4 bg-white p-3 rounded shadow-sm border">
+    <div class="col-md-3">
+        <label class="form-label fw-bold small">Search Customer / ID</label>
+        <input type="text" name="q" value="{{ search_query }}" class="form-control form-control-sm" placeholder="ID or name...">
+    </div>
+    <div class="col-md-3">
+        <label class="form-label fw-bold small">Job Status Filter</label>
+        <select name="status" class="form-select form-select-sm">
+            <option value="">All Statuses (Persistent View)</option>
+            {% for key, val in status_choices %}
+                <option value="{{ key }}" {% if selected_status == key %}selected{% endif %}>{{ val }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-md-2">
+        <label class="form-label fw-bold small">From Date</label>
+        <input type="date" name="date_from" value="{{ date_from }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-md-2">
+        <label class="form-label fw-bold small">To Date</label>
+        <input type="date" name="date_to" value="{{ date_to }}" class="form-control form-control-sm">
+    </div>
+    <div class="col-md-2 d-flex align-items-end gap-1">
+        <button type="submit" class="btn btn-primary btn-sm w-100 fw-bold">Filter</button>
+        <a href="{% url 'finance_part_payments' %}" class="btn btn-secondary btn-sm">Reset</a>
+    </div>
+</form>
+
+<div class="card card-custom p-3 shadow-sm border-0">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0" style="table-layout: fixed; width: 100%;">
+            <thead class="table-dark">
+                <tr>
+                    <th style="width: 7%;">Job ID</th>
+                    <th style="width: 15%;">Customer</th>
+                    <th style="width: 14%;">Service Type</th>
+                    <th style="width: 11%;">Total Quoted</th>
+                    <th style="width: 11%;">Deposit Paid</th>
+                    <th style="width: 11%;">Balance Remaining</th>
+                    <th style="width: 11%;">Job Status</th>
+                    <th style="width: 9%;">Job Date</th>
+                    <th style="width: 11%;" class="text-end">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for job in jobs_list %}
+                <tr>
+                    <td class="fw-bold text-truncate">#{{ job.id }}</td>
+                    <td class="text-truncate" title="{{ job.customer.get_full_name|default:job.customer.username }}">{{ job.customer.get_full_name|default:job.customer.username }}</td>
+                    <td class="text-truncate" title="{{ job.job_type.name|default:'General Repair' }}">{{ job.job_type.name|default:"General Repair" }}</td>
+                    <td class="fw-bold text-truncate">₦{{ job.quotation.total_amount|default:"0.00" }}</td>
+                    <td class="text-success fw-bold text-truncate">₦{{ job.quotation.deposit_amount|default:"0.00" }}</td>
+                    <td class="text-danger fw-bold text-truncate">₦{{ job.quotation.balance_amount|default:"0.00" }}</td>
+                    <td>
+                        <span class="badge bg-info text-dark text-wrap" style="max-width: 100%;">{{ job.get_status_display }}</span>
+                    </td>
+                    <td class="small text-muted text-truncate" title="{{ job.created_at|date:'Y-m-d H:i' }}">{{ job.created_at|date:"Y-m-d H:i" }}</td>
+                    <td class="text-end">
+                        {% if not job.quotation.is_deposit_paid %}
+                            <form method="POST" class="d-inline">
+                                {% csrf_token %}
+                                <input type="hidden" name="job_id" value="{{ job.id }}">
+                                <button type="submit" class="btn btn-sm btn-success fw-bold shadow-sm px-2 py-1" style="font-size: 0.75rem;">
+                                    <i class="bi bi-check-circle-fill me-1"></i> Confirm
+                                </button>
+                            </form>
+                        {% else %}
+                            <span class="badge bg-success" style="font-size: 0.75rem;">Confirmed</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="9" class="text-center py-4 text-muted">
+                        <i class="bi bi-wallet2 display-6 d-block mb-2 text-secondary"></i>
+                        No part-payment records found matching your criteria.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

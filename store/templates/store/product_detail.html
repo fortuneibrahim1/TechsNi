@@ -1,0 +1,308 @@
+{% extends 'store/base.html' %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="row">
+        <!-- Product Media Section -->
+        <div class="col-lg-6 mb-4">
+            
+            <!-- Main Display Box: Centralized and expanded -->
+            <div class="card shadow-sm mb-3 bg-black text-center position-relative overflow-hidden rounded d-flex align-items-center justify-content-center" style="height: 450px;">
+                
+                <!-- Left Arrow Navigation Button -->
+                <button onclick="prevMedia()" class="btn text-white position-absolute top-50 start-0 translate-middle-y px-3 py-2 fw-bold shadow" style="z-index: 20; background: rgba(0,0,0,0.7); font-size: 26px; border: none; border-top-right-radius: 6px; border-bottom-right-radius: 6px;">
+                    &#10094;
+                </button>
+
+                <!-- Media Content Area -->
+                <div id="mediaDisplayContainer" class="w-100 h-100 d-flex align-items-center justify-content-center p-0">
+                    {% if product.image %}
+                        <img src="{{ product.image.url }}" class="w-100 h-100 rounded" alt="{{ product.name }}" style="object-fit: contain; max-height: 450px;">
+                    {% else %}
+                        <div class="text-center p-5 text-muted bg-white rounded w-100">No Image Available</div>
+                    {% endif %}
+                </div>
+
+                <!-- Right Arrow Navigation Button -->
+                <button onclick="nextMedia()" class="btn text-white position-absolute top-50 end-0 translate-middle-y px-3 py-2 fw-bold shadow" style="z-index: 20; background: rgba(0,0,0,0.7); font-size: 26px; border: none; border-top-left-radius: 6px; border-bottom-left-radius: 6px;">
+                    &#10095;
+                </button>
+            </div>
+
+            <!-- Fully Lined-Up Thumbnail Row (Images + Videos) -->
+            <div class="d-flex flex-row overflow-auto py-2" style="gap: 10px; width: 100%;">
+                <!-- Main Product Image Thumbnail -->
+                {% if product.image %}
+                    <div style="flex: 0 0 85px; height: 75px;" class="media-thumb-item" data-type="image" data-url="{{ product.image.url }}">
+                        <div class="thumbnail-wrapper border rounded overflow-hidden cursor-pointer h-100 shadow-sm">
+                            <img src="{{ product.image.url }}" class="w-100 h-100" style="object-fit: cover;" alt="Main image">
+                        </div>
+                    </div>
+                {% endif %}
+
+                <!-- Additional Gallery Images Thumbnails -->
+                {% for img in product.additional_images.all %}
+                    <div style="flex: 0 0 85px; height: 75px;" class="media-thumb-item" data-type="image" data-url="{{ img.image.url }}">
+                        <div class="thumbnail-wrapper border rounded overflow-hidden cursor-pointer h-100 shadow-sm">
+                            <img src="{{ img.image.url }}" class="w-100 h-100" style="object-fit: cover;" alt="Gallery image">
+                        </div>
+                    </div>
+                {% endfor %}
+
+                <!-- Product Videos Thumbnails -->
+                {% for vid in product.product_videos.all %}
+                    <div style="flex: 0 0 95px; height: 75px;" class="media-thumb-item" data-type="video" data-url="{{ vid.video_file.url }}">
+                        <div class="thumbnail-wrapper border rounded overflow-hidden cursor-pointer bg-dark d-flex flex-column align-items-center justify-content-center text-white h-100 shadow-sm">
+                            <i class="fas fa-play-circle fa-lg mb-1 text-danger"></i>
+                            <span style="font-size: 10px;">Video Demo</span>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Product Details & Purchase Section -->
+        <div class="col-lg-6">
+            {% if product.category %}
+                <span class="badge bg-secondary mb-2">{{ product.category.name }}</span>
+            {% endif %}
+            {% if product.internal_brand_tag %}
+                <span class="badge bg-info text-dark mb-2">{{ product.internal_brand_tag }}</span>
+            {% endif %}
+            
+            <h1 class="fw-bold mb-3">{{ product.name }}</h1>
+
+            <!-- Celebration / Promo Pricing Display Logic -->
+            <div class="mb-3">
+                {% if product.promo_price %}
+                    <h3 class="text-danger fw-bold d-inline-block me-2">₦{{ product.promo_price }}</h3>
+                    <h5 class="text-muted text-decoration-line-through d-inline-block">₦{{ product.price }}</h5>
+                    <span class="badge bg-dark ms-2">Promo Active</span>
+                {% elif product.discount_price %}
+                    <h3 class="text-success fw-bold d-inline-block me-2">₦{{ product.discount_price }}</h3>
+                    <h5 class="text-muted text-decoration-line-through d-inline-block">₦{{ product.price }}</h5>
+                    <span class="badge bg-success ms-2">Discounted</span>
+                {% else %}
+                    <h3 class="text-primary fw-bold">₦{{ product.price }}</h3>
+                {% endif %}
+            </div>
+
+            <!-- Stock & Partial Payment Status -->
+            <div class="mb-3">
+                {% if product.stock_quantity > 0 %}
+                    <span class="badge bg-success">In Stock ({{ product.stock_quantity }} available)</span>
+                {% else %}
+                    <span class="badge bg-danger">Out of Stock</span>
+                {% endif %}
+
+                {% if product.allow_partial_payment %}
+                    <span class="badge bg-warning text-dark ms-2">Partial Payment Allowed ({{ product.partial_deposit_percentage }}% Deposit)</span>
+                {% endif %}
+            </div>
+
+            <!-- Product Description -->
+            <div class="mb-4">
+                <h5 class="fw-bold">Description</h5>
+                <p class="text-muted">{{ product.description }}</p>
+            </div>
+
+            <!-- Action Buttons (Add to Cart & Wishlist) -->
+            <div class="mb-4">
+                {% if product.stock_quantity > 0 %}
+                    <form action="{% url 'store_add_to_cart' product.id %}" method="POST" class="d-flex flex-wrap gap-2 align-items-center">
+                      {% csrf_token %}
+                      <div class="d-flex align-items-center gap-2 me-2">
+                          <label for="quantity" class="fw-bold text-muted small mb-0">Qty:</label>
+                          <input type="number" name="quantity" id="quantity" value="1" min="1" max="{{ product.stock_quantity }}" class="form-control text-center rounded-0" style="width: 80px;" required>
+                      </div>
+                      <button type="submit" class="btn btn-primary btn-lg flex-grow-1 rounded-0 fw-bold">
+                          <i class="fas fa-shopping-cart me-2"></i> Add to Cart
+                      </button>
+                      {% if request.user.is_authenticated %}
+                          <a href="{% url 'toggle_wishlist' product.id %}" class="btn btn-outline-danger btn-lg rounded-0">
+                              <i class="{% if is_wishlisted %}fas{% else %}far{% endif %} fa-heart"></i> 
+                              {% if is_wishlisted %}Wishlisted{% else %}Wishlist{% endif %}
+                          </a>
+                      {% endif %}
+                    </form>
+                {% else %}
+                    <div class="d-flex gap-2">
+                      <button class="btn btn-secondary btn-lg w-100 rounded-0" disabled>
+                          <i class="fas fa-ban me-2"></i> Out of Stock
+                      </button>
+                      {% if request.user.is_authenticated %}
+                          <a href="{% url 'toggle_wishlist' product.id %}" class="btn btn-outline-danger btn-lg rounded-0">
+                              <i class="{% if is_wishlisted %}fas{% else %}far{% endif %} fa-heart"></i>
+                          </a>
+                      {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Customer Reviews Section -->
+            <hr class="my-4">
+            <h4 class="mb-3">Customer Ratings & Reviews</h4>
+            <div class="reviews-list mb-4" style="max-height: 250px; overflow-y: auto;">
+                {% if ratings %}
+                    {% for rating in ratings %}
+                      <div class="card mb-2 shadow-sm rounded-0">
+                          <div class="card-body py-2">
+                              <div class="d-flex justify-content-between">
+                                  <h6 class="fw-bold mb-1">{{ rating.customer.username }}</h6>
+                                  <span class="text-warning">
+                                      {% for i in "12345" %}
+                                          {% if forloop.counter <= rating.rating_score %}★{% else %}☆{% endif %}
+                                      {% endfor %}
+                                  </span>
+                              </div>
+                              <p class="mb-0 text-muted small">{{ rating.comment }}</p>
+                          </div>
+                      </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted">No reviews yet for this product.</p>
+                {% endif %}
+            </div>
+
+            <!-- Interactive Star Rating & Review Submission Component -->
+            {% if request.user.is_authenticated %}
+            <div class="card shadow-sm border-0 rounded-0 p-4 bg-light">
+                <h5 class="fw-bold mb-3">Rate & Review This Product</h5>
+                
+                <form method="POST" action="{% url 'submit_product_rating' product.id %}">
+                    {% csrf_token %}
+                    
+                    <!-- Interactive Star Selector -->
+                    <div class="mb-3">
+                        <label class="form-label text-muted small fw-bold">Select Your Star Rating:</label>
+                        <div class="star-rating-interactive d-flex gap-2 fs-4" style="cursor: pointer;">
+                            <i class="far fa-star text-warning star-icon" data-value="1"></i>
+                            <i class="far fa-star text-warning star-icon" data-value="2"></i>
+                            <i class="far fa-star text-warning star-icon" data-value="3"></i>
+                            <i class="far fa-star text-warning star-icon" data-value="4"></i>
+                            <i class="far fa-star text-warning star-icon" data-value="5"></i>
+                        </div>
+                        <input type="hidden" name="rating" id="selectedRatingValue" value="5">
+                    </div>
+
+                    <!-- Review Comment Box -->
+                    <div class="mb-3">
+                        <label for="reviewComment" class="form-label text-muted small fw-bold">Your Review Comments:</label>
+                        <textarea class="form-control rounded-0" id="reviewComment" name="comment" rows="3" placeholder="Share your experience with this gadget..."></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-dark rounded-0 fw-bold px-4">Submit Review</button>
+                </form>
+            </div>
+            {% else %}
+            <div class="alert alert-secondary rounded-0 py-2 small">
+                <a href="{% url 'login' %}" class="alert-link">Log in</a> to submit your rating and review for this product.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- JavaScript to handle switching media and interactive star rating UI smoothly -->
+<script>
+    const mediaItems = [];
+    const thumbElements = document.querySelectorAll('.media-thumb-item');
+    
+    thumbElements.forEach((item, index) => {
+        mediaItems.push({
+            type: item.getAttribute('data-type'),
+            url: item.getAttribute('data-url')
+        });
+
+        item.addEventListener('click', () => {
+            currentIndex = index;
+            renderCurrentMedia();
+        });
+    });
+
+    let currentIndex = 0;
+
+    function renderCurrentMedia() {
+        if (mediaItems.length === 0) return;
+        const current = mediaItems[currentIndex];
+        const container = document.getElementById('mediaDisplayContainer');
+
+        if (current.type === 'video') {
+            container.innerHTML = `
+                <video controls autoplay class="w-100 h-100 rounded" style="object-fit: contain; max-height: 450px;">
+                    <source src="${current.url}" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            `;
+        } else {
+            container.innerHTML = `
+                <img src="${current.url}" class="w-100 h-100 rounded" alt="Product Media" style="object-fit: contain; max-height: 450px;">
+            `;
+        }
+
+        thumbElements.forEach((thumbItem, idx) => {
+            const thumbWrapper = thumbItem.querySelector('.thumbnail-wrapper');
+            if (idx === currentIndex) {
+                thumbWrapper.classList.add('border-primary', 'shadow');
+                thumbWrapper.style.borderWidth = '3px';
+            } else {
+                thumbWrapper.classList.remove('border-primary', 'shadow');
+                thumbWrapper.style.borderWidth = '1px';
+            }
+        });
+    }
+
+    function nextMedia() {
+        if (mediaItems.length === 0) return;
+        currentIndex = (currentIndex + 1) % mediaItems.length;
+        renderCurrentMedia();
+    }
+
+    function prevMedia() {
+        if (mediaItems.length === 0) return;
+        currentIndex = (currentIndex - 1 + mediaItems.length) % mediaItems.length;
+        renderCurrentMedia();
+    }
+
+    // Interactive Star Rating Hover & Click Script
+    document.addEventListener("DOMContentLoaded", function() {
+        const stars = document.querySelectorAll(".star-icon");
+        const ratingInput = document.getElementById("selectedRatingValue");
+        
+        if (stars.length > 0 && ratingInput) {
+            function updateStars(rating) {
+                stars.forEach((star, index) => {
+                    if (index < rating) {
+                        star.classList.remove("far");
+                        star.classList.add("fas");
+                    } else {
+                        star.classList.remove("fas");
+                        star.classList.add("far");
+                    }
+                });
+            }
+
+            // Default to 5 stars selected on load
+            updateStars(5);
+
+            stars.forEach((star, index) => {
+                star.addEventListener("mouseenter", function() {
+                    updateStars(index + 1);
+                });
+
+                star.addEventListener("click", function() {
+                    const val = index + 1;
+                    ratingInput.value = val;
+                });
+            });
+
+            const starContainer = document.querySelector(".star-rating-interactive");
+            if (starContainer) {
+                starContainer.addEventListener("mouseleave", function() {
+                    updateStars(parseInt(ratingInput.value));
+                });
+            }
+      }
+    });
+</script>
+{% endblock %}

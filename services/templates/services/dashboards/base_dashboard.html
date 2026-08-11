@@ -1,0 +1,422 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}TechsNi{% endblock %}</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background-color: #f8f9fa;
+            color: #212529;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        /* Sidebar styling for desktop with vertical scrolling */
+        .sidebar {
+            width: 260px;
+            height: 100vh;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background-color: #181a1e;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            z-index: 1040;
+            border-right: 1px solid #2a0a0d;
+            transition: transform 0.3s ease-in-out;
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .sidebar::-webkit-scrollbar-track {
+            background: #181a1e;
+        }
+        .sidebar::-webkit-scrollbar-thumb {
+            background: #3a1015;
+            border-radius: 4px;
+        }
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: #b30000;
+        }
+
+        .sidebar-brand {
+            font-size: 1.1rem;
+            font-weight: bold;
+            padding: 20px;
+            border-bottom: 1px solid #2a0a0d;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .sidebar-brand img {
+            max-height: 32px;
+            width: auto;
+        }
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            flex-grow: 1;
+        }
+        .sidebar-menu li a {
+            display: flex;
+            align-items: center;
+            padding: 14px 20px;
+            color: #adb5bd;
+            text-decoration: none;
+            font-weight: 500;
+            transition: all 0.2s ease-in-out;
+        }
+        .sidebar-menu li a:hover, .sidebar-menu li a.active {
+            background-color: rgba(179, 0, 0, 0.15);
+            color: #ffffff;
+            border-left: 4px solid #b30000;
+        }
+        .sidebar-menu li a i {
+            margin-right: 12px;
+            font-size: 1.1rem;
+        }
+        .sidebar-footer {
+            padding: 20px;
+            border-top: 1px solid #2a0a0d;
+            background-color: #141518;
+            margin-top: auto;
+        }
+        
+        .main-content {
+            margin-left: 260px;
+            padding: 40px;
+            background-color: #ffffff;
+            min-height: 100vh;
+            transition: margin 0.3s ease-in-out;
+        }
+
+        .mobile-top-bar {
+            display: none;
+            background-color: #181a1e;
+            color: white;
+            padding: 12px 20px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1030;
+            border-bottom: 1px solid #2a0a0d;
+        }
+
+        @media (max-width: 991.98px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+            .sidebar.mobile-show {
+                transform: translateX(0);
+            }
+            .main-content {
+                margin-left: 0 !important;
+                padding: 20px 15px;
+                margin-top: 60px;
+            }
+            .mobile-top-bar {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+            }
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+    <!-- Mobile Top Navigation Bar -->
+    <div class="mobile-top-bar">
+        <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-dark btn-sm border-secondary text-white" id="sidebarToggle">
+                <i class="bi bi-list fs-5"></i>
+            </button>
+            <span class="fw-bold">TechsNi</span>
+        </div>
+        <div>
+            <a href="{% url 'portal_gateway' %}" class="btn btn-outline-light btn-sm py-0 px-2 fs-7">Gateway</a>
+        </div>
+    </div>
+
+    <!-- Global Sidebar Navigation -->
+    <div class="sidebar" id="appSidebar">
+        <div class="d-flex flex-column">
+            <div class="sidebar-brand">
+                <img src="{% static 'services/images/logo.jpg' %}" alt="Logo" onerror="this.style.display='none'">
+                <span>TechsNi</span>
+            </div>
+            <ul class="sidebar-menu mt-3">
+                {% if request.user.role == 'ceo' or request.user.is_superuser %}
+                    <li>
+                        <a href="{% url 'ceo_dashboard' %}">
+                            <i class="bi bi-speedometer2"></i> Live Dashboard
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'ceo_jobs' %}">
+                            <i class="bi bi-briefcase"></i> Job Approvals & List
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'finance_dashboard' %}">
+                            <i class="bi bi-wallet2 text-success"></i> Finance Control
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'finance_po_list' %}">
+                            <i class="fas fa-file-contract text-info"></i> PO Approvals
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'service_job_history' %}">
+                            <i class="bi bi-clock-history text-danger"></i> Master Job History
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'assign_worker' %}">
+                            <i class="bi bi-person-badge-fill"></i> Assign Workers
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'ceo_users' %}">
+                            <i class="bi bi-people"></i> Users Directory
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'marketer_analytics' %}">
+                            <i class="bi bi-graph-up-arrow text-success"></i> Marketer Analytics
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'csr_dashboard' %}">
+                            <i class="bi bi-headset text-info"></i> Customer Service Desk
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'manage_catalogs' %}">
+                            <i class="bi bi-book-fill text-warning"></i> Manage User Catalogs
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'edit_site_config' %}">
+                            <i class="bi bi-gear-fill text-warning"></i> Edit Site & Policies
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'company_contact_settings' %}">
+                            <i class="bi bi-envelope-at-fill text-primary"></i> Invoice & Quote Contacts
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'service_bank_accounts' %}">
+                            <i class="bi bi-bank2 text-info"></i> Bank Accounts
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'ceo_admin_shortcut' %}" target="_blank">
+                            <i class="bi bi-shield-lock-fill" style="color: #ff4d4d;"></i> Django Admin Panel
+                        </a>
+                    </li>
+                {% elif request.user.role in 'manager,general_manager,assistant_manager'|cut:' ' %}
+                    <li>
+                        <a href="{% url 'manager_dashboard' %}">
+                            <i class="bi bi-speedometer2"></i> Manager Dashboard
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'manager_jobs' %}">
+                            <i class="bi bi-briefcase"></i> All Jobs & Approvals
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'finance_po_list' %}">
+                            <i class="fas fa-file-contract text-info"></i> PO Approvals
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'service_job_history' %}">
+                            <i class="bi bi-clock-history text-danger"></i> Job History Ledger
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'assign_worker' %}">
+                            <i class="bi bi-person-badge-fill"></i> Assign Workers
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'marketer_analytics' %}">
+                            <i class="bi bi-graph-up-arrow text-success"></i> Marketer Analytics
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'csr_dashboard' %}">
+                            <i class="bi bi-headset text-info"></i> Support Helpdesk Oversight
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'manage_catalogs' %}">
+                            <i class="bi bi-book-fill text-warning"></i> Manage User Catalogs
+                        </a>
+                    </li>
+                {% elif request.user.role == 'customer_service' %}
+                    <li>
+                        <a href="{% url 'csr_dashboard' %}">
+                            <i class="bi bi-headset text-info"></i> CSR Dashboard & Tickets
+                        </a>
+                    </li>
+                {% elif request.user.role == 'finance' %}
+                    <li>
+                        <a href="{% url 'finance_dashboard' %}">
+                            <i class="bi bi-wallet2"></i> Finance Dashboard
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'finance_quotations' %}">
+                            <i class="bi bi-file-earmark-text"></i> Approved Jobs (Quotes)
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'finance_part_payments' %}">
+                            <i class="bi bi-cash-coin text-warning"></i> Part-Payments (Deposits)
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'finance_invoices' %}">
+                            <i class="bi bi-receipt"></i> Completed Jobs (Invoices)
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'finance_po_list' %}">
+                            <i class="fas fa-file-contract text-info"></i> Purchase Orders (PO)
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'service_job_history' %}">
+                            <i class="bi bi-clock-history text-danger"></i> Job History & Archives
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'marketer_analytics' %}">
+                            <i class="bi bi-graph-up-arrow text-success"></i> Marketer Analytics
+                        </a>
+                    </li>
+                {% elif request.user.role == 'worker' %}
+                    <li>
+                        <a href="{% url 'worker_dashboard' %}">
+                            <i class="bi bi-tools"></i> Worker Dashboard
+                        </a>
+                    </li>
+                {% else %}
+                    <li>
+                        <a href="{% url 'customer_dashboard' %}">
+                            <i class="bi bi-speedometer2"></i> Customer Dashboard
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'customer_jobs_list' %}">
+                            <i class="bi bi-list-check" style="color: #ff4d4d;"></i> My Job Details & Tracking
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'customer_support_chat' %}">
+                            <i class="bi bi-chat-dots-fill text-info"></i> Support & AI Helpdesk
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </div>
+        
+        <!-- Bottom User Footer Section -->
+        <div class="sidebar-footer">
+            <div class="small text-muted mb-1">Signed in as:</div>
+            <div class="fw-bold text-white text-truncate mb-1">
+                {% if request.user.first_name or request.user.last_name %}
+                    {{ request.user.first_name }} {{ request.user.last_name }}
+                {% else %}
+                    @{{ request.user.username }}
+                {% endif %}
+            </div>
+
+            <div class="small text-warning fw-bold mb-2">
+                <i class="bi bi-person-badge me-1"></i>
+                {% if request.user.role == 'ceo' %}
+                    CEO
+                {% elif request.user.role == 'customer_service' %}
+                    Customer Service Rep
+                {% elif request.user.role == 'finance' %}
+                    Finance
+                {% elif request.user.role == 'worker' %}
+                    Worker
+                {% elif request.user.role == 'manager' %}
+                    Manager
+                {% elif request.user.role == 'general_manager' %}
+                    General Manager
+                {% elif request.user.role == 'assistant_manager' %}
+                    Assistant Manager
+                {% elif request.user.is_superuser %}
+                    CEO / Admin
+                {% else %}
+                    Customer
+                {% endif %}
+            </div>
+
+            {% if request.user.employee_id %}
+            <div class="small text-danger fw-bold mb-2">ID: {{ request.user.employee_id }}</div>
+            {% endif %}
+
+            <!-- Gateway / Switch Portal Button -->
+            <a href="{% url 'portal_gateway' %}" class="btn btn-outline-light btn-sm w-100 fw-bold mb-2">
+                <i class="bi bi-grid-fill"></i> Go to Gateway
+            </a>
+
+            <!-- Secure POST Logout Form -->
+            <form action="{% url 'logout' %}" method="post" class="w-100">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline-danger btn-sm w-100 fw-bold" style="border-color: #b30000; color: #ff8080;">
+                    <i class="bi bi-box-arrow-right"></i> Logout
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="main-content">
+        <div class="container-fluid">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        const sidebarToggle = document.getElementById('sidebarToggle');
+        const appSidebar = document.getElementById('appSidebar');
+        
+        if (sidebarToggle && appSidebar) {
+            sidebarToggle.addEventListener('click', () => {
+                appSidebar.classList.toggle('mobile-show');
+            });
+            
+            document.querySelector('.main-content').addEventListener('click', () => {
+                if (appSidebar.classList.contains('mobile-show')) {
+                    appSidebar.classList.remove('mobile-show');
+                }
+            });
+        }
+    </script>
+</body>
+</html>

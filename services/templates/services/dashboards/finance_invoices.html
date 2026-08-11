@@ -1,0 +1,125 @@
+{% extends 'services/dashboards/base_dashboard.html' %}
+{% block title %}Settled Jobs, Invoices & PO Review | TechsNi{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-md-12 mb-4">
+        <h2 class="fw-bold text-dark">Settled Jobs, Invoices & Purchase Orders</h2>
+        <p class="text-muted">Filter jobs, review incoming corporate POs, and manage statements of account.</p>
+    </div>
+
+    <div class="col-md-12 mb-4">
+        <div class="card p-4 border-0 shadow-sm" style="background: #ffffff; border: 1px solid #dee2e6 !important; border-radius: 12px;">
+            
+            <!-- Dropdown Filters Form -->
+            <form method="GET" class="row g-3 mb-4">
+                <div class="col-md-5">
+                    <label class="form-label fw-bold text-dark small">Filter by Status</label>
+                    <select name="status_filter" class="form-select">
+                        <option value="">All Statuses (Show All)</option>
+                        {% for st in all_statuses %}
+                            <option value="{{ st }}" {% if status_filter == st %}selected{% endif %}>{{ st|title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label fw-bold text-dark small">Filter by Model / Item</label>
+                    <select name="model_filter" class="form-select">
+                        <option value="">All Models</option>
+                        {% for mod in all_models %}
+                            {% if mod %}
+                                <option value="{{ mod }}" {% if model_filter == mod %}selected{% endif %}>{{ mod }}</option>
+                            {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100 me-1">Filter</button>
+                    <a href="{% url 'finance_invoices' %}" class="btn btn-outline-secondary">Reset</a>
+                </div>
+            </form>
+
+            <h4 class="card-title mb-3 text-dark">Jobs & PO Workflows List</h4>
+            <div class="table-responsive">
+                <table class="table align-middle mb-0 text-dark" style="border-color: #dee2e6;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid #b30000; color: #ffffff; background-color: #181a1e;">
+                            <th class="py-3 px-3">Job ID</th>
+                            <th class="py-3">Customer</th>
+                            <th class="py-3">Model / Item</th>
+                            <th class="py-3">Status / PO State</th>
+                            <th class="py-3">Actions / Documents & Statements</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for job in jobs %}
+                        <tr style="border-bottom: 1px solid #dee2e6;">
+                            <td class="py-3 px-3 fw-bold text-dark">#{{ job.id }}</td>
+                            <td class="py-3 text-secondary">
+                                <strong>{{ job.customer.first_name }} {{ job.customer.last_name }}</strong><br>
+                                <small class="text-muted">@{{ job.customer.username }}</small>
+                            </td>
+                            <td class="py-3 text-secondary">
+                                {{ job.model_type }}<br>
+                                <small class="text-muted">SN: {{ job.serial_number|default:"N/A" }}</small>
+                            </td>
+                            <td class="py-3">
+                                <span class="badge px-2 py-1 text-white mb-1" style="background-color: #b30000;">{{ job.status }}</span>
+                                {% if job.purchase_order %}
+                                    <br><span class="badge bg-dark text-warning small">PO: {{ job.purchase_order.get_status_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="py-3">
+                                <div class="d-flex flex-wrap gap-2 align-items-center">
+                                    <!-- Invoice Button -->
+                                    {% if job.invoice %}
+                                        <a href="{% url 'download_invoice_pdf' job.id %}" target="_blank" class="btn btn-sm btn-dark fw-bold">
+                                            <i class="bi bi-file-earmark-pdf me-1"></i> Invoice
+                                        </a>
+                                    {% endif %}
+
+                                    <!-- Quotation Button -->
+                                    {% if job.quotation %}
+                                        <a href="{% url 'download_quotation_pdf' job.id %}" target="_blank" class="btn btn-sm btn-outline-dark fw-bold">
+                                            <i class="bi bi-file-earmark-text me-1"></i> Quote
+                                        </a>
+                                    {% endif %}
+
+                                    <!-- PO Document / Review Link -->
+                                    {% if job.purchase_order %}
+                                        <a href="{% url 'finance_po_list' %}" class="btn btn-sm btn-warning text-dark fw-bold">
+                                            <i class="fas fa-file-contract me-1"></i> Review PO
+                                        </a>
+                                    {% endif %}
+
+                                    <!-- Statement of Account Upload Dropdown / Form Trigger -->
+                                    <button class="btn btn-sm btn-outline-success fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#statementUploadBox{{ job.id }}">
+                                        <i class="fas fa-upload me-1"></i> Upload Statement
+                                    </button>
+                                </div>
+
+                                <!-- Collapsible Statement Upload Form -->
+                                <div class="collapse mt-2 p-3 bg-light border rounded" id="statementUploadBox{{ job.id }}">
+                                    <form method="POST" action="{% url 'finance_upload_statement' job.id %}" enctype="multipart/form-data">
+                                        {% csrf_token %}
+                                        <label class="form-label small fw-bold">Upload Statement of Account (PDF)</label>
+                                        <input type="file" name="statement_pdf" class="form-control form-control-sm mb-2" required>
+                                        <button type="submit" class="btn btn-sm btn-success w-100 fw-bold">Submit Statement</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">
+                                <i class="bi bi-folder2-open display-6 d-block mb-2"></i>
+                                No jobs found matching this filter.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

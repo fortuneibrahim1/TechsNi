@@ -1,0 +1,54 @@
+{% extends 'store/base.html' %}
+{% block content %}
+<div class="container my-4">
+    <h2>My Assigned Return Pickups</h2>
+    <p class="text-muted">Manage your assigned pickups from customers and track return statuses.</p>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Request ID</th>
+                    <th>Customer & Address Info</th>
+                    <th>Current Rider Status</th>
+                    <th>Update Status Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in assigned_returns %}
+                <tr>
+                    <td>
+                        <span class="fw-bold">#{{ req.id }}</span><br>
+                        <small class="text-muted">{{ req.created_at|date:"Y-m-d H:i" }}</small>
+                    </td>
+                    <td>
+                        <strong>Customer:</strong> {{ req.customer.get_full_name|default:req.customer.username }}<br>
+                        <strong>Order:</strong> <a href="{% url 'store_order_detail' req.order.id %}">Order #{{ req.order.id }}</a><br>
+                        <small class="text-muted">Issue: {{ req.reason.reason_text }}</small>
+                    </td>
+                    <td>
+                        <span class="badge bg-warning text-dark">{{ req.get_rider_status_display }}</span>
+                    </td>
+                    <td>
+                        <form method="POST" action="{% url 'rider_return_status_update' req.id %}" class="d-flex gap-2">
+                            {% csrf_token %}
+                            <select name="rider_status" class="form-select form-select-sm" required>
+                                <option value="" selected disabled>Update status...</option>
+                                <option value="going_to_site">Going to Site</option>
+                                <option value="picked_up">Picked Up</option>
+                                <option value="delivered_to_store">Delivered to Store</option>
+                            </select>
+                            <button type="submit" class="btn btn-sm btn-primary">Update</button>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="4" class="text-center text-muted py-4">You have no assigned return pickups at the moment.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,354 @@
+{% extends 'store/base.html' %}
+
+{% block title %}General Manager Operations Portal - TechsNi Store{% endblock %}
+
+{% block content %}
+<div class="container-fluid my-4">
+    <div class="row">
+        <!-- Left Sidebar Navigation Card Box -->
+        <div class="col-md-3 col-lg-2 mb-4 mb-md-0">
+            <div class="card shadow-sm border-0 rounded-3 overflow-hidden">
+                <div class="bg-dark text-white p-3">
+                    <h5 class="text-uppercase fs-6 fw-bold mb-0"><i class="fas fa-user-tie me-2 text-info"></i> GM Operations Hub</h5>
+                </div>
+                <div class="card-body p-2 bg-light">
+                    <ul class="nav flex-column nav-pills gap-1">
+                        <li class="nav-item">
+                            <a class="nav-link active fw-bold py-2 px-3 rounded" href="#gmOverview" data-bs-toggle="tab">
+                                <i class="fas fa-tachometer-alt me-2"></i> Overview
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark py-2 px-3 rounded" href="#gmOrders" data-bs-toggle="tab">
+                                <i class="fas fa-shopping-bag me-2"></i> Order Pipeline
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark py-2 px-3 rounded" href="#gmStaff" data-bs-toggle="tab">
+                                <i class="fas fa-users me-2"></i> Staff Oversight
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark py-2 px-3 rounded" href="#gmRatings" data-bs-toggle="tab">
+                                <i class="fas fa-star text-warning me-2"></i> Customer Ratings
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark py-2 px-3 rounded" href="#gmAudits" data-bs-toggle="tab">
+                                <i class="fas fa-shield-alt me-2"></i> Operational Logs
+                            </a>
+                        </li>
+                        <!-- NEW ADDITION: GM Dispatch & Media Logs Tab Link -->
+                        <li class="nav-item">
+                            <a class="nav-link text-dark py-2 px-3 rounded" href="#gmRiderLogs" data-bs-toggle="tab">
+                                <i class="fas fa-shipping-fast text-info me-2"></i> Dispatch & Media Logs
+                            </a>
+                        </li>
+                    </ul>
+
+                    <hr class="my-3">
+                    
+                    <!-- Direct Management Shortcuts -->
+                    <div class="px-1 pb-1">
+                        <a href="{% url 'store_manager_dashboard' %}" class="btn btn-outline-dark btn-sm w-100 fw-bold shadow-sm py-2 mb-2">
+                            <i class="fas fa-tasks me-1"></i> Manager Panel
+                        </a>
+                        <a href="{% url 'store_keeper_dashboard' %}" class="btn btn-outline-primary btn-sm w-100 fw-bold shadow-sm py-2">
+                            <i class="fas fa-boxes me-1"></i> Stock Ledger
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Main Content Panel with Tabs -->
+        <div class="col-md-9 col-lg-10">
+            <div class="card shadow-sm border-0 p-4 mb-4 text-white rounded-3" style="background: linear-gradient(135deg, #1e3c72, #2a5298);">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                    <div>
+                        <h2 class="fw-bold mb-1"><i class="fas fa-user-tie me-2 text-info"></i> General Manager Operational Control</h2>
+                        <p class="mb-0 text-white-50">Supervise daily store operations, monitor fulfillment pipelines, track staff efficiency, and maintain workflow continuity.</p>
+                    </div>
+                    <!-- Quick Actions -->
+                    <div class="d-flex gap-2 flex-wrap">
+                        <a href="#gmRiderLogs" data-bs-toggle="tab" class="btn btn-info btn-sm fw-bold text-dark rounded-0 px-3">
+                            <i class="fas fa-shipping-fast me-1"></i> View Dispatch Media Logs
+                        </a>
+                        <a href="{% url 'store_finance_dashboard' %}" class="btn btn-light btn-sm fw-bold text-dark rounded-0 px-3">
+                            <i class="fas fa-wallet me-1 text-success"></i> Financial Ledger
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content">
+                <!-- 1. GM Overview Tab -->
+                <div class="tab-pane fade show active" id="gmOverview">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-3">
+                            <div class="card bg-info text-dark shadow-sm p-3 border-0 rounded-3">
+                                <h6 class="fw-semibold small">Total Revenue</h6>
+                                <h4 class="fw-bold mb-0">₦{{ total_revenue|default:"0.00" }}</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-success text-white shadow-sm p-3 border-0 rounded-3">
+                                <h6 class="fw-semibold small">Settled Revenue</h6>
+                                <h4 class="fw-bold mb-0">₦{{ recognized_revenue|default:"0.00" }}</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-warning text-dark shadow-sm p-3 border-0 rounded-3">
+                                <h6 class="fw-semibold small">Escrow Liability</h6>
+                                <h4 class="fw-bold mb-0">₦{{ total_escrow_liability|default:"0.00" }}</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="card bg-dark text-white shadow-sm p-3 border-0 rounded-3">
+                                <h6 class="fw-semibold small">Automated Tax Dues</h6>
+                                <h4 class="fw-bold mb-0">₦{{ estimated_tax|default:"0.00" }}</h4>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PENDING TAX RATE PROPOSALS APPROVAL BOX -->
+                    <div class="card shadow-sm border-0 p-4 mb-4 rounded-3 bg-white border-start border-4 border-primary">
+                        <h5 class="fw-bold text-dark mb-2"><i class="fas fa-file-invoice-dollar text-primary me-2"></i> Pending Tax Rate Proposals (Active VAT: {{ global_settings.vat_percentage }}%)</h5>
+                        <p class="text-muted small mb-3">Review tax rate percentage adjustments proposed by the Finance department before they go live across store checkouts.</p>
+
+                        {% if pending_tax_proposals %}
+                            <div class="table-responsive">
+                                <table class="table table-sm align-middle mb-0">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Proposed Rate</th>
+                                            <th>Proposed By</th>
+                                            <th>Date Submitted</th>
+                                            <th class="text-end">GM Sign-off Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for proposal in pending_tax_proposals %}
+                                            <tr>
+                                                <td class="fw-bold text-success fs-5">{{ proposal.proposed_percentage }}%</td>
+                                                <td>{{ proposal.proposed_by.username|default:"Finance Team" }}</td>
+                                                <td class="text-muted">{{ proposal.created_at|date:"M d, Y H:i" }}</td>
+                                                <td class="text-end">
+                                                    <form method="POST" class="d-inline">
+                                                        {% csrf_token %}
+                                                        <input type="hidden" name="proposal_id" value="{{ proposal.id }}">
+                                                        <button type="submit" name="action" value="approve_tax_proposal" class="btn btn-success btn-sm fw-bold rounded-0 px-3 me-1">Approve</button>
+                                                        <button type="submit" name="action" value="reject_tax_proposal" class="btn btn-outline-danger btn-sm fw-bold rounded-0 px-3">Reject</button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="text-muted small fst-italic">No pending tax rate proposals requiring your approval right now.</div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Operational Notice Box -->
+                    <div class="card border-info shadow-sm p-4 rounded-3 bg-white">
+                        <h5 class="fw-bold text-dark mb-2"><i class="fas fa-info-circle text-info me-2"></i> General Manager Executive Briefing</h5>
+                        <p class="text-muted mb-0">As General Manager, you hold full supervisory control over warehouse fulfillment, customer service resolutions, tax approvals, and operational task flows. Use the tabs above to review live activities.</p>
+                    </div>
+                </div>
+
+                <!-- 2. Order Pipeline Tab -->
+                <div class="tab-pane fade" id="gmOrders">
+                    <div class="card shadow-sm border-0 p-4 mb-4 rounded-3">
+                        <h4 class="fw-bold mb-3"><i class="fas fa-shopping-bag me-2 text-primary"></i> Live Order Processing Pipeline</h4>
+                        <div class="table-responsive">
+                            <table class="table align-middle table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Order ID</th>
+                                        <th>Customer</th>
+                                        <th>Total Amount</th>
+                                        <th>Stage / Status</th>
+                                        <th>Date Created</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for order in recent_orders %}
+                                        <tr>
+                                            <td class="fw-bold">#{{ order.id }}</td>
+                                            <td>{{ order.customer.username }}</td>
+                                            <td class="text-danger fw-bold">₦{{ order.total_amount }}</td>
+                                            <td><span class="badge bg-primary">{{ order.get_status_display|default:order.status }}</span></td>
+                                            <td>{{ order.created_at }}</td>
+                                        </tr>
+                                    {% empty %}
+                                        <tr><td colspan="5" class="text-center text-muted">No orders found in the pipeline.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Staff Oversight Tab -->
+                <div class="tab-pane fade" id="gmStaff">
+                    <div class="card shadow-sm border-0 p-4 mb-4 rounded-3">
+                        <h4 class="fw-bold mb-3"><i class="fas fa-users me-2 text-success"></i> Store Staff & Team Rosters</h4>
+                        <div class="table-responsive">
+                            <table class="table align-middle table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Username</th>
+                                        <th>Email</th>
+                                        <th>Assigned Role</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for u in all_users %}
+                                        {% if u.is_staff or u.role and u.role != 'customer' %}
+                                            <tr>
+                                                <td class="fw-bold">{{ u.username }}</td>
+                                                <td>{{ u.email|default:"No email provided" }}</td>
+                                                <td><span class="badge bg-dark">{{ u.role|title|default:"Staff" }}</span></td>
+                                                <td><span class="badge bg-success">Active Duty</span></td>
+                                            </tr>
+                                        {% endif %}
+                                    {% empty %}
+                                        <tr><td colspan="4" class="text-center text-muted">No specialized staff listed.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Customer Ratings Oversight Tab -->
+                <div class="tab-pane fade" id="gmRatings">
+                    <div class="card shadow-sm border-0 p-4 mb-4 rounded-3">
+                        <h4 class="fw-bold mb-3"><i class="fas fa-star me-2 text-warning"></i> Customer Product Ratings & Feedback</h4>
+                        <div class="table-responsive">
+                            <table class="table align-middle table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Customer</th>
+                                        <th>Product / Item</th>
+                                        <th>Rating</th>
+                                        <th>Review Comment</th>
+                                        <th>Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for rating in store_ratings %}
+                                        <tr>
+                                            <td class="fw-bold">{{ rating.customer.username }}</td>
+                                            <td>{{ rating.product.name|default:"General Store" }}</td>
+                                            <td>
+                                                <span class="text-warning fw-bold">
+                                                    {{ rating.rating_score }} / 5 <i class="fas fa-star"></i>
+                                                </span>
+                                            </td>
+                                            <td>{{ rating.comment|default:"No comment provided." }}</td>
+                                            <td><small class="text-muted">{{ rating.created_at|date:"Y-m-d H:i" }}</small></td>
+                                        </tr>
+                                    {% empty %}
+                                        <tr><td colspan="5" class="text-center text-muted">No customer ratings recorded yet.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. Operational Logs Tab -->
+                <div class="tab-pane fade" id="gmAudits">
+                    <div class="card shadow-sm border-0 p-4 mb-4 rounded-3">
+                        <h4 class="fw-bold mb-3"><i class="fas fa-shield-alt me-2 text-secondary"></i> Operational Activity Stream</h4>
+                        <div class="table-responsive">
+                            <table class="table align-middle table-hover small">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Timestamp</th>
+                                        <th>User</th>
+                                        <th>Role</th>
+                                        <th>Action Log</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for log in audit_logs %}
+                                        <tr>
+                                            <td>{{ log.timestamp|date:"Y-m-d H:i:s" }}</td>
+                                            <td class="fw-bold">{{ log.user.username|default:"System" }}</td>
+                                            <td><span class="badge bg-secondary">{{ log.role|title }}</span></td>
+                                            <td>{{ log.action }}</td>
+                                        </tr>
+                                    {% empty %}
+                                        <tr><td colspan="4" class="text-center text-muted">No operational logs recorded yet.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 6. Dispatch & Media Proof Logs Tab -->
+                <div class="tab-pane fade" id="gmRiderLogs">
+                    <div class="card shadow-sm border-0 p-4 mb-4 rounded-3">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h4 class="fw-bold mb-0"><i class="fas fa-shipping-fast text-info me-2"></i> Dispatch & Media Proof Logs</h4>
+                            <span class="badge bg-dark">Operations Monitoring</span>
+                        </div>
+                        <p class="text-muted small mb-4">Track proof-of-delivery photo uploads and active dispatch/delivery statuses across storefront orders.</p>
+                        
+                        <div class="table-responsive">
+                            <table class="table align-middle table-hover small">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Order ID</th>
+                                        <th>Assigned Rider</th>
+                                        <th>Customer</th>
+                                        <th>Order Status</th>
+                                        <th>Proof of Delivery Photo</th>
+                                        <th>Last Updated</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for order in rider_delivery_logs %}
+                                        <tr>
+                                            <td class="fw-bold">#{{ order.id }}</td>
+                                            <td>
+                                                {{ order.assigned_rider.username|default:"Unassigned" }}
+                                                {% if order.assigned_rider.id %}<span class="text-muted fw-normal">(#{{ order.assigned_rider.id }})</span>{% endif %}
+                                            </td>
+                                            <td>{{ order.customer.username }}</td>
+                                            <td>
+                                                <span class="badge {% if order.status == 'delivered' %}bg-success{% elif order.status == 'picked_up' %}bg-primary{% else %}bg-secondary{% endif %}">
+                                                    {{ order.get_status_display|default:order.status }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {% if order.delivery_proof_photo %}
+                                                    <a href="{{ order.delivery_proof_photo.url }}" target="_blank" class="btn btn-outline-primary btn-sm py-0 px-2">
+                                                        <i class="fas fa-image me-1"></i> View Photo
+                                                    </a>
+                                                {% else %}
+                                                    <span class="text-muted">No Photo Uploaded</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ order.updated_at|date:"Y-m-d H:i:s" }}</td>
+                                        </tr>
+                                    {% empty %}
+                                        <tr><td colspan="6" class="text-center text-muted py-4">No rider delivery proofs or logs recorded yet.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

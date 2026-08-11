@@ -1,0 +1,123 @@
+{% extends 'services/dashboards/base_dashboard.html' %}
+{% block title %}Ticket #{{ ticket.id }} Management{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-9">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <a href="{% url 'csr_dashboard' %}" class="btn btn-outline-secondary btn-sm mb-2"><i class="bi bi-arrow-left"></i> Back to Dashboard</a>
+                <h4>Ticket #{{ ticket.id }}: {{ ticket.subject }}</h4>
+                <p class="text-muted mb-0">Customer: <strong>{{ ticket.customer.get_full_name|default:ticket.customer.username }}</strong> | Assigned Agent: <strong>{{ ticket.assigned_agent.get_full_name|default:ticket.assigned_agent.username|default:"Unassigned" }}</strong></p>
+            </div>
+            {% if ticket.status != 'resolved' and ticket.status != 'closed' %}
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="resolve_ticket">
+                <button type="submit" class="btn btn-success fw-bold"><i class="bi bi-check-circle-fill"></i> Mark as Resolved</button>
+            </form>
+            {% else %}
+            <span class="badge bg-secondary fs-6 p-2">Ticket Resolved / Closed</span>
+            {% endif %}
+        </div>
+
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-body bg-light" style="height: 400px; overflow-y: auto;" id="agentChatContainer">
+                {% for msg in messages %}
+                    <div class="d-flex mb-3 {% if msg.sender_type == 'agent' %}justify-content-end{% else %}justify-content-start{% endif %}">
+                        <div class="p-3 rounded shadow-sm {% if msg.sender_type == 'agent' %}bg-dark text-white{% elif msg.sender_type == 'bot' %}bg-secondary text-white{% else %}bg-white border text-dark{% endif %}" style="max-width: 75%;">
+                            <div class="small fw-bold mb-1 opacity-75">
+                                {% if msg.sender_type == 'agent' %}{{ msg.sender.get_full_name|default:msg.sender.username }} (Staff)
+                                {% elif msg.sender_type == 'bot' %}AI System
+                                {% else %}{{ ticket.customer.get_full_name|default:ticket.customer.username }} (Customer){% endif %}
+                            </div>
+                            <div>{{ msg.message }}</div>
+                            <div class="text-end text-muted x-small mt-1" style="font-size: 0.7rem;">{{ msg.timestamp|date:"M d, H:i" }}</div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+            {% if ticket.status != 'resolved' and ticket.status != 'closed' %}
+            <div class="card-footer bg-white p-3">
+                <form method="POST" class="input-group" id="agent-chat-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="send_message">
+                    <input type="text" name="message" id="agent-input-field" class="form-control" placeholder="Type your reply to customer or click mic to dictate..." required autocomplete="off">
+                    
+                    <!-- Voice-to-Text Microphone Button for Agent -->
+                    <button type="button" id="agent-mic-btn" class="btn btn-outline-secondary" title="Click to record voice note">
+                        <i class="bi bi-mic-fill" id="agent-mic-icon"></i>
+                    </button>
+                    
+                    <button type="submit" class="btn btn-dark px-4"><i class="bi bi-send-fill"></i> Send Reply</button>
+                </form>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<script>
+    const agentChatContainer = document.getElementById('agentChatContainer');
+    agentChatContainer.scrollTop = agentChatContainer.scrollHeight;
+
+    // Voice-to-Text Speech Transcription for Support Staff
+    let mediaRecorder;
+    let audioChunks = [];
+    const micBtn = document.getElementById('agent-mic-btn');
+    const micIcon = document.getElementById('agent-mic-icon');
+    const inputField = document.getElementById('agent-input-field');
+
+    if (micBtn) {
+        micBtn.addEventListener('click', async () => {
+            if (!mediaRecorder || mediaRecorder.state === 'inactive') {
+                try {
+                    let stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    mediaRecorder = new MediaRecorder(stream);
+                    audioChunks = [];
+
+                    mediaRecorder.ondataavailable = event => {
+                        audioChunks.push(event.data);
+                    };
+
+                    mediaRecorder.onstop = async () => {
+                        let audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                        let formData = new FormData();
+                        formData.append('audio_file', audioBlob, 'voice_note.webm');
+                        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+                        inputField.placeholder = "Transcribing your voice...";
+                        
+                        try {
+                            let res = await fetch("{% url 'transcribe_voice_note' %}", {
+                                method: 'POST',
+                                body: formData
+                            });
+                            let result = await res.json();
+                            if (result.success) {
+                                inputField.value = result.text; // Inserts actual transcribed speech
+                            } else {
+                                alert("Transcription failed: " + (result.error || "Unknown error"));
+                            }
+                        } catch (err) {
+                            alert("Server error connecting to transcription service.");
+                        }
+                        inputField.placeholder = "Type your reply to customer or click mic to dictate...";
+                    };
+
+                    mediaRecorder.start();
+                    micIcon.classList.remove('bi-mic-fill');
+                    micIcon.classList.add('bi-stop-fill', 'text-danger');
+                    micBtn.title = "Click again to stop recording";
+                } catch (err) {
+                    alert("Microphone permission denied or unsupported browser.");
+                }
+            } else {
+                mediaRecorder.stop();
+                micIcon.classList.remove('bi-stop-fill', 'text-danger');
+                micIcon.classList.add('bi-mic-fill');
+                micBtn.title = "Click to record voice note";
+            }
+        });
+    }
+</script>
+{% endblock %}

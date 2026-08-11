@@ -1,0 +1,202 @@
+{% extends 'store/base.html' %}
+
+{% block title %}Shopping Cart & Orders Hub - TechsNi Store{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- LEFT SIDE: SHOPPING CART -->
+    <div class="col-lg-8 mb-4">
+        <h2 class="mb-4 fw-bold">Your Shopping Cart</h2>
+        
+        {% if cart %}
+            <div class="card shadow-sm border-0 rounded-0 p-4 mb-4">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Price</th>
+                            <th>Quantity</th>
+                            <th>Total</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for prod_id, item in cart.items %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        {% if item.image %}
+                                            <img src="{{ item.image }}" alt="{{ item.name }}" style="width: 50px; height: 50px; object-fit: cover;" class="rounded-0 me-3">
+                                        {% endif %}
+                                        <span class="fw-semibold">{{ item.name }}</span>
+                                    </div>
+                                </td>
+                                <td>₦{{ item.price }}</td>
+                                <td>
+                                    <!-- Quantity Adjustment Controls -->
+                                    <div class="input-group input-group-sm" style="width: 110px;">
+                                        <form method="POST" action="{% url 'update_cart_quantity' prod_id %}" class="d-inline">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="action" value="decrease">
+                                            <button type="submit" class="btn btn-outline-secondary rounded-0 px-2">-</button>
+                                        </form>
+                                        
+                                        <input type="text" class="form-control text-center bg-white px-1" value="{{ item.quantity }}" readonly>
+                                        
+                                        <form method="POST" action="{% url 'update_cart_quantity' prod_id %}" class="d-inline">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="action" value="increase">
+                                            <button type="submit" class="btn btn-outline-secondary rounded-0 px-2">+</button>
+                                        </form>
+                                    </div>
+                                </td>
+                                <td class="fw-bold">₦{% widthratio item.price 1 item.quantity %}</td>
+                                <td>
+                                    <form method="POST" action="{% url 'update_cart_quantity' prod_id %}" class="d-inline">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="remove">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger rounded-0">Remove</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <hr>
+                
+                <!-- Financial Summary & Shipping Breakdown -->
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-muted">Items Subtotal:</span>
+                        <span class="fw-semibold">₦{{ items_subtotal }}</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="text-muted">Shipping Fee <small class="text-info">(₦{{ global_settings.shipping_fee_below_threshold|floatformat:0 }} per item under ₦{{ global_settings.partial_payment_threshold|floatformat:0 }}, Free above)</small>:</span>
+                        <span class="fw-semibold">₦{{ shipping_fee }}</span>
+                    </div>
+                    <hr>
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h4 class="mb-0">Total Amount:</h4>
+                        <h4 class="text-danger fw-bold mb-0">₦{{ total_amount }}</h4>
+                    </div>
+                </div>
+
+                {% if requires_full_payment_only %}
+                    <div class="alert alert-warning rounded-0 py-2 small mb-3">
+                        <i class="bi bi-exclamation-triangle-fill"></i> Orders containing items under ₦{{ global_settings.partial_payment_threshold|floatformat:0 }} require 100% full payment at checkout.
+                    </div>
+                {% endif %}
+
+                <div class="d-flex justify-content-between align-items-center">
+                    <a href="{% url 'store_home' %}" class="btn btn-outline-secondary rounded-0">Continue Shopping</a>
+                    <a href="{% url 'store_checkout' %}" class="btn btn-dark rounded-0 btn-lg fw-bold px-4">Proceed to Checkout</a>
+                </div>
+            </div>
+        {% else %}
+            <div class="card border-0 shadow-sm rounded-0 p-5 text-center bg-white">
+                <div class="card-body">
+                    <h4 class="fw-bold mb-2">Your cart is empty!</h4>
+                    <p class="text-muted mb-4">Explore our store and add some amazing gadgets to your cart.</p>
+                    <a href="{% url 'store_home' %}" class="btn btn-dark rounded-0 fw-bold px-4 py-2">Start Shopping</a>
+                </div>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- RIGHT SIDE: ORDERS HUB & CATEGORIZED SIDEBAR -->
+    <div class="col-lg-4 mb-4">
+        <!-- ORDER CATEGORIES HUB -->
+        <div class="card border-0 shadow-sm rounded-0 overflow-hidden mb-4">
+            <div class="bg-dark text-white p-3">
+                <h6 class="mb-0 text-uppercase tracking-wider fw-bold">My Orders Hub</h6>
+                <small class="text-muted" style="font-size: 0.75rem;">Orders & History</small>
+            </div>
+            
+            <div class="list-group list-group-flush rounded-0">
+                <div class="bg-light px-3 py-2 fw-bold text-uppercase text-muted" style="font-size: 0.75rem;">Order Categories</div>
+                
+                <a href="{% url 'customer_orders_list' %}?status=pending" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 text-dark rounded-0">
+                    <span>Pending / Unprocessed Orders</span>
+                    <span class="badge bg-warning text-dark rounded-0">{{ pending_processing_orders.count }}</span>
+                </a>
+                <a href="{% url 'customer_orders_list' %}?status=pending_payment" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 text-dark rounded-0">
+                    <span>Pending Payments</span>
+                    <span class="badge bg-secondary rounded-0">{{ pending_payment_orders.count }}</span>
+                </a>
+                <a href="{% url 'customer_orders_list' %}?status=confirmed" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 text-dark rounded-0">
+                    <span>Paid & Confirmed Orders</span>
+                    <span class="badge bg-info text-dark rounded-0">{{ paid_confirmed_orders.count }}</span>
+                </a>
+                <a href="{% url 'customer_orders_list' %}?status=shipping" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 text-dark rounded-0">
+                    <span>Orders Out for Shipping</span>
+                    <span class="badge bg-primary rounded-0">{{ shipping_orders.count }}</span>
+                </a>
+                <a href="{% url 'customer_orders_list' %}?status=delivered" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 text-dark rounded-0">
+                    <span>Delivered & Completed Orders</span>
+                    <span class="badge bg-success rounded-0">{{ delivered_orders.count }}</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- RETURNS & REFUNDS HUB -->
+        <div class="card shadow-sm border-danger rounded-0">
+            <div class="card-header bg-danger text-white fw-bold rounded-0 d-flex justify-content-between align-items-center">
+                <span><i class="fas fa-undo-alt me-2"></i> RETURNS & REFUNDS</span>
+                <span class="badge bg-light text-danger">{{ customer_returns.count }}</span>
+            </div>
+            <div class="card-body p-0">
+                <ul class="list-group list-group-flush small">
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>Pending Review</span>
+                        <span class="badge bg-warning text-dark">{{ pending_returns.count }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>Approved / Processing</span>
+                        <span class="badge bg-info text-dark">{{ approved_returns.count }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>Refund Completed</span>
+                        <span class="badge bg-success">{{ completed_returns.count }}</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <span>Rejected Requests</span>
+                        <span class="badge bg-dark">{{ rejected_returns.count }}</span>
+                    </li>
+                </ul>
+                
+                <!-- Detailed list of recent return requests with clickable invoice and print links -->
+                <div class="p-3 bg-light border-top">
+                    <h6 class="fw-bold text-dark mb-2" style="font-size: 11px;"><i class="fas fa-history me-1"></i> Recent Return Logs:</h6>
+                    {% for ret in customer_returns|slice:":3" %}
+                        <div class="bg-white p-2 mb-2 border rounded-0 shadow-sm">
+                            <div class="d-flex justify-content-between text-muted" style="font-size: 10px;">
+                                <span>Return #{{ ret.id }}</span>
+                                <span>{{ ret.created_at|date:"M d, Y" }}</span>
+                            </div>
+                            <div class="fw-bold text-dark text-truncate" style="font-size: 11px;">
+                                Order #{{ ret.order.id }} - {{ ret.reason.reason_text|default:"Return Request" }}
+                            </div>
+                            <div class="mt-1 d-flex justify-content-between align-items-center">
+                                <span class="badge bg-secondary" style="font-size: 9px;">{{ ret.get_status_display }}</span>
+                                <span class="text-success fw-bold" style="font-size: 10px;">₦{{ ret.refund_amount }}</span>
+                            </div>
+                            <!-- Clickable Invoice & Print Actions -->
+                            <div class="mt-2 pt-2 border-top d-flex justify-content-between align-items-center" style="font-size: 10px;">
+                                <a href="{% url 'order_invoice' ret.order.id %}" class="text-decoration-none fw-bold text-dark">
+                                    <i class="fas fa-file-invoice me-1 text-danger"></i> View Invoice
+                                </a>
+                                <a href="{% url 'order_invoice' ret.order.id %}?print=true" target="_blank" class="text-decoration-none text-muted">
+                                    <i class="fas fa-print me-1"></i> Print
+                                </a>
+                            </div>
+                        </div>
+                    {% empty %}
+                        <p class="text-muted text-center mb-0" style="font-size: 11px;">No return or refund logs found.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}

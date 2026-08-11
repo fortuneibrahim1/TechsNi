@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TechsNi Portal Gateway</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    {% load static %}
+    <style>
+        body {
+            background: linear-gradient(135deg, #1f1c2c, #928dab);
+            color: #fff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .gateway-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            transition: transform 0.3s ease, background 0.3s ease;
+        }
+        .gateway-card:hover {
+            transform: translateY(-10px);
+            background: rgba(255, 255, 255, 0.2);
+        }
+        .company-logo {
+            width: 150px;
+            height: 150px;
+            object-fit: contain;
+            animation: float 3s ease-in-out infinite;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 10px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+            margin-bottom: 20px;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container text-center">
+        <!-- Company Logo & Greeting Header -->
+        <div class="mb-5">
+            <img src="{% static 'store/logo.jpg' %}" alt="TechsNi Logo" class="company-logo">
+            <h1 class="fw-bold mt-3">Hello, {% if request.user.get_full_name %}{{ request.user.get_full_name }}{% else %}{{ request.user.username }}{% endif %}!</h1>
+            <p class="lead text-light">Welcome to TechsNi. Where would you like to go today?</p>
+        </div>
+
+        <!-- Choice Cards -->
+        <div class="row justify-content-center g-4">
+            <!-- Service App Card -->
+            <div class="col-md-4">
+                <div class="gateway-card p-4 text-center h-100 d-flex flex-column justify-content-between">
+                    <div>
+                        <div class="fs-1 mb-3">🛠️</div>
+                        <h3 class="fw-bold">TechsNi Service</h3>
+                        <p class="text-light">Manage your service requests, bookings, technical tasks, and appointments.</p>
+                    </div>
+                    <div class="mt-4">
+                        <!-- Fixed: Routes appropriately based on user role -->
+                        {% if request.user.role == 'ceo' or request.user.is_superuser %}
+                            <a href="{% url 'ceo_dashboard' %}" class="btn btn-light fw-bold w-100 py-2 text-dark">Enter Service App</a>
+                        {% elif request.user.role in 'manager,general_manager,assistant_manager' %}
+                            <a href="{% url 'manager_dashboard' %}" class="btn btn-light fw-bold w-100 py-2 text-dark">Enter Service App</a>
+                        {% elif request.user.role == 'finance' %}
+                            <a href="{% url 'finance_dashboard' %}" class="btn btn-light fw-bold w-100 py-2 text-dark">Enter Service App</a>
+                        {% elif request.user.role == 'worker' %}
+                            <a href="{% url 'worker_dashboard' %}" class="btn btn-light fw-bold w-100 py-2 text-dark">Enter Service App</a>
+                        {% else %}
+                            <a href="{% url 'customer_jobs_list' %}" class="btn btn-light fw-bold w-100 py-2 text-dark">Enter Service App</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Store App Card -->
+            <div class="col-md-4">
+                <div class="gateway-card p-4 text-center h-100 d-flex flex-column justify-content-between" style="border-color: #f8991d;">
+                    <div>
+                        <div class="fs-1 mb-3">🛒</div>
+                        <h3 class="fw-bold" style="color: #f8991d;">TechsNi Store</h3>
+                        <p class="text-light">Shop gadgets, flash sales, place orders, and track your deliveries.</p>
+                    </div>
+                    <div class="mt-4">
+                        <a href="{% url 'store_home' %}" class="btn fw-bold w-100 py-2" style="background-color: #f8991d; color: #000;">Enter Store App</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Secure Logout Form -->
+        <div class="mt-5">
+            <form action="{% url 'logout' %}" method="post" class="d-inline">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-link text-white text-decoration-none small p-0 border-0 bg-transparent">Log Out of System</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

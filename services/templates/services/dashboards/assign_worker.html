@@ -1,0 +1,160 @@
+{% extends 'services/dashboards/base_dashboard.html' %}
+{% load static %}
+{% block title %}Worker Assignment{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <!-- Action Toolbar (Print / Save PDF) -->
+    <div class="d-flex justify-content-between align-items-center mb-4 d-print-none">
+        <div>
+            <h2 class="fw-bold mb-1" style="color: #1a1a1a;">Worker Assignment Portal</h2>
+            <p class="text-muted mb-0">Manage and allocate technicians in real time.</p>
+        </div>
+        <div>
+            <button onclick="window.print();" class="btn btn-outline-dark btn-sm me-2">
+                <i class="bi bi-printer"></i> Print Panel
+            </button>
+            <button onclick="window.print();" class="btn btn-sm text-white" style="background-color: #b30000;">
+                <i class="bi bi-file-earmark-pdf"></i> Save PDF
+            </button>
+        </div>
+    </div>
+
+    <!-- Alert Container -->
+    <div id="assignmentAlert" class="alert d-none shadow-sm" role="alert"></div>
+
+    <div class="row">
+        <!-- Assignment Form Column -->
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow-sm border-0">
+                <div class="card-header text-white fw-bold py-3" style="background-color: #b30000;">
+                    <i class="bi bi-tools me-2"></i> Assign Technician
+                </div>
+                <div class="card-body">
+                    <form id="workerAssignmentForm">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">Select Job / Ticket</label>
+                            <select name="job" class="form-select" required>
+                                <option value="">-- Choose Job --</option>
+                                {% for j in all_jobs %}
+                                <option value="{{ j.id }}">Job #{{ j.id }} - {{ j.model_type|default:"General" }} ({{ j.status }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold small">Select Worker</label>
+                            <select name="worker" class="form-select" required>
+                                <option value="">-- Choose Worker --</option>
+                                {% for w in workers %}
+                                <option value="{{ w.id }}">{{ w.username }} ({{ w.email }})</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <button type="submit" class="btn text-white w-100 py-2 shadow-sm" style="background-color: #b30000;">
+                            <i class="bi bi-check-circle-fill me-1"></i> Confirm Real-Time Assignment
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Assignments Table Column -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-dark text-white fw-bold py-3">
+                    <i class="bi bi-list-check me-2" style="color: #b30000;"></i> Active Worker Deployments
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" id="assignedJobsTable">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="py-3 px-3">Job ID</th>
+                                    <th class="py-3">Model / Details</th>
+                                    <th class="py-3">Assigned Worker</th>
+                                    <th class="py-3">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in active_assignments %}
+                                <tr id="row-job-{{ item.id }}">
+                                    <td class="fw-bold px-3">#{{ item.id }}</td>
+                                    <td>{{ item.model_type|default:"Repair Job" }}</td>
+                                    <td><span class="badge bg-secondary">{{ item.assigned_worker.username }}</span></td>
+                                    <td><span class="badge bg-success">{{ item.status|title }}</span></td>
+                                </tr>
+                                {% empty %}
+                                <tr id="empty-row">
+                                    <td colspan="4" class="text-center py-4 text-muted">No active worker assignments at the moment.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Real-Time Background AJAX Script -->
+<script>
+    document.getElementById('workerAssignmentForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const form = e.target;
+        const formData = new FormData(form);
+        const alertBox = document.getElementById('assignmentAlert');
+
+        fetch("{% url 'assign_worker' %}", {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            alertBox.classList.remove('d-none', 'alert-danger', 'alert-success');
+            if (data.success) {
+                alertBox.classList.add('alert-success');
+                alertBox.textContent = data.message;
+                form.reset();
+
+                // Live DOM table insertion without a manual refresh
+                const tableBody = document.querySelector('#assignedJobsTable tbody');
+                const emptyRow = document.getElementById('empty-row');
+                if (emptyRow) { emptyRow.remove(); }
+
+                let existingRow = document.getElementById(`row-job-${data.job_id}`);
+                if (existingRow) {
+                    existingRow.innerHTML = `
+                        <td class="fw-bold px-3">#${data.job_id}</td>
+                        <td>Updated Job</td>
+                        <td><span class="badge bg-secondary">${data.worker_name}</span></td>
+                        <td><span class="badge bg-success">${data.status}</span></td>
+                    `;
+                } else {
+                    const newTr = document.createElement('tr');
+                    newTr.id = `row-job-${data.job_id}`;
+                    newTr.innerHTML = `
+                        <td class="fw-bold px-3">#${data.job_id}</td>
+                        <td>Assigned Task</td>
+                        <td><span class="badge bg-secondary">${data.worker_name}</span></td>
+                        <td><span class="badge bg-success">${data.status}</span></td>
+                    `;
+                    tableBody.prepend(newTr);
+                }
+            } else {
+                alertBox.classList.add('alert-danger');
+                alertBox.textContent = data.error || "Assignment failed.";
+            }
+        })
+        .catch(error => {
+            alertBox.classList.remove('d-none', 'alert-success');
+            alertBox.classList.add('alert-danger');
+            alertBox.textContent = "A network error occurred.";
+        });
+    });
+</script>
+{% endblock %}

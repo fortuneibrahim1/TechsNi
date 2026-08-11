@@ -1,0 +1,33 @@
+{% extends 'services/dashboards/base_dashboard.html' %}
+{% block title %}Rate Support Experience{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm border-0 mt-5">
+            <div class="card-body p-4 text-center">
+                <h3 class="fw-bold mb-3"><i class="bi bi-star-fill text-warning"></i> Rate Your Support Experience</h3>
+                <p class="text-muted">How satisfied were you with the support provided for Ticket #{{ ticket.id }}?</p>
+                
+                <form method="POST" class="mt-4 text-start">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Select Star Rating (1 to 5):</label>
+                        <select name="score" class="form-select form-select-lg">
+                            <option value="5">⭐⭐⭐⭐⭐ (5 - Excellent)</option>
+                            <option value="4">⭐⭐⭐⭐ (4 - Very Good)</option>
+                            <option value="3">⭐⭐⭐ (3 - Satisfactory)</option>
+                            <option value="2">⭐⭐ (2 - Needs Improvement)</option>
+                            <option value="1">⭐ (1 - Poor)</option>
+                        </select>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Additional Feedback (Optional):</label>
+                        <textarea name="feedback" class="form-control" rows="3" placeholder="Tell us about your experience..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold">Submit Rating & Close Ticket</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

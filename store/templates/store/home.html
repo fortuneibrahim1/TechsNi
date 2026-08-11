@@ -1,0 +1,95 @@
+{% extends 'store/base.html' %}
+
+{% block title %}Shop - TechsNi Store{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Categories Sidebar -->
+    <div class="col-md-3 mb-4">
+        <div class="card shadow-sm border-0 p-3">
+            <h5 class="fw-bold mb-3" style="color: var(--brand-red);">Categories</h5>
+            <div class="list-group list-group-flush">
+                <a href="{% url 'store_home' %}" class="list-group-item list-group-item-action {% if not selected_category %}active border-0{% endif %}" {% if not selected_category %}style="background-color: var(--brand-red); color: white;"{% endif %}>
+                    All Products
+                </a>
+                {% for cat in categories %}
+                    <a href="{% url 'store_home' %}?category={{ cat.id }}" class="list-group-item list-group-item-action {% if selected_category == cat.id|stringformat:'s' %}active border-0{% endif %}" {% if selected_category == cat.id|stringformat:'s' %}style="background-color: var(--brand-red); color: white;"{% endif %}>
+                        {{ cat.name }}
+                    </a>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Product Grid -->
+    <div class="col-md-9">
+        <div class="p-4 mb-4 rounded text-white shadow-sm" style="background: linear-gradient(135deg, var(--brand-red), var(--brand-dark));">
+            <h1>{% if active_promo_theme %}{{ active_promo_theme.name }} Flash Sales{% else %}Flash Sales & Latest Gadgets{% endif %}</h1>
+            <p class="lead mb-0">Shop top-quality items with secure payments and fast delivery right to your door.</p>
+        </div>
+
+        <div class="row row-cols-1 row-cols-md-3 g-4">
+            {% for product in products %}
+                <div class="col">
+                    <div class="card h-100 shadow-sm border-0">
+                        {% if product.image %}
+                            <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.name }}" style="height: 200px; object-fit: cover;">
+                        {% else %}
+                            <div class="bg-secondary text-white d-flex align-items-center justify-content-center" style="height: 200px;">No Image</div>
+                        {% endif %}
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title text-truncate">{{ product.name }}</h5>
+                            
+                            <!-- Dynamic Pricing and Promo Badges -->
+                            <div class="mb-2">
+                                {% if active_promo_theme and product.promo_theme and product.promo_theme.id == active_promo_theme.id and product.promo_price %}
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="fw-bold text-danger fs-5">₦{{ product.promo_price }}</span>
+                                        <span class="text-muted text-decoration-line-through small">₦{{ product.price }}</span>
+                                    </div>
+                                    <span class="badge bg-danger mt-1" style="font-size: 10px;">{{ active_promo_theme.name }} PROMO</span>
+                                {% elif product.discount_price %}
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span class="fw-bold text-danger fs-5">₦{{ product.discount_price }}</span>
+                                        <span class="text-muted text-decoration-line-through small">₦{{ product.price }}</span>
+                                    </div>
+                                {% else %}
+                                    <p class="card-text fw-bold text-danger fs-5 mb-1">₦{{ product.price }}</p>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Stock status & quantity indicator -->
+                            <div class="mb-3">
+                                {% if product.stock_quantity <= 0 %}
+                                    <span class="badge bg-danger w-100 py-2">Out of Stock</span>
+                                {% else %}
+                                    <span class="text-muted small">In Stock: <strong>{{ product.stock_quantity }}</strong> available</span>
+                                {% endif %}
+                            </div>
+
+                            <div class="mt-auto">
+                                <a href="{% url 'store_product_detail' product.slug %}" class="btn btn-outline-dark w-100 mb-2">View Details</a>
+                                
+                                {% if product.stock_quantity > 0 %}
+                                    <!-- Add to cart form with custom quantity selector -->
+                                    <form action="{% url 'store_add_to_cart' product.id %}" method="POST" class="d-flex gap-2">
+                                        {% csrf_token %}
+                                        <input type="number" name="quantity" value="1" min="1" max="{{ product.stock_quantity }}" class="form-control text-center" style="max-width: 70px;" required>
+                                        <button type="submit" class="btn text-white fw-bold flex-grow-1" style="background-color: var(--brand-red);">Add to Cart</button>
+                                    </form>
+                                {% else %}
+                                    <button class="btn btn-secondary w-100" disabled>Sold Out</button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% empty %}
+                <div class="col-12">
+                    <div class="alert alert-warning text-center">No products available in this category right now. Check back soon!</div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends 'store/base.html' %}
+
+{% block title %}My Orders - TechsNi Store{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-4 fw-bold">My Orders Hub</h2>
+
+    {% if orders %}
+        <div class="card shadow-sm border-0 rounded-0 p-4">
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Date</th>
+                            <th>Total Amount</th>
+                            <th>Payment Status</th>
+                            <th>Fulfillment Status</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                            <tr>
+                                <td class="fw-bold">#{{ order.id }}</td>
+                                <td>{{ order.created_at|date:"M d, Y H:i" }}</td>
+                                <td>₦{{ order.total_amount }}</td>
+                                <td>
+                                    <span class="badge bg-secondary rounded-0">{{ order.get_payment_type_display|default:order.payment_type }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info text-dark rounded-0">{{ order.status }}</span>
+                                </td>
+                                <td>
+                                    <a href="{% url 'store_order_detail' order.id %}" class="btn btn-sm btn-dark rounded-0">View Details & Map</a>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% else %}
+        <div class="card border-0 shadow-sm rounded-0 p-5 text-center bg-white">
+            <h4 class="fw-bold mb-2">No orders found!</h4>
+            <p class="text-muted mb-4">You haven't placed any orders matching this category yet.</p>
+            <a href="{% url 'store_home' %}" class="btn btn-dark rounded-0 fw-bold px-4 py-2">Browse Store</a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

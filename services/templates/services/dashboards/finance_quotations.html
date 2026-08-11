@@ -1,0 +1,479 @@
+{% extends 'services/dashboards/base_dashboard.html' %}
+{% block title %}Approved Jobs & Quotations - TechsNi Portal{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="fw-bold mb-1" style="color: #1a1a1a;">Approved Jobs & Quotations</h2>
+        <p class="text-muted mb-0">Manage incoming quote requests, generate quotations, track deposits, and confirm final balance payments.</p>
+    </div>
+    <div>
+        <span class="badge bg-light text-dark border px-3 py-2 shadow-sm">
+            <i class="bi bi-shield-check text-danger me-1"></i> Financial Operations
+        </span>
+    </div>
+</div>
+
+<!-- Pending/Rejected Quotes Section -->
+{% if pending_quotes %}
+<div class="card card-custom mb-4 shadow-sm border-0">
+    <div class="card-header text-white fw-bold py-3" style="background-color: #b30000;">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i> Rejected / Revision Quotes
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="py-3 px-3">Job ID</th>
+                        <th class="py-3">Customer</th>
+                        <th class="py-3">Item / Model</th>
+                        <th class="py-3">Rejection Reason</th>
+                        <th class="py-3">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for job in pending_quotes %}
+                    <tr>
+                        <td class="fw-bold px-3 py-3" style="color: #1a1a1a;">#{{ job.id }}</td>
+                        <td class="py-3" style="color: #333333;">{{ job.customer.first_name }} {{ job.customer.last_name }} (@{{ job.customer.username }})</td>
+                        <td class="py-3" style="color: #333333;">{{ job.model_type }}</td>
+                        <td class="py-3"><span class="text-danger fw-semibold">{{ job.quotation.rejection_reason|default:"None specified" }}</span></td>
+                        <td class="py-3">
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#quoteModal-pending-{{ job.id }}">
+                                    <i class="bi bi-pencil-square"></i> Revise Quote
+                                </button>
+                                <button class="btn btn-sm text-white ms-1" style="background-color: #b30000;" data-bs-toggle="modal" data-bs-target="#advancedQuoteModal-pending-{{ job.id }}">
+                                    <i class="bi bi-file-earmark-richtext"></i> Pro Builder
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Render Modals for Pending Quotes Outside Table Responsive Container to Prevent Clipping -->
+{% for job in pending_quotes %}
+<!-- Standard Quote Revision Modal -->
+<div class="modal fade" id="quoteModal-pending-{{ job.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="job_id" value="{{ job.id }}">
+                <div class="modal-header border-bottom">
+                    <h5 class="modal-title fw-bold" style="color: #1a1a1a;">Revise Quotation for Job #{{ job.id }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Subtotal Amount (₦)</label>
+                        <input type="number" step="0.01" name="subtotal_amount" class="form-control" value="{{ job.quotation.subtotal_amount|default:'' }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Discount Amount (₦)</label>
+                        <input type="number" step="0.01" name="discount_amount" class="form-control" value="{{ job.quotation.discount_amount|default:'0.00' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">VAT / Tax Amount (₦)</label>
+                        <input type="number" step="0.01" name="vat_amount" class="form-control" value="{{ job.quotation.vat_amount|default:'0.00' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Deposit Percentage (%)</label>
+                        <input type="number" name="deposit_percentage" class="form-control" value="{{ job.quotation.deposit_percentage|default:'50' }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Validity Duration (Days)</label>
+                        <input type="number" name="validity_days" class="form-control" value="5" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Upload PDF Quotation (Optional)</label>
+                        <input type="file" name="quotation_pdf" class="form-control" accept=".pdf">
+                    </div>
+                </div>
+                <div class="modal-footer border-top">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" name="create_quote" class="btn btn-sm text-white" style="background-color: #b30000;">Resubmit Quote</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Advanced Pro Builder Modal for Pending Items -->
+<div class="modal fade" id="advancedQuoteModal-pending-{{ job.id }}" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content p-3 border-0 shadow">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="job_id" value="{{ job.id }}">
+                <div class="modal-header border-bottom pb-3">
+                    <div>
+                        <h4 class="fw-bold mb-0 text-danger text-uppercase" style="letter-spacing: 1px;">TechsNi</h4>
+                        <small class="text-muted">Professional Quotation Pro Builder</small>
+                    </div>
+                    <div class="text-end">
+                        <h5 class="fw-bold text-dark mb-0">QUOTATION</h5>
+                        <span class="text-muted small">Job Ref: #{{ job.id }}</span>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-4 bg-light p-3 rounded border">
+                        <div class="col-md-6 border-end">
+                            <h6 class="fw-bold text-secondary">From:</h6>
+                            <p class="mb-1 fw-bold text-dark">{{ company_profile.name|default:"TechsNi Services" }}</p>
+                            <p class="mb-1 text-muted small">{{ company_profile.address|default:"Admin Address" }}</p>
+                            <p class="mb-0 text-muted small">Phone: {{ company_profile.phone|default:"Support Line" }}</p>
+                        </div>
+                        <div class="col-md-6 ps-md-4">
+                            <h6 class="fw-bold text-secondary">Billed To (Customer):</h6>
+                            <p class="mb-1 fw-bold text-dark">{{ job.customer.first_name }} {{ job.customer.last_name }} (@{{ job.customer.username }})</p>
+                            <p class="mb-1 text-muted small">Registered Account Profile</p>
+                            <p class="mb-0 text-muted small">Item Model: {{ job.model_type }}</p>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="fw-bold mb-0 text-dark">Itemized Breakdown & Description</h6>
+                        <button type="button" class="btn btn-sm btn-outline-dark add-item-row" data-job-id="pending-{{ job.id }}">
+                            <i class="bi bi-plus-circle me-1"></i> Add Item
+                        </button>
+                    </div>
+                    <div class="table-responsive mb-3">
+                        <table class="table table-bordered align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Description / Parts</th>
+                                    <th style="width: 100px;">Qty</th>
+                                    <th style="width: 160px;">Unit Price (₦)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="item-rows-pending-{{ job.id }}">
+                                <tr>
+                                    <td><input type="text" name="item_description_1" class="form-control form-control-sm" value="Revision & Repair Service for {{ job.model_type }}" required></td>
+                                    <td><input type="number" name="item_qty_1" class="form-control form-control-sm" value="1" min="1" required></td>
+                                    <td><input type="number" step="0.01" name="item_price_1" class="form-control form-control-sm" value="{{ job.quotation.subtotal_amount|default:'' }}" placeholder="0.00" required></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Subtotal Amount (₦)</label>
+                            <input type="number" step="0.01" name="subtotal_amount" class="form-control" value="{{ job.quotation.subtotal_amount|default:'' }}" placeholder="0.00" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Discount Amount (₦)</label>
+                            <input type="number" step="0.01" name="discount_amount" class="form-control" value="{{ job.quotation.discount_amount|default:'0.00' }}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">VAT / Tax Amount (₦)</label>
+                            <input type="number" step="0.01" name="vat_amount" class="form-control" value="{{ job.quotation.vat_amount|default:'0.00' }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Deposit Required (%)</label>
+                            <input type="number" name="deposit_percentage" class="form-control" value="{{ job.quotation.deposit_percentage|default:'50' }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Validity Period (Days)</label>
+                            <input type="number" name="validity_days" class="form-control" value="7" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-top">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" name="create_quote" class="btn btn-sm text-white px-4" style="background-color: #b30000;">
+                        <i class="bi bi-send-fill me-1"></i> Save & Resubmit to Customer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endif %}
+
+<!-- Approved Jobs Awaiting Quotation -->
+<div class="card card-custom shadow-sm border-0">
+    <div class="card-header bg-dark text-white fw-bold py-3">
+        <i class="bi bi-file-earmark-text me-2" style="color: #b30000;"></i> Approved Jobs Awaiting Quotation / Deposit
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="py-3 px-3">Job ID</th>
+                        <th class="py-3">Customer</th>
+                        <th class="py-3">Model / SN</th>
+                        <th class="py-3">Status</th>
+                        <th class="py-3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for job in approved_jobs %}
+                    <tr>
+                        <td class="fw-bold px-3 py-3" style="color: #1a1a1a;">#{{ job.id }}</td>
+                        <td class="py-3" style="color: #333333;">{{ job.customer.first_name }} {{ job.customer.last_name }}</td>
+                        <td class="py-3" style="color: #333333;">{{ job.model_type }} <br><small class="text-muted">SN: {{ job.serial_number }}</small></td>
+                        <td class="py-3">
+                            {% if job.status == 'payment_submitted' %}
+                                <span class="badge bg-primary text-white">Payment Submitted (Verify)</span>
+                            {% elif not job.quotation %}
+                                <span class="badge bg-warning text-dark">Needs Quote</span>
+                            {% elif not job.quotation.is_deposit_paid %}
+                                <span class="badge bg-info text-dark">Quote Sent (Awaiting Deposit)</span>
+                            {% else %}
+                                <span class="badge bg-success">Deposit Paid</span>
+                            {% endif %}
+                        </td>
+                        <td class="py-3">
+                            {% if job.status == 'payment_submitted' %}
+                                <form method="post" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="quote_id" value="{{ job.quotation.id }}">
+                                    <input type="hidden" name="job_id" value="{{ job.id }}">
+                                    <button type="submit" name="confirm_partial_payment" value="true" class="btn btn-sm btn-success fw-bold">
+                                        <i class="bi bi-check2-all me-1"></i> Confirm Partial Payment
+                                    </button>
+                                </form>
+                            {% elif not job.quotation %}
+                                <div class="btn-group" role="group">
+                                    <button class="btn btn-sm text-white" style="background-color: #b30000;" data-bs-toggle="modal" data-bs-target="#quoteModal-approved-{{ job.id }}">
+                                        <i class="bi bi-plus-circle"></i> Create Quote
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-dark ms-1" data-bs-toggle="modal" data-bs-target="#advancedQuoteModal-approved-{{ job.id }}">
+                                        <i class="bi bi-file-earmark-richtext"></i> Pro Builder
+                                    </button>
+                                </div>
+                            {% elif not job.quotation.is_deposit_paid %}
+                                <form method="post" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="quote_id" value="{{ job.quotation.id }}">
+                                    <button type="submit" name="confirm_partial_payment" value="true" class="btn btn-sm btn-outline-success">
+                                        <i class="bi bi-check-circle"></i> Mark Deposit Paid
+                                    </button>
+                                </form>
+                            {% else %}
+                                <span class="text-muted small">Done</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-4 text-muted">No approved jobs requiring quotations at the moment.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Render Modals for Approved Jobs Outside Table Responsive Container -->
+{% for job in approved_jobs %}
+<!-- Standard Quote Creation Modal -->
+<div class="modal fade" id="quoteModal-approved-{{ job.id }}" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content border-0 shadow">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="job_id" value="{{ job.id }}">
+                <div class="modal-header border-bottom">
+                    <h5 class="modal-title fw-bold" style="color: #1a1a1a;">Create Quotation for Job #{{ job.id }}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Subtotal Amount (₦)</label>
+                        <input type="number" step="0.01" name="subtotal_amount" class="form-control" value="{{ job.quotation.subtotal_amount|default:'' }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Discount Amount (₦)</label>
+                        <input type="number" step="0.01" name="discount_amount" class="form-control" value="{{ job.quotation.discount_amount|default:'0.00' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">VAT / Tax Amount (₦)</label>
+                        <input type="number" step="0.01" name="vat_amount" class="form-control" value="{{ job.quotation.vat_amount|default:'0.00' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Deposit Percentage (%)</label>
+                        <input type="number" name="deposit_percentage" class="form-control" value="{{ job.quotation.deposit_percentage|default:'50' }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Validity Duration (Days)</label>
+                        <input type="number" name="validity_days" class="form-control" value="5" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Upload PDF Quotation (Optional)</label>
+                        <input type="file" name="quotation_pdf" class="form-control" accept=".pdf">
+                    </div>
+                </div>
+                <div class="modal-footer border-top">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" name="create_quote" class="btn btn-sm text-white" style="background-color: #b30000;">Send Quote</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Advanced Professional Quotation Pro Builder Modal for Approved Jobs -->
+<div class="modal fade" id="advancedQuoteModal-approved-{{ job.id }}" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content p-3 border-0 shadow">
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="job_id" value="{{ job.id }}">
+                <div class="modal-header border-bottom pb-3">
+                    <div>
+                        <h4 class="fw-bold mb-0 text-danger text-uppercase" style="letter-spacing: 1px;">TechsNi</h4>
+                        <small class="text-muted">Professional Quotation Pro Builder</small>
+                    </div>
+                    <div class="text-end">
+                        <h5 class="fw-bold text-dark mb-0">QUOTATION</h5>
+                        <span class="text-muted small">Job Ref: #{{ job.id }}</span>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="row mb-4 bg-light p-3 rounded border">
+                        <div class="col-md-6 border-end">
+                            <h6 class="fw-bold text-secondary">From:</h6>
+                            <p class="mb-1 fw-bold text-dark">{{ company_profile.name|default:"TechsNi Services" }}</p>
+                            <p class="mb-1 text-muted small">{{ company_profile.address|default:"Admin Address" }}</p>
+                            <p class="mb-0 text-muted small">Phone: {{ company_profile.phone|default:"Support Line" }}</p>
+                        </div>
+                        <div class="col-md-6 ps-md-4">
+                            <h6 class="fw-bold text-secondary">Billed To (Customer):</h6>
+                            <p class="mb-1 fw-bold text-dark">{{ job.customer.first_name }} {{ job.customer.last_name }} (@{{ job.customer.username }})</p>
+                            <p class="mb-1 text-muted small">Registered Account Profile</p>
+                            <p class="mb-0 text-muted small">Item Model: {{ job.model_type }} | SN: {{ job.serial_number }}</p>
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="fw-bold mb-0 text-dark">Itemized Breakdown & Description</h6>
+                        <button type="button" class="btn btn-sm btn-outline-dark add-item-row" data-job-id="approved-{{ job.id }}">
+                            <i class="bi bi-plus-circle me-1"></i> Add Item
+                        </button>
+                    </div>
+                    <div class="table-responsive mb-3">
+                        <table class="table table-bordered align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Description / Parts</th>
+                                    <th style="width: 100px;">Qty</th>
+                                    <th style="width: 160px;">Unit Price (₦)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="item-rows-approved-{{ job.id }}">
+                                <tr>
+                                    <td><input type="text" name="item_description_1" class="form-control form-control-sm" value="Repair & Diagnostic Service for {{ job.model_type }}" required></td>
+                                    <td><input type="number" name="item_qty_1" class="form-control form-control-sm" value="1" min="1" required></td>
+                                    <td><input type="number" step="0.01" name="item_price_1" class="form-control form-control-sm" placeholder="0.00" required></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Subtotal Amount (₦)</label>
+                            <input type="number" step="0.01" name="subtotal_amount" class="form-control" placeholder="0.00" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">Discount Amount (₦)</label>
+                            <input type="number" step="0.01" name="discount_amount" class="form-control" value="0.00">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold">VAT / Tax Amount (₦)</label>
+                            <input type="number" step="0.01" name="vat_amount" class="form-control" value="0.00">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Deposit Required (%)</label>
+                            <input type="number" name="deposit_percentage" class="form-control" value="50" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Validity Period (Days)</label>
+                            <input type="number" name="validity_days" class="form-control" value="7" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-top">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" name="create_quote" class="btn btn-sm text-white px-4" style="background-color: #b30000;">
+                        <i class="bi bi-send-fill me-1"></i> Save & Send to Customer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<!-- Final Balance Payment Confirmations Awaiting Finance Review -->
+<div class="card card-custom shadow-sm border-0 mt-4">
+    <div class="card-header bg-success text-white fw-bold py-3">
+        <i class="bi bi-wallet2 me-2"></i> Final Balance Payment Confirmations
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th class="py-3 px-3">Job ID</th>
+                        <th class="py-3">Customer</th>
+                        <th class="py-3">Model / SN</th>
+                        <th class="py-3">Balance Amount Due</th>
+                        <th class="py-3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for job in completed_jobs_pending_balance %}
+                    <tr>
+                        <td class="fw-bold px-3 py-3" style="color: #1a1a1a;">#{{ job.id }}</td>
+                        <td class="py-3" style="color: #333333;">{{ job.customer.first_name }} {{ job.customer.last_name }}</td>
+                        <td class="py-3" style="color: #333333;">{{ job.model_type }} <br><small class="text-muted">SN: {{ job.serial_number }}</small></td>
+                        <td class="py-3 fw-bold text-success">₦{{ job.quotation.balance_amount }}</td>
+                        <td class="py-3">
+                            <form method="post" action="{% url 'confirm_balance_paid' job.quotation.id %}" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-success fw-bold shadow-sm">
+                                    <i class="bi bi-check-circle-fill me-1"></i> Confirm Final Balance Paid
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center py-4 text-muted">No final balance payments pending confirmation.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('click', function (e) {
+    if (e.target && e.target.classList.contains('add-item-row')) {
+        const targetId = e.target.getAttribute('data-job-id');
+        const tbody = document.getElementById('item-rows-' + targetId);
+        const rowCount = tbody.rows.length + 1;
+        
+        const newRow = document.createElement('tr');
+        newRow.innerHTML = `
+            <td><input type="text" name="item_description_${rowCount}" class="form-control form-control-sm" placeholder="Part or service description" required></td>
+            <td><input type="number" name="item_qty_${rowCount}" class="form-control form-control-sm" value="1" min="1" required></td>
+            <td><input type="number" step="0.01" name="item_price_${rowCount}" class="form-control form-control-sm" placeholder="0.00" required></td>
+        `;
+        tbody.appendChild(newRow);
+    }
+});
+</script>
+{% endblock %}

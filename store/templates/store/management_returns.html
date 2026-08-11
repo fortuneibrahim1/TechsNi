@@ -1,0 +1,137 @@
+{% extends 'store/base.html' %}
+{% block content %}
+<div class="container-fluid my-4">
+    <h2>Management Return & Refund Dashboard</h2>
+    <p class="text-muted">Review customer return requests, inspect returned items, view item selections and media proofs, assign riders, or execute approvals and rejections.</p>
+
+    <!-- Search / Filter Form -->
+    <form method="GET" class="row g-3 mb-4 p-3 bg-light rounded shadow-sm">
+        <div class="col-md-3">
+            <input type="text" name="customer_name" class="form-control" placeholder="Customer Name" value="{{ request.GET.customer_name }}">
+        </div>
+        <div class="col-md-3">
+            <input type="text" name="username" class="form-control" placeholder="Username" value="{{ request.GET.username }}">
+        </div>
+        <div class="col-md-2">
+            <input type="number" step="0.01" name="amount" class="form-control" placeholder="Refund Amount" value="{{ request.GET.amount }}">
+        </div>
+        <div class="col-md-2">
+            <input type="date" name="date" class="form-control" value="{{ request.GET.date }}">
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary w-100">Filter</button>
+        </div>
+    </form>
+
+    <div class="mb-3">
+        <a href="{% url 'export_refunds_csv' %}" class="btn btn-success">Export Refunds Report (CSV)</a>
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-bordered table-striped align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>ID & Date</th>
+                    <th>Order & Customer</th>
+                    <th>Reason & Description</th>
+                    <th>Selected Items & Refund Total</th>
+                    <th>Media Proofs</th>
+                    <th>Status & Rider</th>
+                    <th>Action Controls</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for req in return_requests %}
+                <tr>
+                    <td>
+                        <span class="fw-bold">#{{ req.id }}</span><br>
+                        <small class="text-muted">{{ req.created_at|date:"Y-m-d H:i" }}</small>
+                    </td>
+                    <td>
+                        <a href="{% url 'store_order_detail' req.order.id %}" class="fw-bold">Order #{{ req.order.id }}</a><br>
+                        <span class="small text-muted">{{ req.customer.username }}</span>
+                    </td>
+                    <td>
+                        <span class="fw-bold text-danger">{{ req.reason.reason_text|default:"N/A" }}</span>
+                        <p class="small text-muted mb-0 mt-1" style="max-width: 200px;">{{ req.issue_description }}</p>
+                    </td>
+                    <td>
+                        <ul class="list-unstyled small mb-1">
+                            {% for r_item in req.returned_items.all %}
+                                <li class="d-flex align-items-center mb-1 border-bottom pb-1">
+                                    {% if r_item.order_item.product.image %}
+                                        <img src="{{ r_item.order_item.product.image.url }}" class="me-2 rounded-0 border" style="width: 30px; height: 30px; object-fit: cover;">
+                                    {% endif %}
+                                    <span>{{ r_item.quantity_to_return }}x {{ r_item.order_item.product.name }} (<strong class="text-danger">₦{{ r_item.refund_item_total }}</strong>)</span>
+                                </li>
+                            {% empty %}
+                                <li class="text-muted">No specific items logged.</li>
+                            {% endfor %}
+                        </ul>
+                        <div class="fw-bold small text-dark bg-light p-1 rounded">Total Refund: <span class="text-success">₦{{ req.refund_amount }}</span></div>
+                    </td>
+                    <td>
+                        <div class="d-flex flex-wrap gap-1 mb-1">
+                            {% if req.image_1 %}<a href="{{ req.image_1.url }}" target="_blank" class="btn btn-sm btn-outline-dark py-0 px-1 small">Img 1</a>{% endif %}
+                            {% if req.image_2 %}<a href="{{ req.image_2.url }}" target="_blank" class="btn btn-sm btn-outline-dark py-0 px-1 small">Img 2</a>{% endif %}
+                            {% if req.image_3 %}<a href="{{ req.image_3.url }}" target="_blank" class="btn btn-sm btn-outline-dark py-0 px-1 small">Img 3</a>{% endif %}
+                        </div>
+                        {% if req.video_proof %}
+                            <a href="{{ req.video_proof.url }}" target="_blank" class="btn btn-sm btn-danger py-0 px-1 small w-100"><i class="fas fa-video me-1"></i> View Video</a>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="badge bg-info text-dark d-block mb-1">{{ req.get_status_display }}</span>
+                        <span class="badge bg-secondary d-block">Rider Status: {{ req.get_rider_status_display }}</span>
+                        {% if req.assigned_rider %}
+                            <small class="text-muted d-block mt-1">Assigned: {{ req.assigned_rider.username }}</small>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <!-- Form to assign rider or approve/reject -->
+                        <form method="POST" class="p-2 border rounded bg-white" style="min-width: 220px;">
+                            {% csrf_token %}
+                            <input type="hidden" name="return_id" value="{{ req.id }}">
+                            
+                            <!-- Assign Rider Section -->
+                            <div class="mb-2">
+                                <label class="form-label small fw-bold mb-1">Assign Pickup Rider</label>
+                                <div class="input-group input-group-sm">
+                                    <select name="rider_id" class="form-select">
+                                        <option value="" selected disabled>Select Rider</option>
+                                        {% for rider in riders %}
+                                            <option value="{{ rider.id }}" {% if req.assigned_rider.id == rider.id %}selected{% endif %}>{{ rider.username }}</option>
+                                        {% empty %}
+                                            <option value="" disabled>No riders available</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button type="submit" name="action" value="assign_rider" class="btn btn-outline-primary">Assign</button>
+                                </div>
+                            </div>
+                            
+                            <!-- Inspection & Approval Section -->
+                            <div class="mb-2">
+                                <label class="form-label small fw-bold mb-1">Inspection Approval</label>
+                                <input type="text" name="inspection_notes" placeholder="Inspection notes..." value="{{ req.inspection_notes }}" class="form-control form-control-sm mb-1">
+                                <button type="submit" name="action" value="inspect_and_approve" class="btn btn-sm btn-success w-100 fw-bold">Approve & Send to Finance</button>
+                            </div>
+                            
+                            <!-- Rejection Section -->
+                            <div>
+                                <label class="form-label small fw-bold mb-1 text-danger">Rejection</label>
+                                <input type="text" name="rejection_reason_note" placeholder="Rejection reason..." value="{{ req.rejection_reason_note }}" class="form-control form-control-sm mb-1">
+                                <button type="submit" name="action" value="reject" class="btn btn-sm btn-outline-danger w-100 fw-bold">Reject Request</button>
+                            </div>
+                        </form>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="text-center text-muted py-4">No return requests found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

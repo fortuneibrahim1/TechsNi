@@ -1,0 +1,88 @@
+{% extends 'services/dashboards/base_dashboard.html' %}
+
+{% block title %}CEO User Directory | TechsNi{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-12 mb-4">
+        <h2 class="fw-bold text-dark">System Users Directory</h2>
+        <p class="text-muted">Manage system users and access user panels securely.</p>
+    </div>
+
+    <div class="col-md-12 mb-4">
+        <div class="card p-4 border-0 shadow-sm rounded-4 bg-white border">
+            <h4 class="card-title mb-3 text-dark">Registered Accounts & Panel Access Control</h4>
+            <div class="table-responsive">
+                <table class="table align-middle mb-0 text-dark">
+                    <thead>
+                        <tr class="text-white" style="background-color: #181a1e; border-bottom: 2px solid #b30000;">
+                            <th class="py-3 px-3">ID / Staff ID</th>
+                            <th class="py-3">Full Name</th>
+                            <th class="py-3">Username & Contact</th>
+                            <th class="py-3">Role</th>
+                            <th class="py-3">Custom Commission (%)</th>
+                            <th class="py-3">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for u in users %}
+                        <tr class="border-bottom">
+                            <td class="py-3 px-3 fw-bold text-dark">
+                                #{{ u.id }}
+                                {% if u.employee_id %}
+                                <br><span class="badge bg-secondary text-light fw-normal" style="font-size: 0.75rem;">{{ u.employee_id }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="py-3 text-secondary"><strong>{{ u.first_name }} {{ u.last_name }}</strong></td>
+                            <td class="py-3 text-secondary">
+                                @{{ u.username }}<br>
+                                <small class="text-muted">{{ u.phone_number|default:"No phone" }}</small>
+                            </td>
+                            <td class="py-3">
+                                <form action="{% url 'ceo_update_user_role' u.id %}" method="POST" class="d-flex align-items-center gap-2">
+                                    {% csrf_token %}
+                                    <select name="role" class="form-select form-select-sm w-auto">
+                                        <option value="customer" {% if u.role == 'customer' %}selected{% endif %}>Customer</option>
+                                        <option value="worker" {% if u.role == 'worker' %}selected{% endif %}>Worker</option>
+                                        <option value="marketer" {% if u.role == 'marketer' %}selected{% endif %}>Marketer</option>
+                                        <option value="finance" {% if u.role == 'finance' %}selected{% endif %}>Finance</option>
+                                        <option value="customer_service" {% if u.role == 'customer_service' %}selected{% endif %}>Customer Service</option>
+                                        <option value="manager" {% if u.role == 'manager' %}selected{% endif %}>Manager</option>
+                                        <option value="general_manager" {% if u.role == 'general_manager' %}selected{% endif %}>General Manager</option>
+                                        <option value="assistant_manager" {% if u.role == 'assistant_manager' %}selected{% endif %}>Assistant Manager</option>
+                                        <option value="ceo" {% if u.role == 'ceo' %}selected{% endif %}>CEO</option>
+                                    </select>
+                                    <button type="submit" class="btn btn-sm btn-primary">Update</button>
+                                </form>
+                            </td>
+                            <!-- --- CUSTOM COMMISSION PERCENTAGE INPUT FOR MARKETERS --- -->
+                            <td class="py-3">
+                                {% if u.role == 'marketer' %}
+                                <form action="{% url 'ceo_update_user_commission' u.id %}" method="POST" class="d-flex align-items-center gap-1">
+                                    {% csrf_token %}
+                                    <input type="number" step="0.01" name="commission_percentage" value="{{ u.commission_percentage|default:'' }}" placeholder="Default" class="form-control form-control-sm" style="width: 85px;" title="Leave blank to use global default">
+                                    <button type="submit" class="btn btn-sm btn-outline-dark" title="Save Commission">Save</button>
+                                </form>
+                                <small class="text-muted" style="font-size: 0.7rem;">Blank = Global</small>
+                                {% else %}
+                                <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td class="py-3">
+                                <a href="{% url 'ceo_impersonate_user' u.id %}" class="btn btn-outline-danger btn-sm fw-bold" style="border-color: #b30000; color: #b30000;" onclick="return confirm('Log in as {{ u.username }}?');">
+                                    <i class="bi bi-box-arrow-in-right"></i> Login as User Panel
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted py-4">No users found.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

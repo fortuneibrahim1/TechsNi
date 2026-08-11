@@ -1,0 +1,63 @@
+{% extends 'services/dashboards/base_dashboard.html' %}
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold text-dark">Instruction Catalogs</h2>
+        <a href="{% url 'add_catalog' %}" class="btn btn-danger fw-bold">
+            <i class="bi bi-plus-circle me-1"></i> Add New Catalog
+        </a>
+    </div>
+
+    <div class="card shadow-sm border-0 rounded-4">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>Order</th>
+                            <th>Title</th>
+                            <th>Image</th>
+                            <th>PDF</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in catalogs %}
+                        <tr>
+                            <td>{{ item.order }}</td>
+                            <td class="fw-bold">{{ item.title }}</td>
+                            <td>
+                                {% if item.image %}
+                                <span class="badge bg-success">Yes</span>
+                                {% else %}
+                                <span class="badge bg-secondary">No</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if item.pdf_document %}
+                                <span class="badge bg-primary">Yes</span>
+                                {% else %}
+                                <span class="badge bg-secondary">No</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <a href="{% url 'edit_catalog' item.id %}" class="btn btn-sm btn-outline-primary me-1">
+                                    <i class="bi bi-pencil-square"></i> Edit
+                                </a>
+                                <a href="{% url 'delete_catalog' item.id %}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Are you sure you want to delete this catalog?');">
+                                    <i class="bi bi-trash"></i> Delete
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted py-4">0 catalogs published yet.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

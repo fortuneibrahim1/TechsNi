@@ -1,0 +1,55 @@
+{% extends 'services/dashboards/base_dashboard.html' %}
+{% block title %}Edit Site Content & Policies{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h2 class="fw-bold mb-4">Edit Company Info, About Us & Policy PDFs</h2>
+    
+    <form method="POST" enctype="multipart/form-data" class="card shadow-sm border-0 p-4 bg-white rounded-4">
+        {% csrf_token %}
+        
+        <div class="mb-3">
+            <label class="form-label fw-bold">Company Name</label>
+            <input type="text" name="company_name" value="{{ config.company_name }}" class="form-control" required>
+        </div>
+
+        <!-- --- ADDED COMMISSION PERCENTAGE INPUT FIELD --- -->
+        <div class="mb-3">
+            <label class="form-label fw-bold">Marketer Commission Percentage (%)</label>
+            <input type="number" step="0.01" name="commission_percentage" value="{{ config.commission_percentage }}" class="form-control" required>
+            <small class="text-muted">This updates the global commission rate applied to marketers.</small>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-bold">About Us Content</label>
+            <textarea name="about_text" rows="6" class="form-control">{{ config.about_text }}</textarea>
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label fw-bold">About Us PDF Document (Optional)</label>
+            <input type="file" name="about_pdf" class="form-control">
+            {% if config.about_pdf %}
+                <small class="text-muted">Current: <a href="{{ config.about_pdf.url }}" target="_blank">View PDF</a></small>
+            {% endif %}
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label fw-bold">Company Policy Text</label>
+            <textarea name="policy_text" rows="6" class="form-control">{{ config.policy_text }}</textarea>
+        </div>
+
+        <div class="mb-4">
+            <label class="form-label fw-bold">Company Policy PDF Document (Optional)</label>
+            <input type="file" name="policy_pdf" class="form-control">
+            {% if config.policy_pdf %}
+                <small class="text-muted">Current: <a href="{{ config.policy_pdf.url }}" target="_blank">View PDF</a></small>
+            {% endif %}
+        </div>
+
+        <div>
+            <button type="submit" class="btn btn-primary">Save All Changes</button>
+            <a href="{% url 'dashboard_router' %}" class="btn btn-secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

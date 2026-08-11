@@ -1,0 +1,670 @@
+{% extends 'store/base.html' %}
+
+{% block title %}CEO Master Control Panel - TechsNi Store{% endblock %}
+
+{% block content %}
+<div class="container-fluid my-4">
+    <div class="row">
+        <!-- Left Sidebar Navigation Card Box -->
+        <div class="col-md-3 col-lg-2 mb-4 mb-md-0">
+            <div class="card shadow-sm border-0 rounded-3 overflow-hidden">
+                <div class="bg-dark text-white p-3">
+                    <h5 class="text-uppercase fs-6 fw-bold mb-0"><i class="fas fa-crown me-2 text-warning"></i> CEO Control Hub</h5>
+                </div>
+                <div class="card-body p-2 bg-light">
+                    <ul class="nav flex-column nav-pills gap-1">
+                        <li class="nav-item">
+                            <a class="nav-link active fw-bold py-2 px-3 rounded" href="#overview" data-bs-toggle="tab">
+                                <i class="fas fa-tachometer-alt me-2"></i> Overview
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark py-2 px-3 rounded" href="#transactions" data-bs-toggle="tab">
+                                <i class="fas fa-chart-line me-2"></i> Transactions
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark py-2 px-3 rounded" href="#bankAccounts" data-bs-toggle="tab">
+                                <i class="fas fa-university me-2"></i> Bank Accounts
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark py-2 px-3 rounded" href="#workflowStages" data-bs-toggle="tab">
+                                <i class="fas fa-tasks me-2"></i> Workflow Control
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark py-2 px-3 rounded" href="#userManagement" data-bs-toggle="tab">
+                                <i class="fas fa-users-cog me-2"></i> User & Roles
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark py-2 px-3 rounded" href="#idManagement" data-bs-toggle="tab">
+                                <i class="fas fa-id-badge me-2 text-warning"></i> ID Privileges
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark py-2 px-3 rounded" href="#themeManager" data-bs-toggle="tab">
+                                <i class="fas fa-palette me-2"></i> Theme Manager
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark py-2 px-3 rounded" href="#policies" data-bs-toggle="tab">
+                                <i class="fas fa-file-alt me-2"></i> Global & Policies
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark py-2 px-3 rounded" href="#ratings" data-bs-toggle="tab">
+                                <i class="fas fa-star me-2"></i> System Ratings
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-dark py-2 px-3 rounded" href="#audits" data-bs-toggle="tab">
+                                <i class="fas fa-shield-alt me-2"></i> Audit Logs
+                            </a>
+                        </li>
+                        <!-- NEW ADDITION: Direct Tab Link to Rider Delivery & Proof Logs -->
+                        <li class="nav-item">
+                            <a class="nav-link text-info fw-bold py-2 px-3 rounded" href="#riderLogs" data-bs-toggle="tab">
+                                <i class="fas fa-shipping-fast me-2"></i> Dispatch Media Logs
+                            </a>
+                        </li>
+                    </ul>
+
+                    <hr class="my-3">
+                    
+                    <!-- Direct Django Admin Link -->
+                    <div class="px-1 pb-1">
+                        <a href="{% url 'admin:index' %}" target="_blank" class="btn btn-outline-dark btn-sm w-100 fw-bold shadow-sm py-2">
+                            <i class="fas fa-cogs me-1"></i> Django Admin <i class="fas fa-external-link-alt ms-1 small"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Right Main Content Panel with Tabs -->
+        <div class="col-md-9 col-lg-10">
+            <div class="card shadow-sm border-0 p-4 mb-4 text-white rounded-3" style="background: linear-gradient(135deg, #222, #444);">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                    <div>
+                        <h2 class="fw-bold mb-1"><i class="fas fa-user-shield me-2 text-warning"></i> CEO Master Control Panel</h2>
+                        <p class="mb-0 text-white-50">Supreme administrative override, official ID assignment privileges, global store parameters, and security audits.</p>
+                    </div>
+                    <!-- Quick Navigation to Rider Logs Tab -->
+                    <div>
+                        <a href="#riderLogs" data-bs-toggle="tab" class="btn btn-warning btn-sm fw-bold text-dark rounded-0 px-3">
+                            <i class="fas fa-camera-retro me-1"></i> View All Dispatch Media Proofs
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content">
+                <!-- 1. Overview Tab -->
+                <div class="tab-pane fade show active" id="overview">
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <div class="card bg-primary text-white shadow-sm p-3 border-0 rounded-3">
+                                <h6>Total Revenue</h6>
+                                <h3 class="fw-bold mb-0">₦{{ total_revenue|default:"0.00" }}</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-success text-white shadow-sm p-3 border-0 rounded-3">
+                                <h6>Estimated Tax ({{ global_settings.vat_percentage|default:"7.5" }}% VAT)</h6>
+                                <h3 class="fw-bold mb-0">₦{{ estimated_tax|default:"0.00"|floatformat:2 }}</h3>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="card bg-dark text-white shadow-sm p-3 border-0 rounded-3">
+                                <h6>Registered Users</h6>
+                                <h3 class="fw-bold mb-0">{{ all_users|length|default:"0" }}</h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Supreme Notice Box -->
+                    <div class="card border-warning shadow-sm p-4 rounded-3 bg-white">
+                        <h5 class="fw-bold text-dark mb-2"><i class="fas fa-crown text-warning me-2"></i> Supreme Executive Privileges Active</h5>
+                        <p class="text-muted mb-0">As CEO, you hold exclusive authorization to assign official Staff and Customer ID numbers directly across all user management portals, override stages, and permanently manage/delete storefront jobs.</p>
+                    </div>
+                </div>
+
+                <!-- 2. Transactions Tab -->
+                <div class="tab-pane fade" id="transactions">
+                    <div class="card shadow-sm border-0 p-4 mb-4 rounded-3">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h4 class="fw-bold mb-0">Recent Store Transactions</h4>
+                            <a href="{% url 'export_ceo_transactions_csv' %}" class="btn btn-outline-dark btn-sm fw-bold">
+                                <i class="fas fa-download me-1"></i> Export Transactions CSV
+                            </a>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table align-middle table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Order ID</th>
+                                        <th>Customer</th>
+                                        <th>Total Amount</th>
+                                        <th>Status</th>
+                                        <th>Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for order in recent_orders %}
+                                        <tr>
+                                            <td class="fw-bold">#{{ order.id }}</td>
+                                            <td>{{ order.customer.username }}</td>
+                                            <td class="text-danger fw-bold">₦{{ order.total_amount }}</td>
+                                            <td><span class="badge bg-dark">{{ order.get_status_display|default:order.status }}</span></td>
+                                            <td>{{ order.created_at }}</td>
+                                        </tr>
+                                    {% empty %}
+                                        <tr><td colspan="5" class="text-center text-muted">No orders recorded yet.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. Company Bank Accounts Tab -->
+                <div class="tab-pane fade" id="bankAccounts">
+                    <div class="card shadow-sm border-0 p-4 mb-4 rounded-3 border">
+                        <h4 class="fw-bold mb-3 text-primary"><i class="fas fa-university me-2"></i> Company Bank Account Management</h4>
+                        <p class="text-muted small">Configure the bank account details displayed to customers when making payments on their orders.</p>
+                        
+                        <form method="POST" class="bg-light p-4 rounded-3 mb-4 border">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="save_bank_account">
+                            <h5 class="fw-bold mb-3 text-dark">Add New / Update Bank Account</h5>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold small text-muted">Bank Name</label>
+                                    <input type="text" name="bank_name" class="form-control" placeholder="e.g. Zenith Bank, Moniepoint" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold small text-muted">Account Number</label>
+                                    <input type="text" name="account_number" class="form-control" placeholder="e.g. 1029384756" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-semibold small text-muted">Account Name</label>
+                                    <input type="text" name="account_name" class="form-control" placeholder="e.g. TechsNi Enterprise" required>
+                                </div>
+                                <div class="col-12">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="is_active" id="isActiveBank" checked>
+                                        <label class="form-check-label fw-semibold text-dark" for="isActiveBank">
+                                            Set as Active Account for Customer Checkout
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <button type="submit" class="btn btn-primary fw-bold px-4">Save & Publish Account</button>
+                                </div>
+                            </div>
+                        </form>
+
+                        <h5 class="fw-bold mb-3">Configured Bank Accounts</h5>
+                        <div class="table-responsive">
+                            <table class="table align-middle table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Bank Name</th>
+                                        <th>Account Number</th>
+                                        <th>Account Name</th>
+                                        <th>Status</th>
+                                        <th class="text-end">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for acc in bank_accounts %}
+                                        <tr>
+                                            <td class="fw-bold">{{ acc.bank_name }}</td>
+                                            <td>{{ acc.account_number }}</td>
+                                            <td>{{ acc.account_name }}</td>
+                                            <td>
+                                                {% if acc.is_active %}
+                                                    <span class="badge bg-success">Active</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">Inactive</span>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-end">
+                                                <form method="POST" class="d-inline">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="action" value="save_bank_account">
+                                                    <input type="hidden" name="account_id" value="{{ acc.id }}">
+                                                    <input type="hidden" name="bank_name" value="{{ acc.bank_name }}">
+                                                    <input type="hidden" name="account_number" value="{{ acc.account_number }}">
+                                                    <input type="hidden" name="account_name" value="{{ acc.account_name }}">
+                                                    {% if not acc.is_active %}
+                                                        <input type="hidden" name="is_active" value="on">
+                                                        <button type="submit" class="btn btn-sm btn-outline-success">Set Active</button>
+                                                    {% endif %}
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    {% empty %}
+                                        <tr><td colspan="5" class="text-center text-muted">No bank accounts added yet.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. Workflow & Stage Control Tab -->
+                <div class="tab-pane fade" id="workflowStages">
+                    <div class="card shadow-sm border-0 p-4 mb-4 rounded-3">
+                        <h4 class="fw-bold mb-2">Order Workflow, Stage Control & Job Management</h4>
+                        <p class="text-muted small">Manually advance order stages or permanently delete troubled jobs/orders from the platform.</p>
+                        
+                        <div class="table-responsive">
+                            <table class="table align-middle table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Order ID</th>
+                                        <th>Customer</th>
+                                        <th>Current Stage / Status</th>
+                                        <th class="text-end">CEO Override & Job Management</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for order in recent_orders %}
+                                        <tr>
+                                            <td class="fw-bold">#{{ order.id }}</td>
+                                            <td>{{ order.customer.username }}</td>
+                                            <td><span class="badge bg-warning text-dark">{{ order.get_status_display|default:order.status }}</span></td>
+                                            <td class="text-end">
+                                                <div class="d-inline-flex gap-2 justify-content-end align-items-center flex-wrap">
+                                                    <form method="POST" class="d-inline-flex gap-1 align-items-center">
+                                                        {% csrf_token %}
+                                                        <input type="hidden" name="action" value="ceo_override_stage">
+                                                        <input type="hidden" name="order_id" value="{{ order.id }}">
+                                                        <select name="new_status" class="form-select form-select-sm w-auto">
+                                                            <option value="pending_payment">Pending Payment</option>
+                                                            <option value="partial_payment_submitted">Partial Payment Submitted</option>
+                                                            <option value="order_ready">Order Ready</option>
+                                                            <option value="picked_up">Picked Up / Dispatched</option>
+                                                            <option value="delivered">Delivered (Closed)</option>
+                                                        </select>
+                                                        <button type="submit" class="btn btn-sm btn-dark fw-bold">Force Update</button>
+                                                    </form>
+
+                                                    <form method="POST" class="d-inline" onsubmit="return confirm('WARNING: Are you sure you want to permanently delete order #{{ order.id }}? This action cannot be undone.');">
+                                                        {% csrf_token %}
+                                                        <input type="hidden" name="action" value="delete_order">
+                                                        <input type="hidden" name="order_id" value="{{ order.id }}">
+                                                        <button type="submit" class="btn btn-sm btn-danger fw-bold" title="Permanently Delete Job">
+                                                            <i class="fas fa-trash-alt"></i>
+                                                        </button>
+                                                    </form>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% empty %}
+                                        <tr><td colspan="4" class="text-center text-muted">No active workflows to control.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 5. User & Role Management Tab -->
+                <div class="tab-pane fade" id="userManagement">
+                    <div class="card shadow-sm border-0 p-4 mb-4 rounded-3">
+                        <h4 class="fw-bold mb-2">User Access, Roles & Official ID Assignment</h4>
+                        <p class="text-muted small">Assign roles, impersonate user accounts, and write or update official Staff/Customer IDs directly from the table rows.</p>
+
+                        <div class="table-responsive">
+                            <table class="table align-middle table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Username</th>
+                                        <th>Email</th>
+                                        <th>Current Role</th>
+                                        <th>Official ID Assigned</th>
+                                        <th class="text-end">Manage Role & Assign Written ID</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for u in all_users %}
+                                        <tr>
+                                            <td class="fw-bold">{{ u.username }}</td>
+                                            <td>{{ u.email|default:"No email" }}</td>
+                                            <td>
+                                                <span class="badge bg-secondary">
+                                                    {% if u.is_superuser %}Super Admin{% elif u.role %}{{ u.role|title }}{% else %}Customer{% endif %}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-dark font-monospace">
+                                                    {% if u.role and u.role != 'customer' and u.staff_id %}
+                                                        Staff: {{ u.staff_id }}
+                                                    {% elif u.customer_id_number %}
+                                                        Cust: {{ u.customer_id_number }}
+                                                    {% else %}
+                                                        Not Assigned
+                                                    {% endif %}
+                                                </span>
+                                            </td>
+                                            <td class="text-end">
+                                                <form method="POST" class="d-inline-flex gap-2 justify-content-end align-items-center flex-wrap">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="action" value="assign_user_role_and_id">
+                                                    <input type="hidden" name="target_user_id" value="{{ u.id }}">
+                                                    
+                                                    <select name="role" class="form-select form-select-sm w-auto">
+                                                        <option value="customer" {% if u.role == 'customer' %}selected{% endif %}>Customer</option>
+                                                        <option value="store_keeper" {% if u.role == 'store_keeper' %}selected{% endif %}>Storekeeper</option>
+                                                        <option value="store_finance" {% if u.role == 'store_finance' %}selected{% endif %}>Finance</option>
+                                                        <option value="store_manager" {% if u.role == 'store_manager' %}selected{% endif %}>Store Manager</option>
+                                                        <option value="general_manager" {% if u.role == 'general_manager' %}selected{% endif %}>General Manager</option>
+                                                        <option value="rider" {% if u.role == 'rider' %}selected{% endif %}>Dispatch Rider</option>
+                                                    </select>
+
+                                                    <input type="text" name="written_official_id" class="form-control form-control-sm w-auto" placeholder="Enter ID (e.g. TECH-001)" value="{% if u.role and u.role != 'customer' %}{{ u.staff_id|default:'' }}{% else %}{{ u.customer_id_number|default:'' }}{% endif %}">
+
+                                                    <button type="submit" class="btn btn-sm btn-primary fw-bold">Save</button>
+                                                    
+                                                    <a href="{% url 'impersonate_user' u.id %}" class="btn btn-sm btn-outline-dark" title="Log in as this user">
+                                                        <i class="fas fa-user-secret"></i>
+                                                    </a>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    {% empty %}
+                                        <tr><td colspan="5" class="text-center text-muted">No users found in system.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 6. ID Privileges & Assignment Control Tab -->
+                <div class="tab-pane fade" id="idManagement">
+                    <div class="card shadow-sm border-0 p-4 mb-4 rounded-3 border">
+                        <h4 class="fw-bold mb-2 text-warning"><i class="fas fa-id-badge me-2"></i> Official ID Written Assignment Control</h4>
+                        <p class="text-muted small mb-4">Directly write and assign official Staff or Customer IDs. No auto-generators are used; all identifiers are explicitly typed and stored.</p>
+
+                        <div class="row g-4">
+                            <!-- Staff ID Written Form -->
+                            <div class="col-md-6">
+                                <div class="card bg-light p-3 border">
+                                    <h5 class="fw-bold text-dark mb-3"><i class="fas fa-user-tie text-success me-1"></i> Assign Written Staff / Rider ID</h5>
+                                    <form method="POST">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="assign_staff_id">
+                                        <div class="mb-3">
+                                            <label class="form-label fw-semibold small">Select Staff / Employee / Rider</label>
+                                            <select name="target_user_id" class="form-select" required>
+                                                <option value="">-- Choose User --</option>
+                                                {% for u in all_users %}
+                                                    {% if u.role and u.role != 'customer' %}
+                                                        <option value="{{ u.id }}">{{ u.username }} (Role: {{ u.role|upper }}{% if u.staff_id %} - Current ID: {{ u.staff_id }}{% endif %})</option>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label fw-semibold small">Type Official Staff ID</label>
+                                            <input type="text" name="custom_staff_id" class="form-control" placeholder="e.g. TECH-STF-2026-001" required>
+                                        </div>
+                                        <button type="submit" class="btn btn-success fw-bold w-100">Save & Assign Written Staff ID</button>
+                                    </form>
+                                </div>
+                            </div>
+
+                            <!-- Customer ID Written Form -->
+                            <div class="col-md-6">
+                                <div class="card bg-light p-3 border">
+                                    <h5 class="fw-bold text-dark mb-3"><i class="fas fa-users text-primary me-1"></i> Assign Written Customer ID</h5>
+                                    <form method="POST">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="assign_customer_id">
+                                        <div class="mb-3">
+                                            <label class="form-label fw-semibold small">Select Customer Account</label>
+                                            <select name="target_user_id" class="form-select" required>
+                                                <option value="">-- Choose Customer --</option>
+                                                {% for u in all_users %}
+                                                    <option value="{{ u.id }}">{{ u.username }} ({% if u.customer_id_number %}Current ID: {{ u.customer_id_number }}{% else %}No ID assigned{% endif %})</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label fw-semibold small">Type Official Customer ID</label>
+                                            <input type="text" name="custom_customer_id" class="form-control" placeholder="e.g. TECH-CUST-VIP-001" required>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary fw-bold w-100">Save & Assign Written Customer ID</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 7. Theme Manager Tab -->
+                <div class="tab-pane fade" id="themeManager">
+                    <div class="card shadow-sm border-0 p-4 mb-4 rounded-3 border">
+                        <h4 class="fw-bold mb-3 border-bottom pb-3 text-danger"><i class="fas fa-palette me-2"></i> Celebration & Promo Theme Manager</h4>
+                        <p class="text-muted small">Manage global store color themes, text write-ups, accents, and active promotional events.</p>
+                        
+                        <form method="POST">
+                            {% csrf_token %}
+                            <div class="row g-3 align-items-end">
+                                <div class="col-md-3">
+                                    <label class="form-label fw-semibold small text-muted">Active Promo Theme</label>
+                                    <select name="promo_theme_id" class="form-select rounded-0">
+                                        <option value="">-- No Active Promo --</option>
+                                        {% for theme in promo_themes %}
+                                            <option value="{{ theme.id }}" {% if theme.is_active %}selected{% endif %}>{{ theme.name }}{% if theme.is_active %} [ACTIVE]{% endif %}</option>
+                                        {% endfor %}
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label fw-semibold small text-muted">Create New Custom Promo Name</label>
+                                    <input type="text" name="new_theme_name" class="form-control rounded-0" placeholder="e.g. Anniversary Sale">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label fw-semibold small text-muted">Accent Color</label>
+                                    <input type="color" name="accent_color" class="form-control form-control-color rounded-0 w-100" value="{{ active_theme.accent_color|default:'#ffc107' }}">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label fw-semibold small text-muted">Background Color</label>
+                                    <input type="color" name="background_color" class="form-control form-control-color rounded-0 w-100" value="{{ active_theme.background_color|default:'#111111' }}">
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label fw-semibold small text-muted">Text Color</label>
+                                    <input type="color" name="text_color" class="form-control form-control-color rounded-0 w-100" value="{{ active_theme.text_color|default:'#ffffff' }}">
+                                </div>
+                                <div class="col-12 d-flex gap-2 mt-3">
+                                    <button type="submit" name="action" value="save_promo_theme" class="btn btn-dark rounded-0 fw-bold py-2 px-4">Apply Theme Colors</button>
+                                    <button type="submit" name="action" value="reset_theme" class="btn btn-outline-secondary rounded-0 fw-bold py-2 px-4">Reset to Default Color</button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- 8. Global Settings & Policies Tab -->
+                <div class="tab-pane fade" id="policies">
+                    <div class="card shadow-sm border-0 p-4 mb-4 rounded-3 border">
+                        <h4 class="fw-bold mb-3"><i class="fas fa-sliders-h me-2 text-primary"></i> Global Store Threshold & Deposit Settings</h4>
+                        <p class="text-muted small mb-4">Dynamically adjust store-wide parameters. Changes instantly apply across all checkouts, payment logs, and cash settlement calculations.</p>
+                        
+                        <form method="POST" class="bg-light p-4 rounded-3 border mb-4">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="update_global_settings">
+                            
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold small">Partial Payment Threshold (₦)</label>
+                                    <input type="number" step="0.01" name="partial_payment_threshold" class="form-control" value="{{ global_settings.partial_payment_threshold }}" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold small">Default Deposit Percentage (%)</label>
+                                    <input type="number" name="default_deposit_percentage" class="form-control" value="{{ global_settings.default_deposit_percentage }}" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold small">Shipping Fee Below Threshold (₦)</label>
+                                    <input type="number" step="0.01" name="shipping_fee_below_threshold" class="form-control" value="{{ global_settings.shipping_fee_below_threshold }}" required>
+                                </div>
+                                <div class="col-12 mt-4">
+                                    <button type="submit" class="btn btn-primary fw-bold px-4 py-2">Save Global Store Settings</button>
+                                </div>
+                            </div>
+                        </form>
+
+                        <!-- NEW ADDITION: CEO Return & Policy Management Quick Action Card -->
+                        <div class="card shadow-sm border-0 rounded-0 p-4 bg-white border-start border-4 border-warning mt-4">
+                            <div class="d-flex align-items-center mb-3">
+                                <div class="fs-1 text-warning me-3"><i class="fas fa-file-contract"></i></div>
+                                <div>
+                                    <h5 class="fw-bold mb-0">Return Policy & Terms</h5>
+                                    <small class="text-muted">Manage rules & downloadable PDF/docs</small>
+                                </div>
+                            </div>
+                            <p class="small text-muted">Update store return timelines, rules, and upload official downloadable documents for customers.</p>
+                            <a href="{% url 'ceo_manage_return_policy' %}" class="btn btn-warning btn-sm fw-bold rounded-0 w-auto mt-2">
+                                <i class="fas fa-edit me-1"></i> Manage Policy & Terms
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 9. Ratings Tab -->
+                <div class="tab-pane fade" id="ratings">
+                    <div class="card shadow-sm border-0 p-4 mb-4 rounded-3">
+                        <h4 class="fw-bold mb-3">System Ratings & Feedback Overview</h4>
+                        <div class="table-responsive">
+                            <table class="table align-middle table-hover">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Product</th>
+                                        <th>Customer</th>
+                                        <th>Score</th>
+                                        <th>Comment</th>
+                                        <th>Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for r in all_ratings %}
+                                        <tr>
+                                            <td class="fw-bold">{{ r.product.name }}</td>
+                                            <td>{{ r.customer.username }}</td>
+                                            <td><span class="badge bg-warning text-dark">{{ r.rating_score }} / 5</span></td>
+                                            <td>{{ r.comment|default:"No comment provided" }}</td>
+                                            <td>{{ r.created_at|date:"Y-m-d H:i" }}</td>
+                                        </tr>
+                                    {% empty %}
+                                        <tr><td colspan="5" class="text-center text-muted">No ratings recorded yet.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 10. Audit Logs Tab -->
+                <div class="tab-pane fade" id="audits">
+                    <div class="card shadow-sm border-0 p-4 mb-4 rounded-3">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h4 class="fw-bold mb-0">System Audit Trail</h4>
+                            <a href="{% url 'export_audit_logs' %}" class="btn btn-outline-dark btn-sm fw-bold">
+                                <i class="fas fa-download me-1"></i> Export Audit Logs CSV
+                            </a>
+                        </div>
+                        <div class="table-responsive">
+                            <table class="table align-middle table-hover small">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Timestamp</th>
+                                        <th>User</th>
+                                        <th>Role</th>
+                                        <th>Action Description</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for log in audit_logs %}
+                                        <tr>
+                                            <td>{{ log.timestamp|date:"Y-m-d H:i:s" }}</td>
+                                            <td class="fw-bold">
+                                                {{ log.user.username|default:"System" }} 
+                                                {% if log.user.id %}<span class="text-muted fw-normal">(#{{ log.user.id }})</span>{% endif %}
+                                            </td>
+                                            <td><span class="badge bg-secondary">{{ log.role|title }}</span></td>
+                                            <td>{{ log.action }}</td>
+                                        </tr>
+                                    {% empty %}
+                                        <tr><td colspan="4" class="text-center text-muted">No audit logs recorded yet.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 11. Rider Dispatch & Media Proof Logs Tab -->
+                <div class="tab-pane fade" id="riderLogs">
+                    <div class="card shadow-sm border-0 p-4 mb-4 rounded-3">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h4 class="fw-bold mb-0"><i class="fas fa-motorcycle text-warning me-2"></i> Rider Dispatch & Media Logs</h4>
+                            <span class="badge bg-dark">Live Monitoring</span>
+                        </div>
+                        <p class="text-muted small mb-4">Track proof-of-delivery photo uploads and active delivery statuses across storefront orders.</p>
+                        
+                        <div class="table-responsive">
+                            <table class="table align-middle table-hover small">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Order ID</th>
+                                        <th>Assigned Rider</th>
+                                        <th>Customer</th>
+                                        <th>Order Status</th>
+                                        <th>Proof of Delivery Photo</th>
+                                        <th>Last Updated</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for order in rider_delivery_logs %}
+                                        <tr>
+                                            <td class="fw-bold">#{{ order.id }}</td>
+                                            <td>
+                                                {{ order.assigned_rider.username|default:"Unassigned" }}
+                                                {% if order.assigned_rider.id %}<span class="text-muted fw-normal">(#{{ order.assigned_rider.id }})</span>{% endif %}
+                                            </td>
+                                            <td>{{ order.customer.username }}</td>
+                                            <td>
+                                                <span class="badge {% if order.status == 'delivered' %}bg-success{% elif order.status == 'picked_up' %}bg-primary{% else %}bg-secondary{% endif %}">
+                                                    {{ order.get_status_display|default:order.status }}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                {% if order.delivery_proof_photo %}
+                                                    <a href="{{ order.delivery_proof_photo.url }}" target="_blank" class="btn btn-outline-primary btn-sm py-0 px-2">
+                                                        <i class="fas fa-image me-1"></i> View Photo
+                                                    </a>
+                                                {% else %}
+                                                    <span class="text-muted">No Photo Uploaded</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ order.updated_at|date:"Y-m-d H:i:s" }}</td>
+                                        </tr>
+                                    {% empty %}
+                                        <tr><td colspan="6" class="text-center text-muted py-4">No rider delivery proofs or logs recorded yet.</td></tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

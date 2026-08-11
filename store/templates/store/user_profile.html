@@ -1,0 +1,204 @@
+{% extends 'store/base.html' %}
+
+{% block title %}Account Control Center - TechsNi Store{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- LEFT NAVIGATION PANEL -->
+    <div class="col-lg-4 mb-4">
+        <div class="card border-0 shadow-sm rounded-0 overflow-hidden">
+            <div class="bg-dark text-white p-3">
+                <h6 class="mb-0 text-uppercase tracking-wider fw-bold">Account Center</h6>
+                <small class="text-muted" style="font-size: 0.75rem;">Enterprise Client Portal</small>
+            </div>
+            <div class="list-group list-group-flush">
+                <a href="{% url 'user_profile' %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 active bg-danger border-danger">
+                    <span class="fw-semibold">Personal Credentials</span>
+                    <span>›</span>
+                </a>
+            </div>
+
+            <div class="bg-light p-3 border-top">
+                <h6 class="text-uppercase text-muted fs-7 fw-bold mb-2" style="font-size: 0.75rem;">Preferences & Security</h6>
+                <div class="list-group list-group-flush bg-transparent">
+                    <a href="#addressBookSection" class="list-group-item list-group-item-action bg-transparent px-0 py-2 text-dark fw-semibold text-danger">Delivery Locations (Address Book)</a>
+                    <a href="#" class="list-group-item list-group-item-action bg-transparent px-0 py-2 text-dark">Account Security</a>
+                    <a href="{% url 'delete_account' %}" class="list-group-item list-group-item-action bg-transparent px-0 py-2 text-danger fw-semibold">Account Termination</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- RIGHT CONTENT PANEL -->
+    <div class="col-lg-8">
+        <!-- Credentials Modification Box -->
+        <div class="card border-0 shadow-sm rounded-0 p-4 mb-4">
+            <h5 class="mb-4 fw-bold text-dark border-bottom pb-3">Personal Credentials</h5>
+            
+            <form method="POST">
+                {% csrf_token %}
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label text-muted fs-7 fw-semibold">First Name</label>
+                        <input type="text" name="first_name" class="form-control rounded-0" value="{{ request.user.first_name }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted fs-7 fw-semibold">Surname (Last Name)</label>
+                        <input type="text" name="last_name" class="form-control rounded-0" value="{{ request.user.last_name }}">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-muted fs-7 fw-semibold">Email Address</label>
+                    <input type="email" name="email" class="form-control rounded-0" value="{{ request.user.email }}">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-muted fs-7 fw-semibold">System Handle (Username)</label>
+                    <input type="text" class="form-control rounded-0 bg-light" value="{{ request.user.username }}" disabled>
+                </div>
+
+                <button type="submit" class="btn btn-dark rounded-0 fw-bold px-4 py-2 mt-2">Save Credentials</button>
+            </form>
+        </div>
+
+        <!-- ADDRESS BOOK & DELIVERY LOCATIONS MANAGER -->
+        <div id="addressBookSection" class="card border-0 shadow-sm rounded-0 p-4 mb-4">
+            <h5 class="mb-3 fw-bold text-dark border-bottom pb-3">Delivery Locations (Address Book)</h5>
+            <p class="text-muted small">Manage your delivery addresses and phone numbers across all Nigerian states and local governments for instant 1-click checkout.</p>
+
+            <!-- Saved Addresses List -->
+            {% if saved_addresses %}
+                <div class="mb-4">
+                    <h6 class="fw-bold text-dark fs-6 mb-3">Your Saved Locations:</h6>
+                    <div class="list-group rounded-0">
+                        {% for addr in saved_addresses %}
+                            <div class="list-group-item rounded-0 p-3 mb-2 border {% if addr.is_default %}border-dark bg-light{% endif %}">
+                                <div class="d-flex w-100 justify-content-between align-items-center">
+                                    <h6 class="mb-1 fw-bold text-danger">{{ addr.state }} State {% if addr.is_default %}<span class="badge bg-dark rounded-0 ms-2">DEFAULT</span>{% endif %}</h6>
+                                    <small class="text-muted">LGA: {{ addr.lga }}</small>
+                                </div>
+                                <p class="mb-1 text-secondary small mt-1"><strong>Street Address:</strong> {{ addr.street_address }}</p>
+                                <p class="mb-0 text-dark small"><strong>Phone Number:</strong> {{ addr.phone_number }}</p>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+
+            <!-- Add New Address Form -->
+            <form method="POST" class="bg-light p-3 border">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="add_address">
+                <h6 class="fw-bold text-dark mb-3">Add New Delivery Location</h6>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label text-muted fs-7 fw-semibold">State</label>
+                        <select name="state" class="form-select rounded-0" required>
+                            <option value="">-- Select State --</option>
+                            <option value="Abia">Abia</option>
+                            <option value="Adamawa">Adamawa</option>
+                            <option value="Akwa Ibom">Akwa Ibom</option>
+                            <option value="Anambra">Anambra</option>
+                            <option value="Bauchi">Bauchi</option>
+                            <option value="Bayelsa">Bayelsa</option>
+                            <option value="Benue">Benue</option>
+                            <option value="Borno">Borno</option>
+                            <option value="Cross River">Cross River</option>
+                            <option value="Delta">Delta</option>
+                            <option value="Ebonyi">Ebonyi</option>
+                            <option value="Edo">Edo</option>
+                            <option value="Ekiti">Ekiti</option>
+                            <option value="Enugu">Enugu</option>
+                            <option value="Gombe">Gombe</option>
+                            <option value="Imo">Imo</option>
+                            <option value="Jigawa">Jigawa</option>
+                            <option value="Kaduna">Kaduna</option>
+                            <option value="Kano">Kano</option>
+                            <option value="Katsina">Katsina</option>
+                            <option value="Kebbi">Kebbi</option>
+                            <option value="Kogi">Kogi</option>
+                            <option value="Kwara">Kwara</option>
+                            <option value="Lagos">Lagos</option>
+                            <option value="Nasarawa">Nasarawa</option>
+                            <option value="Niger">Niger</option>
+                            <option value="Ogun">Ogun</option>
+                            <option value="Ondo">Ondo</option>
+                            <option value="Osun">Osun</option>
+                            <option value="Oyo">Oyo</option>
+                            <option value="Plateau">Plateau</option>
+                            <option value="Rivers">Rivers</option>
+                            <option value="Sokoto">Sokoto</option>
+                            <option value="Taraba">Taraba</option>
+                            <option value="Yobe">Yobe</option>
+                            <option value="Zamfara">Zamfara</option>
+                            <option value="FCT - Abuja">FCT - Abuja</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label text-muted fs-7 fw-semibold">Local Government Area (LGA)</label>
+                        <input type="text" name="lga" class="form-control rounded-0" placeholder="e.g. Ikeja, Eti-Osa, Municipal" required>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-muted fs-7 fw-semibold">Street Address & Landmarks</label>
+                    <textarea name="street_address" class="form-control rounded-0" rows="2" placeholder="e.g. 14 Allen Avenue, close to commercial bank..." required></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label text-muted fs-7 fw-semibold">Contact Phone Number for this Location</label>
+                    <input type="text" name="phone_number" class="form-control rounded-0" placeholder="e.g. 08012345678" required>
+                </div>
+
+                <div class="form-check mb-3">
+                    <input class="form-check-input rounded-0" type="checkbox" name="is_default" id="isDefaultCheck">
+                    <label class="form-check-label small fw-semibold text-secondary" for="isDefaultCheck">
+                        Set as Default Address for Instant Checkout
+                    </label>
+                </div>
+
+                <button type="submit" class="btn btn-danger rounded-0 fw-bold px-4 py-2">Save Location to Address Book</button>
+            </form>
+        </div>
+
+        <!-- DYNAMIC ADMIN POLICY VIEWER PANEL -->
+        <div class="card border-0 shadow-sm rounded-0 p-4 bg-white">
+            <h5 class="mb-3 fw-bold text-dark border-bottom pb-3">Regulatory Guidelines & Corporate Policies</h5>
+            <p class="text-muted small">Official directives and rules dynamically published by system administration.</p>
+            
+            {% if policies %}
+                <div class="accordion accordion-flush" id="policyAccordion">
+                    {% for policy in policies %}
+                        <div class="accordion-item border mb-2">
+                            <h2 class="accordion-header" id="heading{{ policy.id }}">
+                                <button class="accordion-button collapsed fw-semibold bg-light text-dark shadow-none" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ policy.id }}" aria-expanded="false" aria-controls="collapse{{ policy.id }}">
+                                    {{ policy.title }}
+                                </button>
+                            </h2>
+                            <div id="collapse{{ policy.id }}" class="accordion-collapse collapse" aria-labelledby="heading{{ policy.id }}" data-bs-parent="#policyAccordion">
+                                <div class="accordion-body text-secondary bg-white py-3">
+                                    {{ policy.content|linebreaks }}
+                                    <small class="text-muted d-block mt-3 border-top pt-2">Last System Revision: Active Policy</small>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <div class="alert alert-light border text-muted py-3 text-center mb-0 rounded-0">
+                    No administrative guidelines or compliance policies have been published at this time.
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Optional Live Update Handler Script -->
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Form submission enhancements can go here if required
+    });
+</script>
+{% endblock %}

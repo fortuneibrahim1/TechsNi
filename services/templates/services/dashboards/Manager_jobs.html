@@ -1,0 +1,117 @@
+{% extends 'services/dashboards/base_dashboard.html' %}
+{% block title %}Manager Job Management | TechsNi{% endblock %}
+{% block content %}
+<div class="row">
+    <div class="col-md-12 mb-4">
+        <h2 class="text-dark fw-bold">Manager Job Approvals & Reviews</h2>
+        <p class="text-muted">Review job requests, check attachments, and process approvals or rejections.</p>
+    </div>
+
+    <div class="col-md-12 mb-4">
+        <div class="card p-4 border-0 shadow-sm" style="background: #ffffff; border: 1px solid #dee2e6 !important; border-radius: 12px;">
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <h4 class="text-dark m-0">All System Jobs</h4>
+                <form method="GET" class="d-flex gap-2">
+                    <select name="status" class="form-control form-control-sm bg-white text-dark border-secondary" style="width: 200px;" onchange="this.form.submit()">
+                        <option value="">-- Filter Status --</option>
+                        <option value="pending" {% if selected_status == 'pending' %}selected{% endif %}>Pending Review</option>
+                        <option value="approved" {% if selected_status == 'approved' %}selected{% endif %}>Approved</option>
+                        <option value="quote_sent" {% if selected_status == 'quote_sent' %}selected{% endif %}>Quote Sent</option>
+                        <option value="deposit_paid" {% if selected_status == 'deposit_paid' %}selected{% endif %}>Deposit Paid</option>
+                        <option value="completed" {% if selected_status == 'completed' %}selected{% endif %}>Completed</option>
+                        <option value="settled" {% if selected_status == 'settled' %}selected{% endif %}>Settled</option>
+                        <option value="rejected" {% if selected_status == 'rejected' %}selected{% endif %}>Rejected</option>
+                    </select>
+                    {% if selected_status %}
+                    <a href="{% url 'manager_jobs' %}" class="btn btn-outline-dark btn-sm">Reset</a>
+                    {% endif %}
+                </form>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table align-middle text-dark mb-0" style="border-color: #dee2e6;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid #b30000; color: #ffffff; background-color: #212529;">
+                            <th class="py-3 px-3">ID</th>
+                            <th class="py-3">Customer</th>
+                            <th class="py-3">Model / Item</th>
+                            <th class="py-3">Description & Media (Images / Video)</th>
+                            <th class="py-3">Status</th>
+                            <th class="py-3">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for job in all_jobs %}
+                        <tr style="border-bottom: 1px solid #dee2e6;">
+                            <td class="py-3 px-3 fw-bold text-dark">#{{ job.id }}</td>
+                            <td class="py-3 text-dark">{{ job.customer.username }}</td>
+                            <td class="py-3 text-dark">{{ job.model_type }}<br><small class="text-muted">SN: {{ job.serial_number }}</small></td>
+                            <td class="py-3 text-dark" style="max-width: 280px;">
+                                <p class="mb-2">{{ job.description|default:"No details." }}</p>
+                                
+                                <!-- Images Preview Links (Up to 3) -->
+                                <div class="d-flex flex-wrap gap-1 mb-2">
+                                    {% if job.image1 %}
+                                    <a href="{{ job.image1.url }}" target="_blank" class="btn btn-outline-primary btn-sm py-0 px-2 font-monospace" style="font-size: 11px;">Img 1</a>
+                                    {% endif %}
+                                    {% if job.image2 %}
+                                    <a href="{{ job.image2.url }}" target="_blank" class="btn btn-outline-primary btn-sm py-0 px-2 font-monospace" style="font-size: 11px;">Img 2</a>
+                                    {% endif %}
+                                    {% if job.image3 %}
+                                    <a href="{{ job.image3.url }}" target="_blank" class="btn btn-outline-primary btn-sm py-0 px-2 font-monospace" style="font-size: 11px;">Img 3</a>
+                                    {% endif %}
+                                </div>
+
+                                <!-- Video Player Trigger / Embedded element -->
+                                {% if job.video %}
+                                <div>
+                                    <button type="button" class="btn btn-sm btn-dark py-0 px-2" style="font-size: 11px;" data-bs-toggle="modal" data-bs-target="#videoModal{{ job.id }}">
+                                        <i class="bi bi-play-circle me-1"></i> Watch Video
+                                    </button>
+                                </div>
+
+                                <!-- Video Modal -->
+                                <div class="modal fade" id="videoModal{{ job.id }}" tabindex="-1">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content bg-dark text-white border-0 shadow">
+                                            <div class="modal-header border-secondary py-2">
+                                                <h6 class="modal-title fw-bold">Customer Video - Job #{{ job.id }}</h6>
+                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body p-2 text-center">
+                                                <video controls class="w-100 rounded" style="max-height: 350px;">
+                                                    <source src="{{ job.video.url }}" type="video/mp4">
+                                                    Your browser does not support video playback.
+                                                </video>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td class="py-3">
+                                <span class="badge px-2 py-1" style="background-color: #b30000; color: #ffffff; border: 1px solid #800000;">{{ job.get_status_display }}</span>
+                            </td>
+                            <td class="py-3">
+                                {% if job.status == 'pending' %}
+                                <form method="POST" class="d-inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="job_id" value="{{ job.id }}">
+                                    <button type="submit" name="approve_job" class="btn btn-success btn-sm mb-1">Approve</button>
+                                    <button type="submit" name="reject_job" class="btn btn-danger btn-sm mb-1">Reject</button>
+                                </form>
+                                {% else %}
+                                <span class="text-muted small">Processed</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr><td colspan="6" class="text-center text-muted py-4">No jobs found.</td></tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

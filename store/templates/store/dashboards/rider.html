@@ -1,0 +1,333 @@
+{% extends 'store/base.html' %}
+
+{% block content %}
+<div class="container-fluid my-4">
+    <div class="row">
+        <!-- Sidebar Navigation -->
+        <div class="col-md-3 col-lg-2 d-md-block bg-light sidebar collapse py-3 border-end">
+            <h5 class="sidebar-heading px-3 text-muted text-uppercase fs-6 fw-bold mb-3">Rider Portal</h5>
+            <ul class="nav flex-column">
+                <li class="nav-item mb-2">
+                    <a class="nav-link active fw-bold text-primary" href="#deliveriesQueue">
+                        <i class="fas fa-motorcycle me-2"></i> Assigned Deliveries
+                    </a>
+                </li>
+                <!-- Sidebar link for Return Pickups -->
+                <li class="nav-item mb-2">
+                    <a class="nav-link fw-bold text-danger" href="#returnPickupsQueue">
+                        <i class="fas fa-undo me-2"></i> Return Pickups
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a class="nav-link fw-bold text-success" href="#readyPool">
+                        <i class="fas fa-box-open me-2"></i> Ready Pool
+                    </a>
+                </li>
+                <li class="nav-item mb-2">
+                    <a class="nav-link fw-bold text-info" href="#riderHistory">
+                        <i class="fas fa-images me-2"></i> My Upload History
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Main Dashboard Content -->
+        <div class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2 fw-bold">Delivery Rider Dashboard</h1>
+                <span class="badge bg-primary px-3 py-2">Role: Dispatch Rider</span>
+            </div>
+
+            <!-- Assigned Return Pickups & Status Updates -->
+            <div id="returnPickupsQueue" class="card shadow-sm mb-5 border-danger">
+                <div class="card-body">
+                    <h4 class="card-title fw-bold mb-3 text-danger"><i class="fas fa-undo me-2"></i> Assigned Return Pickups & Status Updates</h4>
+                    <p class="text-muted small">Manage items you are assigned to pick up from customers and update their delivery statuses back to the store.</p>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Return ID / Order</th>
+                                    <th>Customer & Address</th>
+                                    <th>Phone Number</th>
+                                    <th>Issue / Reason</th>
+                                    <th>Current Status</th>
+                                    <th class="text-end">Update Status Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if assigned_returns %}
+                                    {% for req in assigned_returns %}
+                                        <tr>
+                                            <td class="fw-bold">
+                                                #{{ req.id }}<br>
+                                                <small class="text-muted">Order #{{ req.order.id }}</small>
+                                            </td>
+                                            <td>
+                                                <strong>{% if req.customer.get_full_name %}{{ req.customer.get_full_name }}{% else %}{{ req.customer.username }}{% endif %}</strong><br>
+                                                <small class="text-muted">{{ req.order.shipping_address|default:"Address not specified" }}</small>
+                                            </td>
+                                            <td>
+                                                <!-- Added Customer Phone Number for Returns -->
+                                                <a href="tel:{{ req.order.phone_number }}" class="text-dark fw-bold text-decoration-none">
+                                                    <i class="fas fa-phone-alt text-success me-1"></i> {{ req.order.phone_number|default:"N/A" }}
+                                                </a>
+                                            </td>
+                                            <td>
+                                                <span class="text-danger fw-bold">{{ req.reason.reason_text|default:"N/A" }}</span><br>
+                                                <small class="text-muted">{{ req.issue_description|truncatechars:40 }}</small>
+                                            </td>
+                                            <td>
+                                                <span class="badge bg-warning text-dark d-block mb-1">Rider: {{ req.get_rider_status_display }}</span>
+                                                <span class="badge bg-secondary d-block">System: {{ req.get_status_display }}</span>
+                                            </td>
+                                            <td class="text-end">
+                                                <form method="POST" action="{% url 'rider_return_status_update' req.id %}" class="d-flex flex-column gap-2 align-items-end">
+                                                    {% csrf_token %}
+                                                    <select name="rider_status" class="form-select form-select-sm" required>
+                                                        <option value="" selected disabled>Update status...</option>
+                                                        <option value="going_to_site">Going to Site</option>
+                                                        <option value="picked_up">Picked Up</option>
+                                                        <option value="delivered_to_store">Delivered to Store</option>
+                                                    </select>
+                                                    <button type="submit" class="btn btn-sm btn-danger fw-bold w-100">
+                                                        <i class="fas fa-sync-alt me-1"></i> Update Return Status
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="6" class="text-center py-4 text-muted">You have no assigned return pickups at the moment.</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- READY POOL: Available Orders for Self-Claiming -->
+            <div id="readyPool" class="card shadow-sm mb-5 border-success">
+                <div class="card-body">
+                    <h4 class="card-title fw-bold mb-3 text-success"><i class="fas fa-shipping-fast me-2"></i> Ready Pool (Available to Claim)</h4>
+                    <p class="text-muted small">These orders are packed and waiting for a rider. You can claim an order to assign it to yourself instantly.</p>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Customer Name</th>
+                                    <th>Delivery Address</th>
+                                    <th>Phone Number</th>
+                                    <th>Total Amount</th>
+                                    <th class="text-end">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if ready_pool_orders %}
+                                    {% for order in ready_pool_orders %}
+                                        <tr>
+                                            <td class="fw-bold">#{{ order.id }}</td>
+                                            <td>
+                                                <strong>{% if order.customer.get_full_name %}{{ order.customer.get_full_name }}{% else %}{{ order.customer.username }}{% endif %}</strong>
+                                            </td>
+                                            <td>{{ order.shipping_address|default:"Not Provided" }}</td>
+                                            <td>
+                                                <a href="tel:{{ order.phone_number }}">{{ order.phone_number|default:"Not Provided" }}</a>
+                                            </td>
+                                            <td>₦{{ order.total_amount }}</td>
+                                            <td class="text-end">
+                                                <form method="POST">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="action" value="claim_order">
+                                                    <input type="hidden" name="order_id" value="{{ order.id }}">
+                                                    <button type="submit" class="btn btn-sm btn-success fw-bold">
+                                                        <i class="fas fa-hand-holding-box me-1"></i> Claim Order
+                                                    </button>
+                                                </form>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="6" class="text-center py-3 text-muted">No orders currently sitting in the ready pool.</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Assigned Deliveries Queue -->
+            <div id="deliveriesQueue" class="card shadow-sm mb-5">
+                <div class="card-body">
+                    <h4 class="card-title fw-bold mb-4 text-primary"><i class="fas fa-box-open me-2"></i> Packages Assigned for Delivery</h4>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Customer Name</th>
+                                    <th>Delivery Address</th>
+                                    <th>Phone Number</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Rider Action Hub</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if assigned_deliveries %}
+                                    {% for order in assigned_deliveries %}
+                                        <tr>
+                                            <td class="fw-bold">#{{ order.id }}</td>
+                                            <td>
+                                                <strong>{% if order.customer.get_full_name %}{{ order.customer.get_full_name }}{% else %}{{ order.customer.username }}{% endif %}</strong>
+                                            </td>
+                                            <td>{{ order.shipping_address|default:"Not Provided" }}</td>
+                                            <td><a href="tel:{{ order.phone_number }}">{{ order.phone_number|default:"Not Provided" }}</a></td>
+                                            <td>
+                                                <span class="badge bg-info text-dark">{{ order.get_status_display|default:order.status|title }}</span>
+                                                {% if order.payment_type == 'partial' %}
+                                                    <div class="small text-warning fw-bold mt-1">
+                                                        {% if order.balance_paid %}
+                                                            ✅ Balance Cleared
+                                                        {% else %}
+                                                            ⏳ Awaiting Balance
+                                                        {% endif %}
+                                                    </div>
+                                                {% endif %}
+                                                {% if order.is_location_live %}
+                                                    <div class="small text-success fw-bold mt-1">📍 GPS Broadcasting Active</div>
+                                                {% endif %}
+                                            </td>
+                                            <td class="text-end">
+                                                <div class="d-flex flex-column gap-2 align-items-end">
+                                                    <!-- STEP 1: Pick Goods & Go Live -->
+                                                    {% if order.status == 'order_ready' %}
+                                                        <form method="POST" class="geo-form">
+                                                            {% csrf_token %}
+                                                            <input type="hidden" name="action" value="pick_goods">
+                                                            <input type="hidden" name="order_id" value="{{ order.id }}">
+                                                            <input type="hidden" name="latitude" class="lat-input" value="6.5244">
+                                                            <input type="hidden" name="longitude" class="lng-input" value="3.3792">
+                                                            <button type="submit" class="btn btn-sm btn-primary w-100 get-loc-btn">
+                                                                📦 Pick Goods & Go Live
+                                                            </button>
+                                                        </form>
+                                                    {% endif %}
+
+                                                    <!-- STEP 2: Mark Arrived at Customer -->
+                                                    {% if order.status == 'picked_up' %}
+                                                        <form method="POST">
+                                                            {% csrf_token %}
+                                                            <input type="hidden" name="action" value="mark_arrived">
+                                                            <input type="hidden" name="order_id" value="{{ order.id }}">
+                                                            <button type="submit" class="btn btn-sm btn-warning w-100 text-dark">
+                                                                📍 Mark Arrived
+                                                            </button>
+                                                        </form>
+                                                    {% endif %}
+
+                                                    <!-- STEP 3: Complete Delivery with Balance Check & Direct Camera Capture -->
+                                                    {% if order.status == 'picked_up' or order.status == 'arrived_at_customer' or order.status == 'balance_payment_submitted' %}
+                                                        {% if order.payment_type == 'partial' and not order.balance_paid %}
+                                                            <div class="alert alert-warning p-2 mb-0 small text-start border-warning">
+                                                                <strong>⚠️ Locked:</strong> Remaining balance (₦{{ order.balance_amount }}) has not been verified by Finance yet.
+                                                            </div>
+                                                        {% else %}
+                                                            <form method="POST" enctype="multipart/form-data" class="border p-2 rounded bg-light">
+                                                                {% csrf_token %}
+                                                                <input type="hidden" name="action" value="mark_delivered">
+                                                                <input type="hidden" name="order_id" value="{{ order.id }}">
+                                                                <div class="mb-1 text-start">
+                                                                    <label class="small text-muted">Proof Photo / Video (Snap or Upload):</label>
+                                                                    <input type="file" name="delivery_proof_photo" accept="image/*,video/*" capture="environment" class="form-control form-control-sm" required>
+                                                                </div>
+                                                                <button type="submit" class="btn btn-sm btn-success w-100">
+                                                                    <i class="fas fa-check-double me-1"></i> Confirm Delivered
+                                                                </button>
+                                                            </form>
+                                                        {% endif %}
+                                                    {% endif %}
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="6" class="text-center py-4 text-muted">You currently have no active deliveries assigned.</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Rider Upload History & Media Viewer Gallery -->
+            <div id="riderHistory" class="card shadow-sm mb-5 border-info">
+                <div class="card-body">
+                    <h4 class="card-title fw-bold mb-3 text-info"><i class="fas fa-images me-2"></i> My Uploaded Delivery Proofs & Media History</h4>
+                    <p class="text-muted small">View all the photos and videos you have previously snapped or uploaded for past deliveries.</p>
+
+                    <div class="row g-3">
+                        {% if rider_history %}
+                            {% for item in rider_history %}
+                                <div class="col-md-4">
+                                    <div class="card h-100 shadow-sm">
+                                        <div class="card-body text-center">
+                                            <h6 class="fw-bold text-dark">Order #{{ item.id }}</h6>
+                                            <p class="small text-muted mb-2">Customer: {{ item.customer.username }}</p>
+                                            
+                                            {% if item.delivery_proof_photo %}
+                                                <div class="mb-2">
+                                                    <a href="{{ item.delivery_proof_photo.url }}" target="_blank">
+                                                        <img src="{{ item.delivery_proof_photo.url }}" alt="Proof for Order #{{ item.id }}" class="img-fluid rounded border" style="max-height: 150px; object-fit: cover;">
+                                                    </a>
+                                                </div>
+                                                <a href="{{ item.delivery_proof_photo.url }}" target="_blank" class="btn btn-sm btn-outline-info w-100">
+                                                    <i class="fas fa-external-link-alt me-1"></i> View Full Media
+                                                </a>
+                                            {% else %}
+                                                <span class="text-muted small">No media available</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="col-12 text-center py-4 text-muted">
+                                You have not uploaded any delivery proof photos or videos yet.
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Automatically capture rider geolocation when clicking 'Pick Goods & Go Live'
+    document.querySelectorAll('.geo-form').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            if (navigator.geolocation) {
+                e.preventDefault();
+                navigator.geolocation.getCurrentPosition(position => {
+                    form.querySelector('.lat-input').value = position.coords.latitude;
+                    form.querySelector('.lng-input').value = position.coords.longitude;
+                    form.submit();
+                }, error => {
+                    // Fallback if permission denied
+                    form.submit();
+                });
+            }
+        });
+    });
+</script>
+{% endblock %}

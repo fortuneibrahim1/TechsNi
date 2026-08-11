@@ -1,0 +1,24 @@
+{% extends 'services/dashboards/base_dashboard.html' %}
+
+{% block title %}Customer_jobs_list Dashboard | TechsNi{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <h2 class="mb-4">My Job Details & Tracking</h2>
+    {% if jobs %}
+        <div class="list-group">
+            {% for job in jobs %}
+                <a href="{% url 'customer_job_detail' job.id %}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-1">{{ job.job_type }} - {{ job.model_type }}</h5>
+                        <small class="text-muted">Submitted on: {{ job.created_at|date:"M d, Y" }}</small>
+                    </div>
+                    <span class="badge bg-primary rounded-pill">{{ job.status }}</span>
+                </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="text-muted">You haven't requested any jobs yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,70 @@
+{% extends 'store/base.html' %}
+
+{% block title %}Price & Discount Approvals - TechsNi Store{% endblock %}
+
+{% block content %}
+<div class="container-fluid my-4">
+    <div class="row">
+        <!-- Main Content Area -->
+        <div class="col-12">
+            <div class="card shadow-sm border-0 p-4 mb-4 text-white rounded-3" style="background: linear-gradient(135deg, #111, #333);">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                    <div>
+                        <h2 class="fw-bold mb-1"><i class="fas fa-tags me-2 text-warning"></i> Price & Discount Approvals</h2>
+                        <p class="mb-0 text-white-50">Review, approve, or reject custom price changes and product discount requests submitted by store staff.</p>
+                    </div>
+                    <div>
+                        <a href="{% url 'store_manager_dashboard' %}" class="btn btn-outline-light btn-sm fw-bold rounded-0 px-3">
+                            <i class="fas fa-arrow-left me-1"></i> Back to Manager Dashboard
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Approval Requests Table -->
+            <div class="card shadow-sm border-0 p-4 rounded-3">
+                <h4 class="fw-bold mb-3">Pending Price Adjustments</h4>
+                <div class="table-responsive">
+                    <table class="table align-middle table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Request ID</th>
+                                <th>Product</th>
+                                <th>Requested By</th>
+                                <th>Old Price</th>
+                                <th>New Proposed Price</th>
+                                <th>Status</th>
+                                <th class="text-end">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in pending_items %}
+                                <tr>
+                                    <td class="fw-bold">#{{ item.id }}</td>
+                                    <td>{{ item.product.name }}</td>
+                                    <td>{{ item.requested_by.username }}</td>
+                                    <td>₦{{ item.old_price }}</td>
+                                    <td class="text-success fw-bold">₦{{ item.new_price }}</td>
+                                    <td><span class="badge bg-warning text-dark">{{ item.status|title }}</span></td>
+                                    <td class="text-end">
+                                        <form method="POST" class="d-inline">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="request_id" value="{{ item.id }}">
+                                            <button type="submit" name="action" value="approve" class="btn btn-sm btn-success fw-bold">Approve</button>
+                                            <button type="submit" name="action" value="reject" class="btn btn-sm btn-outline-danger fw-bold">Reject</button>
+                                        </form>
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr>
+                                    <td colspan="7" class="text-center text-muted py-4">No pending price or discount approval requests found.</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

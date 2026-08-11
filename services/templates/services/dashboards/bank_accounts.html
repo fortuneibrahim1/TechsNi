@@ -1,0 +1,73 @@
+{% extends 'services/dashboards/base_dashboard.html' %}
+
+{% block title %}Manage Service Bank Accounts - CEO Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <h2 class="mb-4 fw-bold">Company Bank Accounts for Invoices & Quotations</h2>
+    
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card shadow-sm border-0 p-4 mb-4">
+                <h4 class="fw-bold mb-3">Add New Bank Account</h4>
+                <form method="POST">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">Bank Name</label>
+                        <input type="text" name="bank_name" class="form-control" required placeholder="e.g. Zenith Bank">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Account Number</label>
+                        <input type="text" name="account_number" class="form-control" required placeholder="e.g. 1234567890">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Account Name</label>
+                        <input type="text" name="account_name" class="form-control" required placeholder="e.g. TechsNi Services Ltd">
+                    </div>
+                    <div class="mb-3 form-check">
+                        <input type="checkbox" name="is_active" class="form-check-input" id="isActiveCheck" checked>
+                        <label class="form-check-label" for="isActiveCheck">Set as Active Account for Documents</label>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100">Save Account Details</button>
+                </form>
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            <div class="card shadow-sm border-0 p-4">
+                <h4 class="fw-bold mb-3">Configured Accounts</h4>
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Bank Name</th>
+                            <th>Account Number</th>
+                            <th>Account Name</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for acc in accounts %}
+                            <tr>
+                                <td class="fw-semibold">{{ acc.bank_name }}</td>
+                                <td>{{ acc.account_number }}</td>
+                                <td>{{ acc.account_name }}</td>
+                                <td>
+                                    {% if acc.is_active %}
+                                        <span class="badge bg-success">Active</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Inactive</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% empty %}
+                            <tr>
+                                <td colspan="4" class="text-center text-muted py-4">No bank accounts added yet.</td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

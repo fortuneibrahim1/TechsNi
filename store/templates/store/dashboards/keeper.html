@@ -1,0 +1,287 @@
+{% extends 'store/base.html' %}
+
+{% block title %}Store Keeper Control Dashboard - TechsNi Store{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-2 px-md-4 py-3">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card shadow-sm border-0 p-3 p-md-4 rounded-0 text-white" style="background: linear-gradient(135deg, #222, #444);">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+                    <div>
+                        <h2 class="fw-bold mb-1 fs-3 fs-md-2">📦 Store Keeper Inventory Control Panel</h2>
+                        <p class="text-muted mb-0 small fs-md-6">Manage warehouse stock levels, assign pre-set promo events, confidential vendor costs, and product entries.</p>
+                    </div>
+                    <div>
+                        <a href="{% url 'export_audit_logs' %}" class="btn btn-outline-light rounded-0 fw-semibold px-3 py-2 btn-sm btn-md-base">Export Audit Logs (CSV)</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- ADD NEW PRODUCT FORM -->
+        <div class="col-lg-4 mb-4">
+            <div class="card shadow-sm border-0 rounded-0 p-3 p-md-4 bg-white">
+                <h4 class="fw-bold mb-3 border-bottom pb-3 fs-5" style="color: var(--store-red, #cc0001);">Add New Product</h4>
+                <form method="POST" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <input type="hidden" name="add_product" value="1">
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small text-muted">Product Name</label>
+                        <input type="text" name="name" class="form-control rounded-0" placeholder="e.g. Wireless Gaming Mouse" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small text-muted">Category</label>
+                        <select name="category_id" class="form-select rounded-0" required>
+                            <option value="">Select Category</option>
+                            {% for cat in categories %}
+                                <option value="{{ cat.id }}">{{ cat.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small text-muted">Description</label>
+                        <textarea name="description" class="form-control rounded-0" rows="3" placeholder="Provide specs and details..." required></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label fw-semibold small text-muted">Original Price (₦)</label>
+                            <input type="number" step="0.01" name="price" class="form-control rounded-0" placeholder="0.00" required>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label fw-semibold small text-muted">Normal Discount (₦)</label>
+                            <input type="number" step="0.01" name="discount_price" class="form-control rounded-0" placeholder="Optional">
+                        </div>
+                    </div>
+
+                    <!-- CONFIDENTIAL VENDOR PRICE FIELD -->
+                    <div class="mb-3 p-2 bg-light border border-warning">
+                        <label class="form-label fw-bold small text-dark mb-1">🔒 Confidential Vendor Price (₦)</label>
+                        <input type="number" step="0.01" name="vendor_price" class="form-control rounded-0 border-danger" placeholder="Hidden from customers" required>
+                        <div class="form-text" style="font-size: 11px;">Only visible to Stock Keeper, Finance, General Manager & CEO.</div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-6 mb-3">
+                            <label class="form-label fw-semibold small text-muted">Promo Event</label>
+                            <select name="promo_theme_id" class="form-select rounded-0">
+                                <option value="">Select Event</option>
+                                {% for theme in promo_themes %}
+                                    <option value="{{ theme.id }}">{{ theme.name }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-6 mb-3">
+                            <label class="form-label fw-semibold small text-muted">Promo Price (₦)</label>
+                            <input type="number" step="0.01" name="promo_price" class="form-control rounded-0" placeholder="Event Price">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small text-muted">Stock Quantity / Units</label>
+                        <input type="number" name="stock_quantity" class="form-control rounded-0" placeholder="0" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small text-muted">Primary Product Image</label>
+                        <input type="file" name="image" class="form-control rounded-0" accept="image/*">
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold small text-muted">Additional Image Gallery</label>
+                        <input type="file" name="gallery_images" class="form-control rounded-0" accept="image/*" multiple>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold small text-muted">Video Demonstration (MP4)</label>
+                        <input type="file" name="demo_videos" class="form-control rounded-0" accept="video/*" multiple>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-warning w-100 rounded-0 fw-bold py-2" style="background-color: #cc0001; border: none; color: white;">Upload Product</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- INVENTORY LISTING TABLE -->
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow-sm border-0 rounded-0 p-3 p-md-4 bg-white">
+                <h4 class="fw-bold mb-3 border-bottom pb-3 fs-5">Warehouse Inventory Listing & Real-Time Management</h4>
+                
+                {% if products %}
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle text-nowrap text-md-wrap">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Image</th>
+                                    <th>Name & Details</th>
+                                    <th>Pricing</th>
+                                    <th class="text-center">Stock</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for product in products %}
+                                    <tr>
+                                        <td>
+                                            {% if product.image %}
+                                                <img src="{{ product.image.url }}" alt="{{ product.name }}" style="width: 40px; height: 40px; object-fit: cover;" class="rounded-0 border">
+                                            {% else %}
+                                                <span class="text-muted small fst-italic">No Image</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="fw-bold text-dark text-wrap" style="min-width: 130px;">{{ product.name }}</div>
+                                            <div class="small text-muted text-truncate" style="max-width: 150px;">{{ product.description }}</div>
+                                            <!-- Vendor price inline indicator for authorized users -->
+                                            {% if request.user.is_superuser or request.user.role in 'stock_keeper,store_finance,general_manager,ceo' %}
+                                                <div class="badge bg-light text-danger border border-danger mt-1" style="font-size: 10px;">Vendor Cost: ₦{{ product.vendor_price|default:'0.00' }}</div>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="fw-semibold text-success">₦{{ product.current_active_price }}</div>
+                                            <div class="small text-muted text-decoration-line-through">₦{{ product.price }}</div>
+                                            {% if product.promo_theme and product.promo_theme.is_active and product.promo_price %}
+                                                <span class="badge bg-danger" style="font-size: 9px;">{{ product.promo_theme.name }}</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-center">
+                                            {% if product.stock_quantity <= 0 %}
+                                                <span class="badge bg-danger rounded-0 px-2 py-1 text-uppercase fw-bold" style="font-size: 10px;">Out of Stock</span>
+                                            {% elif product.stock_quantity <= 5 %}
+                                                <span class="badge bg-warning text-dark rounded-0 px-2 py-1" style="font-size: 10px;">{{ product.stock_quantity }} (Low)</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary rounded-0 px-2 py-1" style="font-size: 10px;">{{ product.stock_quantity }} units</span>
+                                            {% endif %}
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="d-flex justify-content-end gap-1 flex-wrap">
+                                                <button type="button" class="btn btn-sm btn-dark rounded-0 px-2 py-1" data-bs-toggle="modal" data-bs-target="#editProductModal{{ product.id }}">
+                                                    Edit
+                                                </button>
+                                                <form method="POST" onsubmit="return confirm('Are you sure you want to delete {{ product.name }} permanently?');" class="d-inline">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="delete_product" value="1">
+                                                    <input type="hidden" name="product_id" value="{{ product.id }}">
+                                                    <button type="submit" class="btn btn-sm btn-outline-danger rounded-0 px-2 py-1" title="Delete Product">
+                                                        Delete
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        </td>
+                                    </tr>
+
+                                    <!-- EDIT PRODUCT MODAL -->
+                                    <div class="modal fade" id="editProductModal{{ product.id }}" tabindex="-1" aria-hidden="true">
+                                        <div class="modal-dialog modal-dialog-centered modal-lg">
+                                            <div class="modal-content rounded-0 border-0 shadow">
+                                                <div class="modal-header bg-dark text-white rounded-0">
+                                                    <h5 class="modal-title fw-bold fs-6">Edit Product: {{ product.name }}</h5>
+                                                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                </div>
+                                                <form method="POST" enctype="multipart/form-data">
+                                                    {% csrf_token %}
+                                                    <input type="hidden" name="edit_product" value="1">
+                                                    <input type="hidden" name="product_id" value="{{ product.id }}">
+                                                    
+                                                    <div class="modal-body text-start">
+                                                        <div class="mb-3">
+                                                            <label class="form-label fw-semibold small text-muted">Product Name</label>
+                                                            <input type="text" name="name" class="form-control rounded-0" value="{{ product.name }}" required>
+                                                        </div>
+                                                        
+                                                        <div class="mb-3">
+                                                            <label class="form-label fw-semibold small text-muted">Category</label>
+                                                            <select name="category_id" class="form-select rounded-0" required>
+                                                                {% for cat in categories %}
+                                                                    <option value="{{ cat.id }}" {% if product.category.id == cat.id %}selected{% endif %}>{{ cat.name }}</option>
+                                                                {% endfor %}
+                                                            </select>
+                                                        </div>
+                                                        
+                                                        <div class="mb-3">
+                                                            <label class="form-label fw-semibold small text-muted">Description</label>
+                                                            <textarea name="description" class="form-control rounded-0" rows="3" required>{{ product.description }}</textarea>
+                                                        </div>
+                                                        
+                                                        <div class="row">
+                                                            <div class="col-md-4 mb-3">
+                                                                <label class="form-label fw-semibold small text-muted">Original Price (₦)</label>
+                                                                <input type="number" step="0.01" name="price" class="form-control rounded-0" value="{{ product.price }}" required>
+                                                            </div>
+                                                            <div class="col-md-4 mb-3">
+                                                                <label class="form-label fw-semibold small text-muted">Discount Price (₦)</label>
+                                                                <input type="number" step="0.01" name="discount_price" class="form-control rounded-0" value="{{ product.discount_price|default:'' }}">
+                                                            </div>
+                                                            <div class="col-md-4 mb-3">
+                                                                <label class="form-label fw-semibold small text-muted">Stock Units</label>
+                                                                <input type="number" name="stock_quantity" class="form-control rounded-0" value="{{ product.stock_quantity }}" required>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- CONFIDENTIAL VENDOR PRICE MODAL FIELD -->
+                                                        <div class="mb-3 p-3 bg-light border border-danger">
+                                                            <label class="form-label fw-bold text-dark small">🔒 Confidential Vendor Price (₦)</label>
+                                                            <input type="number" step="0.01" name="vendor_price" class="form-control rounded-0 border-danger" value="{{ product.vendor_price|default:'' }}" required>
+                                                            <div class="form-text text-danger" style="font-size: 11px;">Restricted viewing: Stock Keeper, Finance, General Manager, CEO only.</div>
+                                                        </div>
+
+                                                        <div class="row">
+                                                            <div class="col-md-6 mb-3">
+                                                                <label class="form-label fw-semibold small text-muted">Promo / Celebration Event</label>
+                                                                <select name="promo_theme_id" class="form-select rounded-0">
+                                                                    <option value="">No Promo Event</option>
+                                                                    {% for theme in promo_themes %}
+                                                                        <option value="{{ theme.id }}" {% if product.promo_theme and product.promo_theme.id == theme.id %}selected{% endif %}>{{ theme.name }}</option>
+                                                                    {% endfor %}
+                                                                </select>
+                                                            </div>
+                                                            <div class="col-md-6 mb-3">
+                                                                <label class="form-label fw-semibold small text-muted">Promo Price (₦)</label>
+                                                                <input type="number" step="0.01" name="promo_price" class="form-control rounded-0" value="{{ product.promo_price|default:'' }}">
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <div class="row">
+                                                            <div class="col-md-4 mb-3">
+                                                                <label class="form-label fw-semibold small text-muted">Update Main Image</label>
+                                                                <input type="file" name="image" class="form-control rounded-0" accept="image/*">
+                                                            </div>
+                                                            <div class="col-md-4 mb-3">
+                                                                <label class="form-label fw-semibold small text-muted">Add Gallery Images</label>
+                                                                <input type="file" name="gallery_images" class="form-control rounded-0" accept="image/*" multiple>
+                                                            </div>
+                                                            <div class="col-md-4 mb-3">
+                                                                <label class="form-label fw-semibold small text-muted">Add Video Demos</label>
+                                                                <input type="file" name="demo_videos" class="form-control rounded-0" accept="video/*" multiple>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer rounded-0">
+                                                        <button type="button" class="btn btn-secondary rounded-0 btn-sm" data-bs-dismiss="modal">Cancel</button>
+                                                        <button type="submit" class="btn btn-danger rounded-0 btn-sm px-4" style="background-color: #cc0001;">Save Changes</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="alert alert-light border text-center py-5 text-muted rounded-0 mb-0">
+                        <h5 class="fw-bold text-dark mb-1">No Products Uploaded Yet</h5>
+                        <p class="mb-0 text-muted small">Use the form on the left to add your first stock listing to the store.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

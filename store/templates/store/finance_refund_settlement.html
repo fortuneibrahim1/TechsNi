@@ -1,0 +1,50 @@
+{% extends 'store/base.html' %}
+{% block content %}
+<div class="container my-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>Finance Settlement for Return Request #{{ return_obj.id }}</h2>
+            <p class="text-muted mb-0">Process final cash/bank payout, upload refund invoice, and settle books.</p>
+        </div>
+        <a href="{% url 'store_finance_dashboard' %}" class="btn btn-outline-secondary btn-sm">
+            <i class="fas fa-arrow-left me-1"></i> Back to Queue
+        </a>
+    </div>
+
+    <div class="row">
+        <div class="col-md-5">
+            <div class="card p-4 shadow-sm mb-4 border-info">
+                <h5 class="fw-bold text-info mb-3"><i class="fas fa-info-circle me-2"></i> Order & Return Details</h5>
+                <p class="mb-2"><strong>Customer:</strong> {{ return_obj.customer.get_full_name|default:return_obj.customer.username }}</p>
+                <p class="mb-2"><strong>Order ID:</strong> #{{ return_obj.order.id }}</p>
+                <p class="mb-2"><strong>Total Order Amount:</strong> ₦{{ return_obj.order.total_amount }}</p>
+                <p class="mb-2"><strong>Reason for Return:</strong> <span class="text-danger">{{ return_obj.reason.reason_text|default:"N/A" }}</span></p>
+                <p class="mb-0"><strong>Inspection Notes:</strong> {{ return_obj.inspection_notes|default:"None provided" }}</p>
+            </div>
+        </div>
+
+        <div class="col-md-7">
+            <form method="POST" enctype="multipart/form-data" class="card p-4 shadow-sm border-success">
+                {% csrf_token %}
+                <h5 class="fw-bold text-success mb-3"><i class="fas fa-file-invoice-dollar me-2"></i> Execute Payout & Generate Receipt</h5>
+                
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Exact Refund Amount to Process (₦)</label>
+                    <input type="number" step="0.01" name="refund_amount" class="form-control" value="{{ return_obj.order.total_amount }}" required>
+                    <small class="text-muted">This amount will be deducted automatically from total store revenue.</small>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Upload Refund Invoice / Payout Proof (PDF or Image)</label>
+                    <input type="file" name="refund_invoice" class="form-control" accept="image/*,application/pdf" required>
+                    <small class="text-muted">Will be compiled and made available as a downloadable PDF receipt on the customer's portal.</small>
+                </div>
+
+                <button type="submit" class="btn btn-success btn-lg w-100 fw-bold">
+                    <i class="fas fa-check-circle me-2"></i> Complete Refund & Deduct Revenue
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

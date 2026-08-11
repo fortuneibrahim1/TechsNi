@@ -1,0 +1,333 @@
+{% extends 'store/base.html' %}
+
+{% block title %}Order #{{ order.id }} - TechsNi Store{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card shadow-sm border-0 p-4 mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <h3 class="fw-bold mb-0">Order #{{ order.id }}</h3>
+                <div class="d-flex align-items-center gap-2">
+                    {% if order.status == 'delivered' %}
+                        <a href="{% url 'request_refund' order.id %}" class="btn btn-warning fw-bold btn-sm">
+                            <i class="fas fa-file-invoice-dollar me-1"></i> Request Refund Form
+                        </a>
+                    {% endif %}
+                    <span class="badge bg-danger fs-6">{{ order.get_status_display }}</span>
+                </div>
+            </div>
+            
+            <p class="text-muted mb-4">Placed on {{ order.created_at }}</p>
+
+            <!-- Order Items Summary -->
+            <h5 class="fw-bold mb-3">Items Ordered</h5>
+            <ul class="list-group mb-4">
+                {% for item in order.items.all %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="fw-semibold">{{ item.product.name }}</span> (x{{ item.quantity }})
+                        </div>
+                        <span class="fw-bold">₦{{ item.total_price }}</span>
+                    </li>
+                {% endfor %}
+            </ul>
+            
+            <div class="bg-light p-3 rounded mb-4">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Items Subtotal:</span>
+                    <span>₦{{ order.items_subtotal }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-muted">Shipping Fee:</span>
+                    <span>₦{{ order.shipping_fee }}</span>
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Total Amount:</h4>
+                    <h4 class="text-danger mb-0 fw-bold">₦{{ order.total_amount }}</h4>
+                </div>
+                {% if order.payment_type == 'partial' %}
+                    <div class="mt-2 pt-2 border-top small text-info">
+                        <strong>Partial Payment Structure:</strong> {{ global_settings.default_deposit_percentage }}% Deposit (₦{{ order.deposit_amount }}) | Balance Due on Delivery: ₦{{ order.balance_amount }}
+                    </div>
+                {% else %}
+                    <div class="mt-2 pt-2 border-top small text-success">
+                        <strong>Payment Type:</strong> Full Upfront Payment Selected
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- LIVE RIDER & GPS TRACKING SECTION -->
+            <div class="card border-primary bg-light p-4 mb-4">
+                <h5 class="text-primary fw-bold mb-3">🚚 Delivery & Dispatch Tracking</h5>
+                
+                {% if order.assigned_rider %}
+                    <div class="d-flex align-items-center mb-3 p-3 bg-white rounded shadow-sm">
+                        <div>
+                            <p class="mb-1 text-muted small">Assigned Delivery Rider:</p>
+                            <h6 class="fw-bold mb-1 text-dark">
+                                {% if order.assigned_rider.get_full_name %}{{ order.assigned_rider.get_full_name }}{% else %}{{ order.assigned_rider.username }}{% endif %}
+                            </h6>
+                            <p class="mb-1 text-muted small">
+                                <i class="fas fa-phone-alt text-success me-1"></i> Phone: 
+                                <a href="tel:{{ order.assigned_rider.phone_number }}">{{ order.assigned_rider.phone_number|default:"Not Provided" }}</a>
+                            </p>
+                            {% if order.assigned_rider.email %}
+                                <p class="mb-0 text-muted small">Email: {{ order.assigned_rider.email }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if order.is_location_live %}
+                        <div class="alert alert-info mb-3">
+                            <h6 class="fw-bold mb-1">📍 Live GPS Tracking Active</h6>
+                            <p class="small mb-2">Rider coordinates: Lat {{ order.rider_latitude }}, Lng {{ order.rider_longitude }}</p>
+                            <div class="ratio ratio-16x9 bg-white border rounded">
+                                <iframe src="https://maps.google.com/maps?q={{ order.rider_latitude }},{{ order.rider_longitude }}&z=15&output=embed" style="border:0;" allowfullscreen="" loading="lazy"></iframe>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <div class="alert alert-secondary mb-3 py-2">
+                        <small class="mb-0">⏳ Status: Order is prepared and waiting to be claimed by an available rider in the dispatch pool.</small>
+                    </div>
+                {% endif %}
+
+                <!-- Visual Tracker Status Progress Bar -->
+                <div class="progress mb-2" style="height: 10px;">
+                    <div class="progress-bar 
+                        {% if order.status == 'delivered' %}bg-success w-100
+                        {% elif order.status == 'balance_payment_submitted' or order.status == 'arrived_at_customer' %}bg-primary w-75
+                        {% elif order.status == 'order_ready' or order.status == 'picked_up' %}bg-info w-50
+                        {% else %}bg-warning w-25{% endif %}" 
+                        role="progressbar">
+                    </div>
+                </div>
+                <div class="d-flex justify-content-between text-muted small fw-semibold">
+                    <span>Payment</span>
+                    <span>Ready Pool</span>
+                    <span>Picked Up / On-Site</span>
+                    <span>Delivered</span>
+                </div>
+            </div>
+
+        <!-- INITIAL PAYMENT STATUS & ACTION SECTION -->
+        {% if order.status == 'pending_payment' or order.status == 'partial_payment_submitted' %}
+            <div class="alert alert-warning p-4">
+                <h4 class="alert-heading fw-bold">Make Your Payment</h4>
+                {% if order.payment_type == 'partial' %}
+                    <p>Please transfer the {{ global_settings.default_deposit_percentage }}% initial deposit amount of <strong>₦{{ order.deposit_amount }}</strong> to the company bank account below:</p>
+                {% else %}
+                    <p>Please transfer the total amount of <strong>₦{{ order.total_amount }}</strong> to the company bank account below:</p>
+                {% endif %}
+                <hr>
+                {% if active_bank %}
+                    <p class="mb-1"><strong>Bank Name:</strong> {{ active_bank.bank_name }}</p>
+                    <p class="mb-1"><strong>Account Number:</strong> {{ active_bank.account_number }}</p>
+                    <p class="mb-3"><strong>Account Name:</strong> {{ active_bank.account_name }}</p>
+                {% else %}
+                    <p class="text-danger mb-3"><strong>Notice:</strong> No active company bank account details have been configured by management yet. Please contact support.</p>
+                {% endif %}
+                <hr>
+                <form method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="mark_paid">
+                    <button type="submit" class="btn btn-success fw-bold w-100 py-2">I Have Paid - Notify Finance</button>
+                </form>
+            </div>
+        {% endif %}
+
+        <!-- BALANCE PAYMENT SECTION FOR PARTIAL ORDERS -->
+        {% if order.payment_type == 'partial' and not order.balance_paid and order.status != 'pending_payment' and order.status != 'partial_payment_submitted' %}
+            <div class="card border-warning bg-light p-4 mb-4">
+                <h5 class="fw-bold text-dark"><i class="fas fa-hand-holding-usd text-warning me-2"></i> Settle Remaining Balance</h5>
+                <p class="text-muted small mb-3">Your initial deposit is confirmed! As your order approaches or arrives on-site, please clear your remaining balance of <strong>₦{{ order.balance_amount }}</strong> so finance can verify and unlock final delivery confirmation for the rider.</p>
+                
+                {% if active_bank %}
+                    <div class="bg-white p-3 rounded mb-3 border">
+                        <p class="mb-1 small"><strong>Transfer Balance to Bank:</strong> {{ active_bank.bank_name }}</p>
+                        <p class="mb-1 small"><strong>Account Number:</strong> {{ active_bank.account_number }}</p>
+                        <p class="mb-0 small"><strong>Account Name:</strong> {{ active_bank.account_name }}</p>
+                    </div>
+                {% endif %}
+
+                {% if order.status == 'balance_payment_submitted' %}
+                    <div class="alert alert-info py-2 mb-0">
+                        <small class="fw-semibold">⏳ Balance payment notice submitted. Awaiting Finance verification and confirmation.</small>
+                    </div>
+                {% else %}
+                    <form method="POST">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="pay_balance">
+                        <button type="submit" class="btn btn-warning fw-semibold w-100">I Have Paid Balance (₦{{ order.balance_amount }}) - Notify Finance</button>
+                    </form>
+                {% endif %}
+            </div>
+        {% endif %}
+
+        <!-- STRICTLY SECURED FINANCE-CONFIRMED INVOICE & BUTTONS -->
+        {% if order.payment_type != 'partial' or order.balance_paid %}
+            {% if invoices %}
+                {% for inv in invoices %}
+                    <!-- Action Controls Card -->
+                    <div class="card bg-light border-success p-4 mb-4 shadow-sm print-hidden">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                            <div>
+                                <h5 class="text-success fw-bold mb-1"><i class="fas fa-file-invoice-dollar me-2"></i> Official Store Invoice</h5>
+                                <p class="text-muted small mb-0">Payment and balance officially verified & confirmed by Finance. Click below to print or save your professional statement.</p>
+                            </div>
+                            <div class="d-flex gap-2">
+                                <button onclick="window.print()" class="btn btn-dark btn-sm fw-bold px-3">
+                                    <i class="fas fa-print me-1"></i> Print Invoice
+                                </button>
+                                <button onclick="window.print()" class="btn btn-success btn-sm fw-bold px-3">
+                                    <i class="fas fa-download me-1"></i> Save PDF
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- PROFESSIONAL PRINTABLE INVOICE SHEET -->
+                    <div id="printableInvoiceArea" class="invoice-container p-4 bg-white border rounded shadow-sm mb-4">
+                        <div class="row border-bottom pb-4 mb-4">
+                            <div class="col-6">
+                                <h2 class="fw-bold text-dark mb-1">TechsNi Store</h2>
+                            </div>
+                            <div class="col-6 text-end">
+                                <h3 class="fw-bold text-success text-uppercase mb-1">Official Invoice</h3>
+                                <p class="fw-bold font-monospace text-dark mb-0">Invoice No: {{ inv.invoice_number }}</p>
+                                <p class="text-muted small mb-0">Date: {{ inv.generated_at|date:"F d, Y H:i" }}</p>
+                                <p class="text-muted small">Order Reference: <strong>#{{ order.id }}</strong></p>
+                            </div>
+                        </div>
+
+                        <div class="row mb-4">
+                            <div class="col-6">
+                                <h6 class="fw-bold text-secondary text-uppercase small">Billed To:</h6>
+                                <p class="fw-bold mb-1 text-dark">{{ order.customer.username }}</p>
+                                <p class="text-muted small mb-0">Email: {{ order.customer.email|default:"Not provided" }}</p>
+                                {% if order.customer.customer_id_number %}
+                                    <p class="text-muted small mb-0">Customer ID: {{ order.customer.customer_id_number }}</p>
+                                {% endif %}
+                            </div>
+                            <div class="col-6 text-end">
+                                <h6 class="fw-bold text-secondary text-uppercase small">Payment Status:</h6>
+                                <span class="badge bg-success text-uppercase px-3 py-2">Fully Paid / Confirmed</span>
+                                <p class="text-muted small mt-2 mb-0">Payment Type: <strong>{{ order.get_payment_type_display|default:order.payment_type|title }}</strong></p>
+                            </div>
+                        </div>
+
+                        <div class="table-responsive mb-4">
+                            <table class="table table-bordered align-middle">
+                                <thead class="table-dark">
+                                    <tr>
+                                        <th class="py-2">Item Description</th>
+                                        <th class="text-center py-2">Qty</th>
+                                        <th class="text-end py-2">Unit Price</th>
+                                        <th class="text-end py-2">Total</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in order.items.all %}
+                                        <tr>
+                                            <td class="fw-semibold text-dark">{{ item.product.name }}</td>
+                                            <td class="text-center">{{ item.quantity }}</td>
+                                            <td class="text-end">₦{{ item.product.price }}</td>
+                                            <td class="text-end fw-bold">₦{{ item.total_price }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <div class="row justify-content-end mb-4">
+                            <div class="col-6">
+                                <table class="table table-sm table-borderless">
+                                    <tr>
+                                        <td class="text-muted">Items Subtotal:</td>
+                                        <td class="text-end fw-semibold">₦{{ order.items_subtotal }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td class="text-muted">Shipping Fee:</td>
+                                        <td class="text-end fw-semibold">₦{{ order.shipping_fee }}</td>
+                                    </tr>
+                                    <tr class="border-top">
+                                        <td class="fw-bold fs-5 text-dark">Grand Total:</td>
+                                        <td class="text-end fw-bold fs-5 text-success">₦{{ order.total_amount }}</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="border-top pt-3 text-center text-muted small">
+                            <p class="mb-1">Thank you for doing business with TechsNi Store!</p>
+                            <p class="mb-0">This is a system-generated electronic invoice valid without signature.</p>
+                        </div>
+                    </div>
+
+                    <!-- Print Stylesheet -->
+                    <style>
+                    @media print {
+                        body * {
+                            visibility: hidden !important;
+                        }
+                        #printableInvoiceArea, #printableInvoiceArea * {
+                            visibility: visible !important;
+                        }
+                        #printableInvoiceArea {
+                            display: block !important;
+                            position: absolute !important;
+                            left: 0 !important;
+                            top: 0 !important;
+                            width: 100% !important;
+                            margin: 0 !important;
+                            padding: 30px !important;
+                            background: #ffffff !important;
+                            border: none !important;
+                            box-shadow: none !important;
+                        }
+                        .print-hidden {
+                            display: none !important;
+                        }
+                    }
+                    </style>
+                {% endfor %}
+            {% endif %}
+        {% else %}
+            {% if order.status == 'balance_payment_submitted' %}
+                <div class="alert alert-info p-3 mb-4">
+                    <h6 class="fw-bold mb-1"><i class="fas fa-clock me-2"></i> Balance Payment Notice Submitted</h6>
+                    <p class="small text-muted mb-0">Your balance payment notice has been received. The official store invoice, print options, and PDF download buttons will automatically unlock here only after Finance reviews and clicks <strong>Confirm Balance & Generate Invoice</strong>.</p>
+                </div>
+            {% endif %}
+        {% endif %}
+
+        <!-- PRODUCT RATING FORM (When Delivered) -->
+        {% if order.status == 'delivered' %}
+            <div class="card border-success p-4 mt-4">
+                <h5 class="text-success fw-bold">Rate Your Purchased Items</h5>
+                <form method="POST" class="mt-3">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="submit_rating">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Rating Score (1 to 5 Stars)</label>
+                        <select name="rating_score" class="form-select">
+                            <option value="5">★★★★★ (5/5) - Excellent</option>
+                            <option value="4">★★★★☆ (4/5) - Good</option>
+                            <option value="3">★★★☆☆ (3/5) - Average</option>
+                            <option value="2">★★☆☆☆ (2/5) - Poor</option>
+                            <option value="1">★☆☆☆☆ (1/5) - Terrible</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Review Comment</label>
+                        <textarea name="comment" class="form-control" rows="3" placeholder="Share your experience with this product..."></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100">Submit Rating & Review</button>
+                </form>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

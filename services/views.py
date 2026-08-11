@@ -1053,7 +1053,6 @@ def worker_dashboard(request):
 
     return render(request, 'services/dashboards/worker.html', {'assigned_jobs': assigned_jobs})
 
-
 @csrf_exempt
 def register_view(request):
     if request.method == 'POST':
@@ -1071,18 +1070,8 @@ def register_view(request):
             # Save user ID in the dedicated signup session key
             request.session['signup_user_id'] = user.id
             
-            # Handle local debug vs live email sending automatically
-            if settings.DEBUG:
-                success_message = f"DEVELOPER MODE REGISTRATION OTP: {code}"
-            else:
-                send_mail(
-                    subject='Verify Your New Account',
-                    message=f'Your registration verification code is: {code}',
-                    from_email='admin@techsni.com',
-                    recipient_list=[user.email],
-                    fail_silently=False,
-                )
-                success_message = "An OTP code has been sent to your email address."
+            # ALWAYS display the code directly on the screen for easy use
+            success_message = f"Your verification code is: {code}"
                 
             request.session['signup_success_message'] = success_message
             return redirect('signup_verify_otp')

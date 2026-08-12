@@ -27,28 +27,27 @@ load_dotenv(os.path.join(BASE_DIR, '.env'))
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.environ.get('DJANGO_SECRET_KEY')
 
-ALLOWED_HOSTS = os.environ.get('DJANGO_ALLOWED_HOSTS', '*').split(',')
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '.onrender.com', 'techsni.com.ng', '.techsni.com.ng']
 
 
 # Application definition
 
 INSTALLED_APPS = [
+    'cloudinary_storage',
+    'django.contrib.staticfiles',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
-    'django.contrib.staticfiles',
     'services.apps.ServicesConfig',
     'store',
-    'cloudinary_storage', # Put this here
     'cloudinary',
 ]
 
 MIDDLEWARE = [
-    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -126,14 +125,9 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# Redirect settings after login/logout
-LOGIN_URL = 'login'
-LOGIN_REDIRECT_URL = 'portal_gateway'
-LOGOUT_REDIRECT_URL = 'login'
-
-AUTH_USER_MODEL = 'services.User'
-
-import os
+# Media files configuration for Cloudinary
+MEDIA_URL = '/media/'
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 CLOUDINARY_STORAGE = {
     'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME'),
@@ -141,9 +135,12 @@ CLOUDINARY_STORAGE = {
     'API_SECRET': os.getenv('CLOUDINARY_API_SECRET'),
 }
 
-DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+# Redirect settings after login/logout
+LOGIN_URL = 'login'
+LOGIN_REDIRECT_URL = 'portal_gateway'
+LOGOUT_REDIRECT_URL = 'login'
 
+AUTH_USER_MODEL = 'services.User'
 
 # Gmail SMTP Email Configuration via Environment Variables
-# Change your email backend to print to the console/logs instead of trying to connect to SMTP
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'

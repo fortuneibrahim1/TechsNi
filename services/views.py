@@ -1085,7 +1085,10 @@ def verify_signup_otp_view(request):
     if not user_id:
         return redirect('register') # Send back if no session exists
         
-    user = User.objects.get(id=user_id)
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return redirect('register')
     
     if request.method == 'POST':
         entered_code = request.POST.get('otp')
@@ -1095,7 +1098,8 @@ def verify_signup_otp_view(request):
                 user.is_active = True
                 user.save()
                 otp_record.delete()
-                del request.session['signup_user_id'] # Clear session
+                if 'signup_user_id' in request.session:
+                    del request.session['signup_user_id'] # Clear session
                 return redirect('login') # Send to login page after successful verification
             else:
                 return render(request, 'services/verify_signup_otp.html', {'error': 'Invalid OTP code.'})
@@ -1103,7 +1107,6 @@ def verify_signup_otp_view(request):
             return render(request, 'services/verify_signup_otp.html', {'error': 'OTP expired or not found.'})
             
     return render(request, 'services/verify_signup_otp.html')
-
 
 def check_username(request):
     username = request.GET.get('username', None)

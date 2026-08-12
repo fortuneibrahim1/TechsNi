@@ -97,16 +97,11 @@ LOGOUT_REDIRECT_URL = 'login'
 AUTH_USER_MODEL = 'services.User'
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-# --- STATIC & MEDIA CONFIGURATION ---
-
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 MEDIA_URL = '/media/'
-
-# Use standard Django file handling locally/temporarily during requests 
-# while letting Cloudinary handle asset storage natively via environment variables
-DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage'
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 CLOUDINARY_STORAGE = {
     'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME'),

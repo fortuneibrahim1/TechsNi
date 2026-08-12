@@ -43,7 +43,6 @@ INSTALLED_APPS = [
     'services.apps.ServicesConfig',
     'store',
     'cloudinary_storage', # Put this here
-    'django.contrib.staticfiles',
     'cloudinary',
 ]
 

@@ -42,6 +42,9 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'services.apps.ServicesConfig',
     'store',
+    'cloudinary_storage', # Put this here
+    'django.contrib.staticfiles',
+    'cloudinary',
 ]
 
 MIDDLEWARE = [
@@ -130,6 +133,17 @@ LOGIN_REDIRECT_URL = 'portal_gateway'
 LOGOUT_REDIRECT_URL = 'login'
 
 AUTH_USER_MODEL = 'services.User'
+
+import os
+
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME'),
+    'API_KEY': os.getenv('CLOUDINARY_API_KEY'),
+    'API_SECRET': os.getenv('CLOUDINARY_API_SECRET'),
+}
+
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+
 
 # Gmail SMTP Email Configuration via Environment Variables
 # Change your email backend to print to the console/logs instead of trying to connect to SMTP

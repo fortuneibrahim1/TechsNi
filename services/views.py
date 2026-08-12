@@ -3035,7 +3035,7 @@ def register_view(request):
                 send_mail(
                     subject='Verify Your New Account',
                     message=f'Your registration verification code is: {code}',
-                    from_email='admin@techsni.com',
+                    from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[user.email],
                     fail_silently=False,
                 )

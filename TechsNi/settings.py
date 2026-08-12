@@ -33,13 +33,13 @@ ALLOWED_HOSTS = ['127.0.0.1', 'localhost', '.onrender.com', 'techsni.com.ng', '.
 # Application definition
 
 INSTALLED_APPS = [
-    'cloudinary_storage',
-    'django.contrib.staticfiles',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'cloudinary_storage',
+    'django.contrib.staticfiles',
     'services.apps.ServicesConfig',
     'store',
     'cloudinary',
@@ -126,7 +126,7 @@ STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-# Media files configuration for Cloudinary
+# Media files configuration for Cloudinary (User Uploads)
 MEDIA_URL = '/media/'
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 

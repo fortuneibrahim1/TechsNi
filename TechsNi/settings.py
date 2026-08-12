@@ -122,6 +122,7 @@ USE_TZ = True
 # Static files & Cloudinary Storage configuration
 STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_STORAGE = 'whitenoise.storage.StaticFilesStorage'
 
 STORAGES = {
     "default": {

@@ -97,14 +97,26 @@ LOGOUT_REDIRECT_URL = 'login'
 AUTH_USER_MODEL = 'services.User'
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-# --- MEDIA & CLOUDINARY STORAGE (Keeps logo safe, fixes product images) ---
+# --- MODERN STORAGES CONFIGURATION FOR DJANGO 6 & CLOUDINARY ---
 
-MEDIA_URL = '/media/'  
+STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+STORAGES = {
+    "default": {
+        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
+
+MEDIA_URL = '/media/'
 DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
 CLOUDINARY_STORAGE = {
     'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME'),
     'API_KEY': os.getenv('CLOUDINARY_API_KEY'),
     'API_SECRET': os.getenv('CLOUDINARY_API_SECRET'),
-    'SECURE': True,  
+    'SECURE': True,
 }

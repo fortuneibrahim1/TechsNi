@@ -3033,36 +3033,37 @@ def worker_dashboard(request):
 
     return render(request, 'services/dashboards/worker.html', {'assigned_jobs': assigned_jobs})
 
-
 @csrf_exempt
 def register_view(request):
     if request.method == 'POST':
         form = CustomUserRegistrationForm(request.POST)
         if form.is_valid():
-            user = form.save(commit=False)
-            user.is_active = False 
-            user.save()
-            
-            code = str(random.randint(100000, 999999))
-            PasswordResetOTP.objects.filter(user=user).delete()
-            PasswordResetOTP.objects.create(user=user, otp_code=code)
-            
-            request.session['signup_user_id'] = user.id
-            
-            if settings.DEBUG:
-                success_message = f"DEVELOPER MODE REGISTRATION OTP: {code}"
-            else:
-                send_mail(
-                    subject='Verify Your New Account',
-                    message=f'Your registration verification code is: {code}',
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[user.email],
-                    fail_silently=False,
-                )
-                success_message = "An OTP code has been sent to your email address."
+            try:
+                user = form.save(commit=False)
+                user.is_active = False  # Deactivate until OTP is verified
+                user.save()
                 
-            request.session['signup_success_message'] = success_message
-            return redirect('signup_verify_otp')
+                # Generate 6-digit OTP
+                code = str(random.randint(100000, 999999))
+                PasswordResetOTP.objects.filter(user=user).delete()
+                PasswordResetOTP.objects.create(user=user, otp_code=code)
+                
+                # Save user ID in the dedicated signup session key
+                request.session['signup_user_id'] = user.id
+                
+                # ALWAYS display the code directly on the screen for easy use
+                success_message = f"Your verification code is: {code}"
+                request.session['signup_success_message'] = success_message
+                
+                return redirect('signup_verify_otp')
+            except Exception as e:
+                # This will catch ANY crash and print the exact reason in your logs instead of killing the server
+                print("CRITICAL REGISTRATION EXCEPTION:", str(e))
+                import traceback
+                traceback.print_exc()
+                return render(request, 'services/register.html', {'form': form, 'error': f"An error occurred: {str(e)}"})
+        else:
+            print("REGISTRATION FORM ERRORS:", form.errors)
     else:
         form = CustomUserRegistrationForm()
         

@@ -566,13 +566,11 @@ def pay_balance_view(request):
              
     # Redirect cleanly back to the specific job details page instead of the general dashboard
     return redirect('customer_job_detail', job_id=job.id)
+
 @login_required
 def ceo_dashboard(request):
     request.user.refresh_from_db()
-    
-    # Safely check user role without crashing if the field doesn't exist
-    user_role = getattr(request.user, 'role', None)
-    if not request.user.is_superuser and user_role != 'ceo':
+    if not request.user.is_superuser and request.user.role != 'ceo':
         return redirect('dashboard_router')
        
     if request.method == 'POST':
@@ -596,12 +594,7 @@ def ceo_dashboard(request):
 
     live_jobs = Job.objects.all().order_by('-id')
     users = User.objects.all().order_by('-id')
-    
-    # Safely query workers only if the role field exists
-    try:
-        workers = User.objects.filter(role='worker')
-    except Exception:
-        workers = User.objects.none()
+    workers = User.objects.filter(role='worker')
 
     return render(request, 'services/dashboards/ceo.html', {
         'live_jobs': live_jobs,
@@ -1061,8 +1054,6 @@ def worker_dashboard(request):
     return render(request, 'services/dashboards/worker.html', {'assigned_jobs': assigned_jobs})
 import random
 import os
-import random
-import os
 import resend
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import login, get_user_model
@@ -1079,15 +1070,9 @@ def register_view(request):
         form = CustomUserRegistrationForm(request.POST)
         if form.is_valid():
             try:
-                # SECURE FIX: Let the form handle user creation, or explicitly use set_password
                 user = form.save(commit=False)
                 user.is_active = False  # Deactivate until OTP is verified
-                user.set_password(form.cleaned_data['password'])
                 user.save()
-                
-                # If form has m2m fields
-                if hasattr(form, 'save_m2m'):
-                    form.save_m2m()
                 
                 # Generate 6-digit OTP
                 code = str(random.randint(100000, 999999))
@@ -1097,7 +1082,7 @@ def register_view(request):
                 # Save user ID in the session
                 request.session['signup_user_id'] = user.id
                 
-                # SEND VIA RESEND API
+                # SEND VIA RESEND API (HTTPS / Port 443 - Works on Render free tier!)
                 resend.api_key = os.environ.get('EMAIL_HOST_PASSWORD')
                 params = {
                     "from": os.environ.get('DEFAULT_FROM_EMAIL', 'onboarding@resend.dev'),
@@ -1107,8 +1092,8 @@ def register_view(request):
                 }
                 resend.Emails.send(params)
                 
-                # Redirect directly to the signup verification page smoothly using the correct URL name
-                return redirect('verify_signup_otp')
+                # Redirect directly to the OTP verification page smoothly
+                return redirect('signup_verify_otp')
                 
             except Exception as e:
                 print("RESEND API ERROR:", str(e))
@@ -1120,36 +1105,82 @@ def register_view(request):
         
     return render(request, 'services/register.html', {'form': form})
 
+
 def verify_signup_otp_view(request):
     user_id = request.session.get('signup_user_id')
     if not user_id:
-        return redirect('register')
+        return redirect('register') # Send back if no session exists
         
-    user = get_object_or_404(User, id=user_id)
+    try:
+        user = User.objects.get(id=user_id)
+    except User.DoesNotExist:
+        return redirect('register')
     
     if request.method == 'POST':
-        entered_code = request.POST.get('otp', '').strip()
-        
-        # Use filter().first() to avoid throwing a crashing DoesNotExist exception
-        otp_record = PasswordResetOTP.objects.filter(user=user).first()
-        
-        if otp_record and otp_record.otp_code.strip() == entered_code:
-            user.is_active = True
-            user.is_verified = True
-            user.save()
-            otp_record.delete()
-            if 'signup_user_id' in request.session:
-                del request.session['signup_user_id']
-            return redirect('login')
-        else:
-            return render(request, 'services/verify_signup_otp.html', {'error': 'Invalid, expired, or missing OTP code.'})
+        entered_code = request.POST.get('otp')
+        try:
+            otp_record = PasswordResetOTP.objects.get(user=user)
+            if otp_record.otp_code == entered_code:
+                user.is_active = True
+                user.save()
+                otp_record.delete()
+                if 'signup_user_id' in request.session:
+                    del request.session['signup_user_id'] # Clear session
+                return redirect('login') # Send to login page after successful verification
+            else:
+                return render(request, 'services/verify_signup_otp.html', {'error': 'Invalid OTP code.'})
+        except PasswordResetOTP.DoesNotExist:
+            return render(request, 'services/verify_signup_otp.html', {'error': 'OTP expired or not found.'})
             
     return render(request, 'services/verify_signup_otp.html')
+
 
 def check_username(request):
     username = request.GET.get('username', None)
     exists = User.objects.filter(username__iexact=username).exists()
     return JsonResponse({'exists': exists})
+
+
+@csrf_exempt
+def verify_otp_view(request):
+    user_id = request.session.get('verify_user_id')
+   
+    if not user_id and request.method == 'POST':
+        user_id = request.POST.get('verify_user_id') or request.POST.get('user_id')
+       
+    if not user_id:
+        return redirect('register')
+       
+    UserModel = get_user_model()
+    user = get_object_or_404(UserModel, id=user_id)
+   
+    if request.method == 'POST':
+        entered_otp = request.POST.get('otp_code', '').strip()
+        stored_otp = getattr(user, 'otp_code', None)
+        if stored_otp is None:
+            try:
+                otp_obj = PasswordResetOTP.objects.get(user=user)
+                stored_otp = otp_obj.otp_code
+            except PasswordResetOTP.DoesNotExist:
+                stored_otp = None
+
+        if entered_otp and stored_otp and entered_otp == str(stored_otp).strip():
+            user.is_verified = True
+            if hasattr(user, 'otp_code'):
+                user.otp_code = None
+            user.save()
+            
+            PasswordResetOTP.objects.filter(user=user).delete()
+            
+            login(request, user)
+            if 'verify_user_id' in request.session:
+                del request.session['verify_user_id']
+            return redirect('customer_dashboard')
+        else:
+            error = 'Invalid OTP code. Please check and put the correct OTP.'
+            return render(request, 'services/verify_otp.html', {'user': user, 'error': error})
+           
+    return render(request, 'services/verify_otp.html', {'user': user})
 
 
 @login_required
@@ -1460,15 +1491,14 @@ def service_bank_accounts_view(request):
     return render(request, 'services/dashboards/bank_accounts.html', context)
 
 import random
-import os
-import random
-import requests
 from django.conf import settings
 from django.shortcuts import render, redirect
 from django.contrib.auth import get_user_model
+from django.core.mail import send_mail
 from .models import PasswordResetOTP
 
 User = get_user_model()
+
 def custom_password_reset_request(request):
     if request.method == 'POST':
         email = request.POST.get('email')
@@ -1481,25 +1511,16 @@ def custom_password_reset_request(request):
             
             request.session['reset_user_id'] = user.id
             
-            # SEND PASSWORD RESET EMAIL VIA RESEND HTTP API (Port 443)
-            api_key = os.environ.get('EMAIL_HOST_PASSWORD')
-            sender_email = os.environ.get('DEFAULT_FROM_EMAIL', 'support@techsni.com.ng')
+            # Send the actual email package (which goes to console locally)
+            send_mail(
+                subject='Your Password Reset OTP Code',
+                message=f'Your verification code to reset your password is: {code}',
+                from_email='admin@techsni.com',
+                recipient_list=[email],
+                fail_silently=False,
+            )
             
-            headers = {
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json"
-            }
-            payload = {
-                "from": sender_email,
-                "to": [email],
-                "subject": "Your Password Reset OTP Code",
-                "html": f"<p>Hello,</p><p>Your verification code to reset your password is: <strong>{code}</strong></p>"
-            }
-            
-            response = requests.post("https://api.resend.com/emails", json=payload, headers=headers)
-            print("Password Reset Resend API Response Status:", response.status_code)
-            print("Password Reset Resend API Response Body:", response.text)
-            
+            # Automatically save message to session for local developer mode or standard notification
             if settings.DEBUG:
                 request.session['password_reset_success_message'] = f"DEVELOPER MODE OTP: {code}"
             else:
@@ -1512,31 +1533,6 @@ def custom_password_reset_request(request):
             return render(request, 'services/password_reset_form.html', {'error': error})
             
     return render(request, 'services/password_reset_form.html')
-
-def set_new_password_view(request):
-    user_id = request.session.get('reset_user_id')
-    if not user_id:
-        return redirect('password_reset')
-        
-    user = get_object_or_404(User, id=user_id)
-    
-    if request.method == 'POST':
-        new_password = request.POST.get('password')
-        confirm_password = request.POST.get('confirm_password')
-        
-        if new_password and new_password == confirm_password:
-            user.set_password(new_password)
-            user.save()
-            
-            # Clear the reset session
-            if 'reset_user_id' in request.session:
-                del request.session['reset_user_id']
-                
-            return redirect('login')
-        else:
-            return render(request, 'services/set_new_password.html', {'error': 'Passwords do not match or are invalid.'})
-            
-    return render(request, 'services/set_new_password.html')
 
 def verify_otp_view(request):
     if request.method == 'POST':
@@ -1551,6 +1547,7 @@ def verify_otp_view(request):
             otp_record = PasswordResetOTP.objects.get(user=user)
             
             if otp_record.is_valid() and otp_record.otp_code == entered_code:
+                # Code matches! Clear OTP, clear success message, and redirect to set new password
                 otp_record.delete()
                 if 'password_reset_success_message' in request.session:
                     del request.session['password_reset_success_message']
@@ -1569,7 +1566,22 @@ def set_new_password_view(request):
     if not user_id:
         return redirect('password_reset')
         
-    user = User
+    user = User.objects.get(id=user_id)
+    if request.method == 'POST':
+        new_password = request.POST.get('new_password')
+        confirm_password = request.POST.get('confirm_password')
+        
+        if new_password == confirm_password:
+            user.set_password(new_password)
+            user.save()
+            del request.session['reset_user_id']
+            return redirect('login')
+        else:
+            error = "Passwords do not match."
+            return render(request, 'services/set_new_password.html', {'error': error})
+            
+    return render(request, 'services/set_new_password.html')
+
 @login_required
 def edit_catalog_view(request, pk):
     """Edit an existing instruction catalog item."""
@@ -3093,7 +3105,6 @@ def register_view(request):
                 print("Resend API Response Status:", response.status_code)
                 print("Resend API Response Body:", response.text)
                 
-                # Make sure this matches your exact URL name in urls.py
                 return redirect('signup_verify_otp')
                 
             except Exception as e:
@@ -3105,35 +3116,31 @@ def register_view(request):
         form = CustomUserRegistrationForm()
         
     return render(request, 'services/register.html', {'form': form})
+
 def verify_signup_otp_view(request):
     user_id = request.session.get('signup_user_id')
     if not user_id:
         return redirect('register')
         
-    user = get_object_or_404(User, id=user_id)
+    user = User.objects.get(id=user_id)
     
     if request.method == 'POST':
-        entered_code = request.POST.get('otp') or request.POST.get('otp_code', '')
-        entered_code = entered_code.strip()
-        
-        # Safely grab the latest token without crashing if multiple exist or none are found
-        otp_record = PasswordResetOTP.objects.filter(user=user).order_by('-id').first()
-        
-        if otp_record and otp_record.otp_code.strip() == entered_code:
-            user.is_active = True
-            user.save()
-            
-            # Clean up all OTP records for this user to avoid clutter
-            PasswordResetOTP.objects.filter(user=user).delete()
-            
-            if 'signup_user_id' in request.session:
+        entered_code = request.POST.get('otp')
+        try:
+            otp_record = PasswordResetOTP.objects.get(user=user)
+            if otp_record.otp_code == entered_code:
+                user.is_active = True
+                user.save()
+                otp_record.delete()
                 del request.session['signup_user_id']
-                
-            return redirect('login')
-        else:
-            return render(request, 'services/verify_signup_otp.html', {'error': 'Invalid or expired OTP code.'})
+                return redirect('login')
+            else:
+                return render(request, 'services/verify_signup_otp.html', {'error': 'Invalid OTP code.'})
+        except PasswordResetOTP.DoesNotExist:
+            return render(request, 'services/verify_signup_otp.html', {'error': 'OTP expired or not found.'})
             
     return render(request, 'services/verify_signup_otp.html')
+
 
 def check_username(request):
     username = request.GET.get('username', None)
@@ -3468,6 +3475,99 @@ def service_bank_accounts_view(request):
     accounts = CompanyBankAccount.objects.all()
     context = {'accounts': accounts}
     return render(request, 'services/dashboards/bank_accounts.html', context)
+
+
+def custom_password_reset_request(request):
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        try:
+            user = User.objects.get(email=email)
+            code = str(random.randint(100000, 999999))
+            
+            PasswordResetOTP.objects.filter(user=user).delete()
+            PasswordResetOTP.objects.create(user=user, otp_code=code)
+            
+            request.session['reset_user_id'] = user.id
+            
+            # SEND PASSWORD RESET EMAIL VIA RESEND HTTP API (Port 443)
+            api_key = os.environ.get('EMAIL_HOST_PASSWORD')
+            sender_email = os.environ.get('DEFAULT_FROM_EMAIL', 'support@techsni.com.ng')
+            
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "from": sender_email,
+                "to": [email],
+                "subject": "Your Password Reset OTP Code",
+                "html": f"<p>Hello,</p><p>Your verification code to reset your password is: <strong>{code}</strong></p>"
+            }
+            
+            response = requests.post("https://api.resend.com/emails", json=payload, headers=headers)
+            print("Password Reset Resend API Response Status:", response.status_code)
+            print("Password Reset Resend API Response Body:", response.text)
+            
+            if settings.DEBUG:
+                request.session['password_reset_success_message'] = f"DEVELOPER MODE OTP: {code}"
+            else:
+                request.session['password_reset_success_message'] = "An OTP code has been sent to your email address."
+                
+            return redirect('verify_otp')
+            
+        except User.DoesNotExist:
+            error = "No user found with this email address."
+            return render(request, 'services/password_reset_form.html', {'error': error})
+            
+    return render(request, 'services/password_reset_form.html')
+
+
+def verify_otp_view(request):
+    if request.method == 'POST':
+        entered_code = request.POST.get('otp_code')
+        user_id = request.session.get('reset_user_id')
+        
+        if not user_id:
+            return redirect('password_reset')
+            
+        try:
+            user = User.objects.get(id=user_id)
+            otp_record = PasswordResetOTP.objects.get(user=user)
+            
+            if otp_record.otp_code == entered_code:
+                otp_record.delete()
+                if 'password_reset_success_message' in request.session:
+                    del request.session['password_reset_success_message']
+                return redirect('set_new_password')
+            else:
+                error = "Invalid or expired OTP code."
+                return render(request, 'services/verify_otp.html', {'error': error})
+        except (User.DoesNotExist, PasswordResetOTP.DoesNotExist):
+            error = "Invalid request session."
+            return render(request, 'services/verify_otp.html', {'error': error})
+            
+    return render(request, 'services/verify_otp.html')
+
+def set_new_password_view(request):
+    user_id = request.session.get('reset_user_id')
+    if not user_id:
+        return redirect('password_reset')
+        
+    user = User.objects.get(id=user_id)
+    if request.method == 'POST':
+        new_password = request.POST.get('new_password')
+        confirm_password = request.POST.get('confirm_password')
+        
+        if new_password == confirm_password:
+            user.set_password(new_password)
+            user.save()
+            del request.session['reset_user_id']
+            return redirect('login')
+        else:
+            error = "Passwords do not match."
+            return render(request, 'services/set_new_password.html', {'error': error})
+            
+    return render(request, 'services/set_new_password.html')
 
 
 # --- EXPORT & HISTORY VIEWS ---

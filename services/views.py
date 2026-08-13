@@ -1059,6 +1059,11 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.models import User
 import resend
+import os
+import random
+from django.shortcuts import render, redirect, get_object_or_404
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.models import User
 
 @csrf_exempt
 def register_view(request):
@@ -1082,7 +1087,7 @@ def register_view(request):
                 # Save user ID in session
                 request.session['signup_user_id'] = user.id
                 
-                # Safely attempt to send email via Resend using your custom environment variable domain sender
+                # Send email via Resend using your custom environment variable domain sender
                 try:
                     resend.api_key = os.environ.get('EMAIL_HOST_PASSWORD')
                     sender_email = os.environ.get('DEFAULT_FROM_EMAIL', 'support@techsni.com.ng')
@@ -1094,17 +1099,15 @@ def register_view(request):
                     }
                     resend.Emails.send(params)
                 except Exception as mail_err:
-                    print("EMAIL SENDING FAILED (Non-blocking):", str(mail_err))
+                    print("EMAIL SENDING FAILED:", str(mail_err))
                 
-                # Store backup message and redirect to the correct signup OTP verification route
-                request.session['signup_success_message'] = f"Your verification code is: {code}"
+                # Redirect to verification page without storing the code in session
                 return redirect('signup_verify_otp')
                 
             except Exception as e:
                 print("REGISTRATION ERROR:", str(e))
                 return render(request, 'services/register.html', {'form': form, 'error': f"An error occurred: {str(e)}"})
         else:
-            # Prints exact form errors to your Render logs if validation fails
             print("REGISTRATION FORM ERRORS:", form.errors.as_json() if hasattr(form.errors, 'as_json') else form.errors)
             return render(request, 'services/register.html', {'form': form})
     else:
@@ -1135,8 +1138,6 @@ def verify_signup_otp_view(request):
             
             if 'signup_user_id' in request.session:
                 del request.session['signup_user_id']
-            if 'signup_success_message' in request.session:
-                del request.session['signup_success_message']
                 
             return redirect('login')
         else:

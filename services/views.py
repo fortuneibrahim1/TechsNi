@@ -3059,10 +3059,14 @@ def worker_dashboard(request):
 import requests
 import os
 import random
-from django.shortcuts import render, redirect
+from django.conf import settings
+from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse, HttpResponse
+from django.contrib.auth.models import User
 from .forms import CustomUserRegistrationForm
-from .models import PasswordResetOTP
+from .models import PasswordResetOTP, Job, InstructionCatalog, CompanyBankAccount, PurchaseOrderRecord
 
 @csrf_exempt
 def register_view(request):
@@ -3079,12 +3083,12 @@ def register_view(request):
                 PasswordResetOTP.objects.filter(user=user).delete()
                 PasswordResetOTP.objects.create(user=user, otp_code=code)
                 
-                # Save user ID in the session
+                # Save user ID in the signup session
                 request.session['signup_user_id'] = user.id
                 
-                # SEND EMAIL DIRECTLY VIA RESEND HTTP API (Port 443 - Never blocked on Render)
+                # SEND EMAIL DIRECTLY VIA RESEND HTTP API (Port 443)
                 api_key = os.environ.get('EMAIL_HOST_PASSWORD')
-                sender_email = os.environ.get('DEFAULT_FROM_EMAIL', 'onboarding@resend.dev')
+                sender_email = os.environ.get('DEFAULT_FROM_EMAIL', 'support@techsni.com.ng')
                 
                 headers = {
                     "Authorization": f"Bearer {api_key}",
@@ -3101,12 +3105,11 @@ def register_view(request):
                 print("Resend API Response Status:", response.status_code)
                 print("Resend API Response Body:", response.text)
                 
-                # Redirect directly to the OTP verification page automatically
                 return redirect('signup_verify_otp')
                 
             except Exception as e:
                 print("REGISTRATION ERROR:", str(e))
-                return render(request, 'services/register.html', {'form': form, 'error': f"An error occurred. Please try again."})
+                return render(request, 'services/register.html', {'form': form, 'error': "An error occurred. Please try again."})
         else:
             print("REGISTRATION FORM ERRORS:", form.errors)
     else:
@@ -3334,8 +3337,6 @@ def assign_worker_ajax_view(request):
         
         job = get_object_or_404(Job, id=job_id)
         
-        # --- LAYERED ON TOP: PO Gatekeeper Check ---
-        # If it's a PO job, check that the PO record has been fully approved by Finance/Execs
         if getattr(job, 'is_po_job', False):
             po_record = PurchaseOrderRecord.objects.filter(job=job).first()
             if not po_record or po_record.status != 'approved':
@@ -3344,7 +3345,6 @@ def assign_worker_ajax_view(request):
                     return JsonResponse({'success': False, 'error': error_msg}, status=400)
                 messages.error(request, error_msg)
                 return redirect('assign_worker')
-        # -------------------------------------------
         
         worker = get_object_or_404(User, id=worker_id, role='worker')
         
@@ -3365,7 +3365,6 @@ def assign_worker_ajax_view(request):
 
     active_assignments = Job.objects.exclude(assigned_worker__isnull=True).order_by('-id')
     workers = User.objects.filter(role='worker')
-    # Filtered to ensure managers only see jobs that are ready for assignment
     all_jobs = Job.objects.filter(status__in=['approved', 'deposit_paid', 'on_site', 'po_approved_pending_work', 'quote_approved'])
 
     return render(request, 'services/dashboards/assign_worker.html', {
@@ -3374,9 +3373,8 @@ def assign_worker_ajax_view(request):
         'active_assignments': active_assignments
     })
 
-# --- NEW: INSTRUCTION CATALOG VIEWS ---
+
 def instruction_catalog_view(request):
-    """Publicly accessible instruction catalog viewer."""
     catalogs = InstructionCatalog.objects.all()
     return render(request, 'services/instruction_catalogs.html', {
         'catalogs': catalogs
@@ -3385,7 +3383,6 @@ def instruction_catalog_view(request):
 
 @login_required
 def manage_catalogs_view(request):
-    """Dashboard view for CEO and Managers to manage catalogs."""
     if request.user.role not in ['ceo', 'manager', 'general_manager', 'assistant_manager'] and not request.user.is_superuser:
         return redirect('gateway')
     
@@ -3397,7 +3394,6 @@ def manage_catalogs_view(request):
 
 @login_required
 def add_catalog_view(request):
-    """Add a new instruction catalog item."""
     if request.user.role not in ['ceo', 'manager', 'general_manager', 'assistant_manager'] and not request.user.is_superuser:
         return redirect('gateway')
 
@@ -3422,7 +3418,6 @@ def add_catalog_view(request):
 
 @login_required
 def edit_catalog_view(request, pk):
-    """Edit an existing instruction catalog item."""
     if request.user.role not in ['ceo', 'manager', 'general_manager', 'assistant_manager'] and not request.user.is_superuser:
         return redirect('gateway')
 
@@ -3446,7 +3441,6 @@ def edit_catalog_view(request, pk):
 
 @login_required
 def delete_catalog_view(request, pk):
-    """Delete an instruction catalog item."""
     if request.user.role not in ['ceo', 'manager', 'general_manager', 'assistant_manager'] and not request.user.is_superuser:
         return redirect('gateway')
 
@@ -3455,10 +3449,8 @@ def delete_catalog_view(request, pk):
     return redirect('manage_catalogs')
 
 
-# --- BANK ACCOUNTS & PASSWORD RESET VIEWS ---
 @login_required
 def service_bank_accounts_view(request):
-    """Allows the CEO to manage company bank accounts for service invoices and quotations."""
     if not request.user.is_staff and not getattr(request.user, 'is_ceo', False):
         return redirect('service_home')
 
@@ -3484,13 +3476,6 @@ def service_bank_accounts_view(request):
     context = {'accounts': accounts}
     return render(request, 'services/dashboards/bank_accounts.html', context)
 
-import requests
-import os
-import random
-from django.conf import settings
-from django.shortcuts import render, redirect
-from django.contrib.auth.models import User
-from .models import PasswordResetOTP
 
 def custom_password_reset_request(request):
     if request.method == 'POST':
@@ -3549,7 +3534,7 @@ def verify_otp_view(request):
             user = User.objects.get(id=user_id)
             otp_record = PasswordResetOTP.objects.get(user=user)
             
-            if otp_record.is_valid() and otp_record.otp_code == entered_code:
+            if otp_record.otp_code == entered_code:
                 otp_record.delete()
                 if 'password_reset_success_message' in request.session:
                     del request.session['password_reset_success_message']
@@ -3562,7 +3547,6 @@ def verify_otp_view(request):
             return render(request, 'services/verify_otp.html', {'error': error})
             
     return render(request, 'services/verify_otp.html')
-
 
 def set_new_password_view(request):
     user_id = request.session.get('reset_user_id')

@@ -3106,28 +3106,25 @@ def verify_signup_otp_view(request):
     user = get_object_or_404(User, id=user_id)
     
     if request.method == 'POST':
-        # Safely grab the code using either 'otp' or 'otp_code' depending on your HTML template
         entered_code = request.POST.get('otp') or request.POST.get('otp_code', '')
         entered_code = entered_code.strip()
         
-        try:
-            otp_record = PasswordResetOTP.objects.get(user=user)
+        # Safely grab the latest token without crashing if multiple exist or none are found
+        otp_record = PasswordResetOTP.objects.filter(user=user).order_by('-id').first()
+        
+        if otp_record and otp_record.otp_code.strip() == entered_code:
+            user.is_active = True
+            user.save()
             
-            # Check if it matches (and check if your model has an is_valid() method if needed)
-            if otp_record.otp_code == entered_code:
-                user.is_active = True
-                user.save()
-                otp_record.delete()
+            # Clean up all OTP records for this user to avoid clutter
+            PasswordResetOTP.objects.filter(user=user).delete()
+            
+            if 'signup_user_id' in request.session:
+                del request.session['signup_user_id']
                 
-                if 'signup_user_id' in request.session:
-                    del request.session['signup_user_id']
-                    
-                return redirect('login')
-            else:
-                return render(request, 'services/verify_signup_otp.html', {'error': 'Invalid OTP code.'})
-                
-        except PasswordResetOTP.DoesNotExist:
-            return render(request, 'services/verify_signup_otp.html', {'error': 'OTP expired or not found.'})
+            return redirect('login')
+        else:
+            return render(request, 'services/verify_signup_otp.html', {'error': 'Invalid or expired OTP code.'})
             
     return render(request, 'services/verify_signup_otp.html')
 

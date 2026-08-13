@@ -1462,6 +1462,49 @@ from django.contrib.auth import get_user_model
 from .models import PasswordResetOTP
 
 User = get_user_model()
+def custom_password_reset_request(request):
+    if request.method == 'POST':
+        email = request.POST.get('email')
+        try:
+            user = User.objects.get(email=email)
+            code = str(random.randint(100000, 999999))
+            
+            PasswordResetOTP.objects.filter(user=user).delete()
+            PasswordResetOTP.objects.create(user=user, otp_code=code)
+            
+            request.session['reset_user_id'] = user.id
+            
+            # SEND PASSWORD RESET EMAIL VIA RESEND HTTP API (Port 443)
+            api_key = os.environ.get('EMAIL_HOST_PASSWORD')
+            sender_email = os.environ.get('DEFAULT_FROM_EMAIL', 'support@techsni.com.ng')
+            
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "from": sender_email,
+                "to": [email],
+                "subject": "Your Password Reset OTP Code",
+                "html": f"<p>Hello,</p><p>Your verification code to reset your password is: <strong>{code}</strong></p>"
+            }
+            
+            response = requests.post("https://api.resend.com/emails", json=payload, headers=headers)
+            print("Password Reset Resend API Response Status:", response.status_code)
+            print("Password Reset Resend API Response Body:", response.text)
+            
+            if settings.DEBUG:
+                request.session['password_reset_success_message'] = f"DEVELOPER MODE OTP: {code}"
+            else:
+                request.session['password_reset_success_message'] = "An OTP code has been sent to your email address."
+                
+            return redirect('verify_otp')
+            
+        except User.DoesNotExist:
+            error = "No user found with this email address."
+            return render(request, 'services/password_reset_form.html', {'error': error})
+            
+    return render(request, 'services/password_reset_form.html')
 
 def set_new_password_view(request):
     user_id = request.session.get('reset_user_id')

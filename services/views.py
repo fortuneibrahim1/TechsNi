@@ -3033,6 +3033,9 @@ def worker_dashboard(request):
 
     return render(request, 'services/dashboards/worker.html', {'assigned_jobs': assigned_jobs})
 
+from django.core.mail import send_mail
+from django.conf import settings
+
 @csrf_exempt
 def register_view(request):
     if request.method == 'POST':
@@ -3048,20 +3051,23 @@ def register_view(request):
                 PasswordResetOTP.objects.filter(user=user).delete()
                 PasswordResetOTP.objects.create(user=user, otp_code=code)
                 
-                # Save user ID in the dedicated signup session key
+                # Save user ID in the session
                 request.session['signup_user_id'] = user.id
                 
-                # ALWAYS display the code directly on the screen for easy use
-                success_message = f"Your verification code is: {code}"
-                request.session['signup_success_message'] = success_message
+                # SEND THE OTP VIA EMAIL USING RESEND
+                subject = 'Your Verification Code'
+                message = f'Hello, your verification code is: {code}. Please enter this code to activate your account.'
+                email_from = settings.DEFAULT_FROM_EMAIL
+                recipient_list = [user.email]
                 
+                send_mail(subject, message, email_from, recipient_list, fail_silently=False)
+                
+                # Redirect directly to the OTP verification page (No screen message)
                 return redirect('signup_verify_otp')
+                
             except Exception as e:
-                # This will catch ANY crash and print the exact reason in your logs instead of killing the server
-                print("CRITICAL REGISTRATION EXCEPTION:", str(e))
-                import traceback
-                traceback.print_exc()
-                return render(request, 'services/register.html', {'form': form, 'error': f"An error occurred: {str(e)}"})
+                print("REGISTRATION EMAIL/SAVE ERROR:", str(e))
+                return render(request, 'services/register.html', {'form': form, 'error': f"Could not send email. Please try again."})
         else:
             print("REGISTRATION FORM ERRORS:", form.errors)
     else:

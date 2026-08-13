@@ -1058,53 +1058,79 @@ def register_view(request):
     if request.method == 'POST':
         form = CustomUserRegistrationForm(request.POST)
         if form.is_valid():
-            user = form.save(commit=False)
-            user.is_active = False  # Deactivate until OTP is verified
-            user.save()
-            
-            # Generate 6-digit OTP
-            code = str(random.randint(100000, 999999))
-            PasswordResetOTP.objects.filter(user=user).delete()
-            PasswordResetOTP.objects.create(user=user, otp_code=code)
-            
-            # Save user ID in the dedicated signup session key
-            request.session['signup_user_id'] = user.id
-            
-            # ALWAYS display the code directly on the screen for easy use
-            success_message = f"Your verification code is: {code}"
+            try:
+                user = form.save(commit=False)
+                user.is_active = False  # Deactivate until OTP is verified
+                user.set_password(form.cleaned_data['password'])
+                user.save()
                 
-            request.session['signup_success_message'] = success_message
-            return redirect('signup_verify_otp')
+                if hasattr(form, 'save_m2m'):
+                    form.save_m2m()
+                
+                # Generate 6-digit OTP
+                code = str(random.randint(100000, 999999))
+                PasswordResetOTP.objects.filter(user=user).delete()
+                PasswordResetOTP.objects.create(user=user, otp_code=code)
+                
+                # Save user ID in session
+                request.session['signup_user_id'] = user.id
+                
+                # Safely attempt to send email via Resend without crashing the server if network blocks
+                try:
+                    resend.api_key = os.environ.get('EMAIL_HOST_PASSWORD')
+                    params = {
+                        "from": os.environ.get('DEFAULT_FROM_EMAIL', 'onboarding@resend.dev'),
+                        "to": [user.email],
+                        "subject": "Your Verification Code",
+                        "html": f"<p>Hello,</p><p>Your verification code is: <strong>{code}</strong></p><p>Please enter this code to activate your account.</p>"
+                    }
+                    resend.Emails.send(params)
+                except Exception as mail_err:
+                    print("EMAIL SENDING FAILED (Non-blocking):", str(mail_err))
+                
+                # Fallback message / Redirect to verification page
+                request.session['signup_success_message'] = f"Your verification code is: {code}"
+                return redirect('signup_verify_otp')
+                
+            except Exception as e:
+                print("REGISTRATION ERROR:", str(e))
+                return render(request, 'services/register.html', {'form': form, 'error': f"An error occurred: {str(e)}"})
+        else:
+            print("REGISTRATION FORM ERRORS:", form.errors)
     else:
         form = CustomUserRegistrationForm()
         
     return render(request, 'services/register.html', {'form': form})
 
+
 def verify_signup_otp_view(request):
     user_id = request.session.get('signup_user_id')
     if not user_id:
-        return redirect('register') # Send back if no session exists
-        
-    try:
-        user = User.objects.get(id=user_id)
-    except User.DoesNotExist:
         return redirect('register')
+        
+    user = get_object_or_404(User, id=user_id)
     
     if request.method == 'POST':
-        entered_code = request.POST.get('otp')
-        try:
-            otp_record = PasswordResetOTP.objects.get(user=user)
-            if otp_record.otp_code == entered_code:
-                user.is_active = True
-                user.save()
-                otp_record.delete()
-                if 'signup_user_id' in request.session:
-                    del request.session['signup_user_id'] # Clear session
-                return redirect('login') # Send to login page after successful verification
-            else:
-                return render(request, 'services/verify_signup_otp.html', {'error': 'Invalid OTP code.'})
-        except PasswordResetOTP.DoesNotExist:
-            return render(request, 'services/verify_signup_otp.html', {'error': 'OTP expired or not found.'})
+        entered_code = request.POST.get('otp', '').strip()
+        
+        # Safely get the latest OTP record using filter instead of get to prevent 500 errors
+        otp_record = PasswordResetOTP.objects.filter(user=user).order_by('-id').first()
+        
+        if otp_record and otp_record.otp_code.strip() == entered_code:
+            user.is_active = True
+            user.save()
+            
+            # Clean up token records
+            PasswordResetOTP.objects.filter(user=user).delete()
+            
+            if 'signup_user_id' in request.session:
+                del request.session['signup_user_id']
+            if 'signup_success_message' in request.session:
+                del request.session['signup_success_message']
+                
+            return redirect('login')
+        else:
+            return render(request, 'services/verify_signup_otp.html', {'error': 'Invalid or expired OTP code.'})
             
     return render(request, 'services/verify_signup_otp.html')
 

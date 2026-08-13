@@ -3484,6 +3484,13 @@ def service_bank_accounts_view(request):
     context = {'accounts': accounts}
     return render(request, 'services/dashboards/bank_accounts.html', context)
 
+import requests
+import os
+import random
+from django.conf import settings
+from django.shortcuts import render, redirect
+from django.contrib.auth.models import User
+from .models import PasswordResetOTP
 
 def custom_password_reset_request(request):
     if request.method == 'POST':
@@ -3497,13 +3504,24 @@ def custom_password_reset_request(request):
             
             request.session['reset_user_id'] = user.id
             
-            send_mail(
-                subject='Your Password Reset OTP Code',
-                message=f'Your verification code to reset your password is: {code}',
-                from_email='admin@techsni.com',
-                recipient_list=[email],
-                fail_silently=False,
-            )
+            # SEND PASSWORD RESET EMAIL VIA RESEND HTTP API (Port 443)
+            api_key = os.environ.get('EMAIL_HOST_PASSWORD')
+            sender_email = os.environ.get('DEFAULT_FROM_EMAIL', 'support@techsni.com.ng')
+            
+            headers = {
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            }
+            payload = {
+                "from": sender_email,
+                "to": [email],
+                "subject": "Your Password Reset OTP Code",
+                "html": f"<p>Hello,</p><p>Your verification code to reset your password is: <strong>{code}</strong></p>"
+            }
+            
+            response = requests.post("https://api.resend.com/emails", json=payload, headers=headers)
+            print("Password Reset Resend API Response Status:", response.status_code)
+            print("Password Reset Resend API Response Body:", response.text)
             
             if settings.DEBUG:
                 request.session['password_reset_success_message'] = f"DEVELOPER MODE OTP: {code}"

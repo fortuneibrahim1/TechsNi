@@ -1141,48 +1141,6 @@ def check_username(request):
     return JsonResponse({'exists': exists})
 
 
-@csrf_exempt
-def verify_otp_view(request):
-    user_id = request.session.get('verify_user_id')
-   
-    if not user_id and request.method == 'POST':
-        user_id = request.POST.get('verify_user_id') or request.POST.get('user_id')
-       
-    if not user_id:
-        return redirect('register')
-       
-    UserModel = get_user_model()
-    user = get_object_or_404(UserModel, id=user_id)
-   
-    if request.method == 'POST':
-        entered_otp = request.POST.get('otp_code', '').strip()
-        stored_otp = getattr(user, 'otp_code', None)
-        if stored_otp is None:
-            try:
-                otp_obj = PasswordResetOTP.objects.get(user=user)
-                stored_otp = otp_obj.otp_code
-            except PasswordResetOTP.DoesNotExist:
-                stored_otp = None
-
-        if entered_otp and stored_otp and entered_otp == str(stored_otp).strip():
-            user.is_verified = True
-            if hasattr(user, 'otp_code'):
-                user.otp_code = None
-            user.save()
-            
-            PasswordResetOTP.objects.filter(user=user).delete()
-            
-            login(request, user)
-            if 'verify_user_id' in request.session:
-                del request.session['verify_user_id']
-            return redirect('customer_dashboard')
-        else:
-            error = 'Invalid OTP code. Please check and put the correct OTP.'
-            return render(request, 'services/verify_otp.html', {'user': user, 'error': error})
-           
-    return render(request, 'services/verify_otp.html', {'user': user})
-
-
 @login_required
 def ceo_jobs_view(request):
     request.user.refresh_from_db()
@@ -1492,6 +1450,7 @@ def service_bank_accounts_view(request):
 
 import random
 import os
+import random
 import requests
 from django.conf import settings
 from django.shortcuts import render, redirect

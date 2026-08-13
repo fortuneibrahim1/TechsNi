@@ -3054,20 +3054,22 @@ def register_view(request):
                 # Save user ID in the session
                 request.session['signup_user_id'] = user.id
                 
-                # SEND THE OTP VIA EMAIL USING RESEND
-                subject = 'Your Verification Code'
-                message = f'Hello, your verification code is: {code}. Please enter this code to activate your account.'
-                email_from = settings.DEFAULT_FROM_EMAIL
-                recipient_list = [user.email]
+                # Try sending email, but don't let a timeout crash the server
+                try:
+                    subject = 'Your Verification Code'
+                    message = f'Hello, your verification code is: {code}. Please enter this code to activate your account.'
+                    email_from = settings.DEFAULT_FROM_EMAIL
+                    recipient_list = [user.email]
+                    send_mail(subject, message, email_from, recipient_list, fail_silently=False)
+                except Exception as email_err:
+                    print("EMAIL SENDING FAILED (Server timeout/network):", str(email_err))
                 
-                send_mail(subject, message, email_from, recipient_list, fail_silently=False)
-                
-                # Redirect directly to the OTP verification page (No screen message)
+                # ALWAYS redirect to the OTP page safely now
                 return redirect('signup_verify_otp')
                 
             except Exception as e:
-                print("REGISTRATION EMAIL/SAVE ERROR:", str(e))
-                return render(request, 'services/register.html', {'form': form, 'error': f"Could not send email. Please try again."})
+                print("REGISTRATION SAVE ERROR:", str(e))
+                return render(request, 'services/register.html', {'form': form, 'error': "An error occurred during registration."})
         else:
             print("REGISTRATION FORM ERRORS:", form.errors)
     else:

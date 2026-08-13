@@ -1052,7 +1052,6 @@ def worker_dashboard(request):
             return JsonResponse({'success': False, 'error': 'Invalid status'}, status=400)
 
     return render(request, 'services/dashboards/worker.html', {'assigned_jobs': assigned_jobs})
-
 @csrf_exempt
 def register_view(request):
     if request.method == 'POST':
@@ -1075,6 +1074,9 @@ def register_view(request):
                 
             request.session['signup_success_message'] = success_message
             return redirect('signup_verify_otp')
+        else:
+            # THIS WILL PRINT ERRORS TO YOUR TERMINAL/LOGS SO YOU CAN SEE THEM
+            print("REGISTRATION FORM ERRORS:", form.errors)
     else:
         form = CustomUserRegistrationForm()
         

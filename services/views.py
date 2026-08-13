@@ -1052,59 +1052,33 @@ def worker_dashboard(request):
             return JsonResponse({'success': False, 'error': 'Invalid status'}, status=400)
 
     return render(request, 'services/dashboards/worker.html', {'assigned_jobs': assigned_jobs})
-import random
-import os
-import resend
-from django.shortcuts import render, redirect, get_object_or_404
-from django.contrib.auth import login, get_user_model
-from django.views.decorators.csrf import csrf_exempt
-from django.http import JsonResponse
-from .forms import CustomUserRegistrationForm
-from .models import PasswordResetOTP
-
-User = get_user_model()
 
 @csrf_exempt
 def register_view(request):
     if request.method == 'POST':
         form = CustomUserRegistrationForm(request.POST)
         if form.is_valid():
-            try:
-                user = form.save(commit=False)
-                user.is_active = False  # Deactivate until OTP is verified
-                user.save()
+            user = form.save(commit=False)
+            user.is_active = False  # Deactivate until OTP is verified
+            user.save()
+            
+            # Generate 6-digit OTP
+            code = str(random.randint(100000, 999999))
+            PasswordResetOTP.objects.filter(user=user).delete()
+            PasswordResetOTP.objects.create(user=user, otp_code=code)
+            
+            # Save user ID in the dedicated signup session key
+            request.session['signup_user_id'] = user.id
+            
+            # ALWAYS display the code directly on the screen for easy use
+            success_message = f"Your verification code is: {code}"
                 
-                # Generate 6-digit OTP
-                code = str(random.randint(100000, 999999))
-                PasswordResetOTP.objects.filter(user=user).delete()
-                PasswordResetOTP.objects.create(user=user, otp_code=code)
-                
-                # Save user ID in the session
-                request.session['signup_user_id'] = user.id
-                
-                # SEND VIA RESEND API (HTTPS / Port 443 - Works on Render free tier!)
-                resend.api_key = os.environ.get('EMAIL_HOST_PASSWORD')
-                params = {
-                    "from": os.environ.get('DEFAULT_FROM_EMAIL', 'onboarding@resend.dev'),
-                    "to": [user.email],
-                    "subject": "Your Verification Code",
-                    "html": f"<p>Hello,</p><p>Your verification code is: <strong>{code}</strong></p><p>Please enter this code to activate your account.</p>"
-                }
-                resend.Emails.send(params)
-                
-                # Redirect directly to the OTP verification page smoothly
-                return redirect('signup_verify_otp')
-                
-            except Exception as e:
-                print("RESEND API ERROR:", str(e))
-                return render(request, 'services/register.html', {'form': form, 'error': f"Failed to send email: {str(e)}"})
-        else:
-            print("REGISTRATION FORM ERRORS:", form.errors)
+            request.session['signup_success_message'] = success_message
+            return redirect('signup_verify_otp')
     else:
         form = CustomUserRegistrationForm()
         
     return render(request, 'services/register.html', {'form': form})
-
 
 def verify_signup_otp_view(request):
     user_id = request.session.get('signup_user_id')
@@ -1134,7 +1108,6 @@ def verify_signup_otp_view(request):
             
     return render(request, 'services/verify_signup_otp.html')
 
-
 def check_username(request):
     username = request.GET.get('username', None)
     exists = User.objects.filter(username__iexact=username).exists()
@@ -1151,27 +1124,14 @@ def verify_otp_view(request):
     if not user_id:
         return redirect('register')
        
-    UserModel = get_user_model()
-    user = get_object_or_404(UserModel, id=user_id)
+    user = get_object_or_404(User, id=user_id)
    
     if request.method == 'POST':
         entered_otp = request.POST.get('otp_code', '').strip()
-        stored_otp = getattr(user, 'otp_code', None)
-        if stored_otp is None:
-            try:
-                otp_obj = PasswordResetOTP.objects.get(user=user)
-                stored_otp = otp_obj.otp_code
-            except PasswordResetOTP.DoesNotExist:
-                stored_otp = None
-
-        if entered_otp and stored_otp and entered_otp == str(stored_otp).strip():
+        if entered_otp and entered_otp == str(user.otp_code).strip():
             user.is_verified = True
-            if hasattr(user, 'otp_code'):
-                user.otp_code = None
+            user.otp_code = None
             user.save()
-            
-            PasswordResetOTP.objects.filter(user=user).delete()
-            
             login(request, user)
             if 'verify_user_id' in request.session:
                 del request.session['verify_user_id']
@@ -3056,66 +3016,41 @@ def worker_dashboard(request):
 
     return render(request, 'services/dashboards/worker.html', {'assigned_jobs': assigned_jobs})
 
-import requests
-import os
-import random
-from django.conf import settings
-from django.shortcuts import render, redirect, get_object_or_404
-from django.views.decorators.csrf import csrf_exempt
-from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse, HttpResponse
-from django.contrib.auth.models import User
-from .forms import CustomUserRegistrationForm
-from .models import PasswordResetOTP, Job, InstructionCatalog, CompanyBankAccount, PurchaseOrderRecord
 
 @csrf_exempt
 def register_view(request):
     if request.method == 'POST':
         form = CustomUserRegistrationForm(request.POST)
         if form.is_valid():
-            try:
-                user = form.save(commit=False)
-                user.is_active = False  # Deactivate until OTP is verified
-                user.save()
+            user = form.save(commit=False)
+            user.is_active = False 
+            user.save()
+            
+            code = str(random.randint(100000, 999999))
+            PasswordResetOTP.objects.filter(user=user).delete()
+            PasswordResetOTP.objects.create(user=user, otp_code=code)
+            
+            request.session['signup_user_id'] = user.id
+            
+            if settings.DEBUG:
+                success_message = f"DEVELOPER MODE REGISTRATION OTP: {code}"
+            else:
+                send_mail(
+                    subject='Verify Your New Account',
+                    message=f'Your registration verification code is: {code}',
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[user.email],
+                    fail_silently=False,
+                )
+                success_message = "An OTP code has been sent to your email address."
                 
-                # Generate 6-digit OTP
-                code = str(random.randint(100000, 999999))
-                PasswordResetOTP.objects.filter(user=user).delete()
-                PasswordResetOTP.objects.create(user=user, otp_code=code)
-                
-                # Save user ID in the signup session
-                request.session['signup_user_id'] = user.id
-                
-                # SEND EMAIL DIRECTLY VIA RESEND HTTP API (Port 443)
-                api_key = os.environ.get('EMAIL_HOST_PASSWORD')
-                sender_email = os.environ.get('DEFAULT_FROM_EMAIL', 'support@techsni.com.ng')
-                
-                headers = {
-                    "Authorization": f"Bearer {api_key}",
-                    "Content-Type": "application/json"
-                }
-                payload = {
-                    "from": sender_email,
-                    "to": [user.email],
-                    "subject": "Your Verification Code",
-                    "html": f"<p>Hello,</p><p>Your verification code is: <strong>{code}</strong></p><p>Please enter this code to activate your account.</p>"
-                }
-                
-                response = requests.post("https://api.resend.com/emails", json=payload, headers=headers)
-                print("Resend API Response Status:", response.status_code)
-                print("Resend API Response Body:", response.text)
-                
-                return redirect('signup_verify_otp')
-                
-            except Exception as e:
-                print("REGISTRATION ERROR:", str(e))
-                return render(request, 'services/register.html', {'form': form, 'error': "An error occurred. Please try again."})
-        else:
-            print("REGISTRATION FORM ERRORS:", form.errors)
+            request.session['signup_success_message'] = success_message
+            return redirect('signup_verify_otp')
     else:
         form = CustomUserRegistrationForm()
         
     return render(request, 'services/register.html', {'form': form})
+
 
 def verify_signup_otp_view(request):
     user_id = request.session.get('signup_user_id')
@@ -3337,6 +3272,8 @@ def assign_worker_ajax_view(request):
         
         job = get_object_or_404(Job, id=job_id)
         
+        # --- LAYERED ON TOP: PO Gatekeeper Check ---
+        # If it's a PO job, check that the PO record has been fully approved by Finance/Execs
         if getattr(job, 'is_po_job', False):
             po_record = PurchaseOrderRecord.objects.filter(job=job).first()
             if not po_record or po_record.status != 'approved':
@@ -3345,6 +3282,7 @@ def assign_worker_ajax_view(request):
                     return JsonResponse({'success': False, 'error': error_msg}, status=400)
                 messages.error(request, error_msg)
                 return redirect('assign_worker')
+        # -------------------------------------------
         
         worker = get_object_or_404(User, id=worker_id, role='worker')
         
@@ -3365,6 +3303,7 @@ def assign_worker_ajax_view(request):
 
     active_assignments = Job.objects.exclude(assigned_worker__isnull=True).order_by('-id')
     workers = User.objects.filter(role='worker')
+    # Filtered to ensure managers only see jobs that are ready for assignment
     all_jobs = Job.objects.filter(status__in=['approved', 'deposit_paid', 'on_site', 'po_approved_pending_work', 'quote_approved'])
 
     return render(request, 'services/dashboards/assign_worker.html', {
@@ -3373,8 +3312,9 @@ def assign_worker_ajax_view(request):
         'active_assignments': active_assignments
     })
 
-
+# --- NEW: INSTRUCTION CATALOG VIEWS ---
 def instruction_catalog_view(request):
+    """Publicly accessible instruction catalog viewer."""
     catalogs = InstructionCatalog.objects.all()
     return render(request, 'services/instruction_catalogs.html', {
         'catalogs': catalogs
@@ -3383,6 +3323,7 @@ def instruction_catalog_view(request):
 
 @login_required
 def manage_catalogs_view(request):
+    """Dashboard view for CEO and Managers to manage catalogs."""
     if request.user.role not in ['ceo', 'manager', 'general_manager', 'assistant_manager'] and not request.user.is_superuser:
         return redirect('gateway')
     
@@ -3394,6 +3335,7 @@ def manage_catalogs_view(request):
 
 @login_required
 def add_catalog_view(request):
+    """Add a new instruction catalog item."""
     if request.user.role not in ['ceo', 'manager', 'general_manager', 'assistant_manager'] and not request.user.is_superuser:
         return redirect('gateway')
 
@@ -3418,6 +3360,7 @@ def add_catalog_view(request):
 
 @login_required
 def edit_catalog_view(request, pk):
+    """Edit an existing instruction catalog item."""
     if request.user.role not in ['ceo', 'manager', 'general_manager', 'assistant_manager'] and not request.user.is_superuser:
         return redirect('gateway')
 
@@ -3441,6 +3384,7 @@ def edit_catalog_view(request, pk):
 
 @login_required
 def delete_catalog_view(request, pk):
+    """Delete an instruction catalog item."""
     if request.user.role not in ['ceo', 'manager', 'general_manager', 'assistant_manager'] and not request.user.is_superuser:
         return redirect('gateway')
 
@@ -3449,8 +3393,10 @@ def delete_catalog_view(request, pk):
     return redirect('manage_catalogs')
 
 
+# --- BANK ACCOUNTS & PASSWORD RESET VIEWS ---
 @login_required
 def service_bank_accounts_view(request):
+    """Allows the CEO to manage company bank accounts for service invoices and quotations."""
     if not request.user.is_staff and not getattr(request.user, 'is_ceo', False):
         return redirect('service_home')
 
@@ -3489,24 +3435,13 @@ def custom_password_reset_request(request):
             
             request.session['reset_user_id'] = user.id
             
-            # SEND PASSWORD RESET EMAIL VIA RESEND HTTP API (Port 443)
-            api_key = os.environ.get('EMAIL_HOST_PASSWORD')
-            sender_email = os.environ.get('DEFAULT_FROM_EMAIL', 'support@techsni.com.ng')
-            
-            headers = {
-                "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json"
-            }
-            payload = {
-                "from": sender_email,
-                "to": [email],
-                "subject": "Your Password Reset OTP Code",
-                "html": f"<p>Hello,</p><p>Your verification code to reset your password is: <strong>{code}</strong></p>"
-            }
-            
-            response = requests.post("https://api.resend.com/emails", json=payload, headers=headers)
-            print("Password Reset Resend API Response Status:", response.status_code)
-            print("Password Reset Resend API Response Body:", response.text)
+            send_mail(
+                subject='Your Password Reset OTP Code',
+                message=f'Your verification code to reset your password is: {code}',
+                from_email='admin@techsni.com',
+                recipient_list=[email],
+                fail_silently=False,
+            )
             
             if settings.DEBUG:
                 request.session['password_reset_success_message'] = f"DEVELOPER MODE OTP: {code}"
@@ -3534,7 +3469,7 @@ def verify_otp_view(request):
             user = User.objects.get(id=user_id)
             otp_record = PasswordResetOTP.objects.get(user=user)
             
-            if otp_record.otp_code == entered_code:
+            if otp_record.is_valid() and otp_record.otp_code == entered_code:
                 otp_record.delete()
                 if 'password_reset_success_message' in request.session:
                     del request.session['password_reset_success_message']
@@ -3547,6 +3482,7 @@ def verify_otp_view(request):
             return render(request, 'services/verify_otp.html', {'error': error})
             
     return render(request, 'services/verify_otp.html')
+
 
 def set_new_password_view(request):
     user_id = request.session.get('reset_user_id')

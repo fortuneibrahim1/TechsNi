@@ -1104,36 +1104,31 @@ def register_view(request):
         form = CustomUserRegistrationForm()
         
     return render(request, 'services/register.html', {'form': form})
-
-
 def verify_signup_otp_view(request):
     user_id = request.session.get('signup_user_id')
     if not user_id:
-        return redirect('register') # Send back if no session exists
-        
-    try:
-        user = User.objects.get(id=user_id)
-    except User.DoesNotExist:
         return redirect('register')
+        
+    user = get_object_or_404(User, id=user_id)
     
     if request.method == 'POST':
-        entered_code = request.POST.get('otp')
-        try:
-            otp_record = PasswordResetOTP.objects.get(user=user)
-            if otp_record.otp_code == entered_code:
-                user.is_active = True
-                user.save()
-                otp_record.delete()
-                if 'signup_user_id' in request.session:
-                    del request.session['signup_user_id'] # Clear session
-                return redirect('login') # Send to login page after successful verification
-            else:
-                return render(request, 'services/verify_signup_otp.html', {'error': 'Invalid OTP code.'})
-        except PasswordResetOTP.DoesNotExist:
-            return render(request, 'services/verify_signup_otp.html', {'error': 'OTP expired or not found.'})
+        entered_code = request.POST.get('otp', '').strip()
+        
+        # Use filter().first() to avoid throwing a crashing DoesNotExist exception
+        otp_record = PasswordResetOTP.objects.filter(user=user).first()
+        
+        if otp_record and otp_record.otp_code.strip() == entered_code:
+            user.is_active = True
+            user.is_verified = True
+            user.save()
+            otp_record.delete()
+            if 'signup_user_id' in request.session:
+                del request.session['signup_user_id']
+            return redirect('login')
+        else:
+            return render(request, 'services/verify_signup_otp.html', {'error': 'Invalid, expired, or missing OTP code.'})
             
     return render(request, 'services/verify_signup_otp.html')
-
 
 def check_username(request):
     username = request.GET.get('username', None)

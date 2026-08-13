@@ -1114,35 +1114,6 @@ def check_username(request):
     return JsonResponse({'exists': exists})
 
 
-@csrf_exempt
-def verify_otp_view(request):
-    user_id = request.session.get('verify_user_id')
-   
-    if not user_id and request.method == 'POST':
-        user_id = request.POST.get('verify_user_id') or request.POST.get('user_id')
-       
-    if not user_id:
-        return redirect('register')
-       
-    user = get_object_or_404(User, id=user_id)
-   
-    if request.method == 'POST':
-        entered_otp = request.POST.get('otp_code', '').strip()
-        if entered_otp and entered_otp == str(user.otp_code).strip():
-            user.is_verified = True
-            user.otp_code = None
-            user.save()
-            login(request, user)
-            if 'verify_user_id' in request.session:
-                del request.session['verify_user_id']
-            return redirect('customer_dashboard')
-        else:
-            error = 'Invalid OTP code. Please check and put the correct OTP.'
-            return render(request, 'services/verify_otp.html', {'user': user, 'error': error})
-           
-    return render(request, 'services/verify_otp.html', {'user': user})
-
-
 @login_required
 def ceo_jobs_view(request):
     request.user.refresh_from_db()
@@ -1493,33 +1464,6 @@ def custom_password_reset_request(request):
             return render(request, 'services/password_reset_form.html', {'error': error})
             
     return render(request, 'services/password_reset_form.html')
-
-def verify_otp_view(request):
-    if request.method == 'POST':
-        entered_code = request.POST.get('otp_code')
-        user_id = request.session.get('reset_user_id')
-        
-        if not user_id:
-            return redirect('password_reset')
-            
-        try:
-            user = User.objects.get(id=user_id)
-            otp_record = PasswordResetOTP.objects.get(user=user)
-            
-            if otp_record.is_valid() and otp_record.otp_code == entered_code:
-                # Code matches! Clear OTP, clear success message, and redirect to set new password
-                otp_record.delete()
-                if 'password_reset_success_message' in request.session:
-                    del request.session['password_reset_success_message']
-                return redirect('set_new_password')
-            else:
-                error = "Invalid or expired OTP code."
-                return render(request, 'services/verify_otp.html', {'error': error})
-        except (User.DoesNotExist, PasswordResetOTP.DoesNotExist):
-            error = "Invalid request session."
-            return render(request, 'services/verify_otp.html', {'error': error})
-            
-    return render(request, 'services/verify_otp.html')
 
 def set_new_password_view(request):
     user_id = request.session.get('reset_user_id')
@@ -3016,65 +2960,6 @@ def worker_dashboard(request):
 
     return render(request, 'services/dashboards/worker.html', {'assigned_jobs': assigned_jobs})
 
-
-@csrf_exempt
-def register_view(request):
-    if request.method == 'POST':
-        form = CustomUserRegistrationForm(request.POST)
-        if form.is_valid():
-            user = form.save(commit=False)
-            user.is_active = False 
-            user.save()
-            
-            code = str(random.randint(100000, 999999))
-            PasswordResetOTP.objects.filter(user=user).delete()
-            PasswordResetOTP.objects.create(user=user, otp_code=code)
-            
-            request.session['signup_user_id'] = user.id
-            
-            if settings.DEBUG:
-                success_message = f"DEVELOPER MODE REGISTRATION OTP: {code}"
-            else:
-                send_mail(
-                    subject='Verify Your New Account',
-                    message=f'Your registration verification code is: {code}',
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[user.email],
-                    fail_silently=False,
-                )
-                success_message = "An OTP code has been sent to your email address."
-                
-            request.session['signup_success_message'] = success_message
-            return redirect('signup_verify_otp')
-    else:
-        form = CustomUserRegistrationForm()
-        
-    return render(request, 'services/register.html', {'form': form})
-
-
-def verify_signup_otp_view(request):
-    user_id = request.session.get('signup_user_id')
-    if not user_id:
-        return redirect('register')
-        
-    user = User.objects.get(id=user_id)
-    
-    if request.method == 'POST':
-        entered_code = request.POST.get('otp')
-        try:
-            otp_record = PasswordResetOTP.objects.get(user=user)
-            if otp_record.otp_code == entered_code:
-                user.is_active = True
-                user.save()
-                otp_record.delete()
-                del request.session['signup_user_id']
-                return redirect('login')
-            else:
-                return render(request, 'services/verify_signup_otp.html', {'error': 'Invalid OTP code.'})
-        except PasswordResetOTP.DoesNotExist:
-            return render(request, 'services/verify_signup_otp.html', {'error': 'OTP expired or not found.'})
-            
-    return render(request, 'services/verify_signup_otp.html')
 
 
 def check_username(request):

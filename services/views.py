@@ -1052,6 +1052,7 @@ def worker_dashboard(request):
             return JsonResponse({'success': False, 'error': 'Invalid status'}, status=400)
 
     return render(request, 'services/dashboards/worker.html', {'assigned_jobs': assigned_jobs})
+import resend
 
 @csrf_exempt
 def register_view(request):

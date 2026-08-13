@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from .models import (
     User, Job, Quotation, Invoice, SiteConfiguration, JobType, 
     InstructionCatalog, CompanyInfo, CompanyBankAccount,
@@ -58,7 +59,7 @@ class JobTypeAdmin(admin.ModelAdmin):
     search_fields = ('name',)
 
 @admin.register(User)
-class UserAdmin(admin.ModelAdmin):
+class UserAdmin(BaseUserAdmin):
     list_display = ('username', 'employee_id', 'first_name', 'last_name', 'email', 'role', 'phone_number', 'is_verified')
     list_filter = ('role', 'is_verified', 'state')
     search_fields = ('username', 'employee_id', 'email', 'phone_number', 'first_name', 'last_name')

@@ -1070,13 +1070,12 @@ def register_view(request):
         form = CustomUserRegistrationForm(request.POST)
         if form.is_valid():
             try:
-                # FIX: Save through the form first so the password is securely hashed,
-                # then deactivate the account until the OTP is verified.
+                # CRITICAL FIX: Use form.save() directly so Django securely hashes the password!
                 user = form.save(commit=False)
                 user.is_active = False  # Deactivate until OTP is verified
                 user.save()
                 
-                # Save many-to-many data if the form uses it (e.g., permissions/groups)
+                # If form has m2m fields
                 if hasattr(form, 'save_m2m'):
                     form.save_m2m()
                 
@@ -1088,7 +1087,7 @@ def register_view(request):
                 # Save user ID in the session
                 request.session['signup_user_id'] = user.id
                 
-                # SEND VIA RESEND API (HTTPS / Port 443 - Works on Render free tier!)
+                # SEND VIA RESEND API
                 resend.api_key = os.environ.get('EMAIL_HOST_PASSWORD')
                 params = {
                     "from": os.environ.get('DEFAULT_FROM_EMAIL', 'onboarding@resend.dev'),

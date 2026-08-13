@@ -1107,8 +1107,8 @@ def register_view(request):
                 }
                 resend.Emails.send(params)
                 
-                # Redirect directly to the signup verification page smoothly
-                return redirect('signup_verify_otp')
+                # Redirect directly to the signup verification page smoothly using the correct URL name
+                return redirect('verify_signup_otp')
                 
             except Exception as e:
                 print("RESEND API ERROR:", str(e))

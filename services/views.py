@@ -3056,8 +3056,13 @@ def worker_dashboard(request):
 
     return render(request, 'services/dashboards/worker.html', {'assigned_jobs': assigned_jobs})
 
-from django.core.mail import send_mail
-from django.conf import settings
+import requests
+import os
+import random
+from django.shortcuts import render, redirect
+from django.views.decorators.csrf import csrf_exempt
+from .forms import CustomUserRegistrationForm
+from .models import PasswordResetOTP
 
 @csrf_exempt
 def register_view(request):
@@ -3077,29 +3082,37 @@ def register_view(request):
                 # Save user ID in the session
                 request.session['signup_user_id'] = user.id
                 
-                # Try sending email, but don't let a timeout crash the server
-                try:
-                    subject = 'Your Verification Code'
-                    message = f'Hello, your verification code is: {code}. Please enter this code to activate your account.'
-                    email_from = settings.DEFAULT_FROM_EMAIL
-                    recipient_list = [user.email]
-                    send_mail(subject, message, email_from, recipient_list, fail_silently=False)
-                except Exception as email_err:
-                    print("EMAIL SENDING FAILED (Server timeout/network):", str(email_err))
+                # SEND EMAIL DIRECTLY VIA RESEND HTTP API (Port 443 - Never blocked on Render)
+                api_key = os.environ.get('EMAIL_HOST_PASSWORD')
+                sender_email = os.environ.get('DEFAULT_FROM_EMAIL', 'onboarding@resend.dev')
                 
-                # ALWAYS redirect to the OTP page safely now
+                headers = {
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json"
+                }
+                payload = {
+                    "from": sender_email,
+                    "to": [user.email],
+                    "subject": "Your Verification Code",
+                    "html": f"<p>Hello,</p><p>Your verification code is: <strong>{code}</strong></p><p>Please enter this code to activate your account.</p>"
+                }
+                
+                response = requests.post("https://api.resend.com/emails", json=payload, headers=headers)
+                print("Resend API Response Status:", response.status_code)
+                print("Resend API Response Body:", response.text)
+                
+                # Redirect directly to the OTP verification page automatically
                 return redirect('signup_verify_otp')
                 
             except Exception as e:
-                print("REGISTRATION SAVE ERROR:", str(e))
-                return render(request, 'services/register.html', {'form': form, 'error': "An error occurred during registration."})
+                print("REGISTRATION ERROR:", str(e))
+                return render(request, 'services/register.html', {'form': form, 'error': f"An error occurred. Please try again."})
         else:
             print("REGISTRATION FORM ERRORS:", form.errors)
     else:
         form = CustomUserRegistrationForm()
         
     return render(request, 'services/register.html', {'form': form})
-
 
 def verify_signup_otp_view(request):
     user_id = request.session.get('signup_user_id')

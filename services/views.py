@@ -566,11 +566,13 @@ def pay_balance_view(request):
              
     # Redirect cleanly back to the specific job details page instead of the general dashboard
     return redirect('customer_job_detail', job_id=job.id)
-
 @login_required
 def ceo_dashboard(request):
     request.user.refresh_from_db()
-    if not request.user.is_superuser and request.user.role != 'ceo':
+    
+    # Safely check user role without crashing if the field doesn't exist
+    user_role = getattr(request.user, 'role', None)
+    if not request.user.is_superuser and user_role != 'ceo':
         return redirect('dashboard_router')
        
     if request.method == 'POST':
@@ -594,7 +596,12 @@ def ceo_dashboard(request):
 
     live_jobs = Job.objects.all().order_by('-id')
     users = User.objects.all().order_by('-id')
-    workers = User.objects.filter(role='worker')
+    
+    # Safely query workers only if the role field exists
+    try:
+        workers = User.objects.filter(role='worker')
+    except Exception:
+        workers = User.objects.none()
 
     return render(request, 'services/dashboards/ceo.html', {
         'live_jobs': live_jobs,

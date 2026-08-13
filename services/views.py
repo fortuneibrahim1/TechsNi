@@ -1052,34 +1052,59 @@ def worker_dashboard(request):
             return JsonResponse({'success': False, 'error': 'Invalid status'}, status=400)
 
     return render(request, 'services/dashboards/worker.html', {'assigned_jobs': assigned_jobs})
+import random
+import os
+import resend
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth import login, get_user_model
+from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+from .forms import CustomUserRegistrationForm
+from .models import PasswordResetOTP
+
+User = get_user_model()
+
 @csrf_exempt
 def register_view(request):
     if request.method == 'POST':
         form = CustomUserRegistrationForm(request.POST)
         if form.is_valid():
-            user = form.save(commit=False)
-            user.is_active = False  # Deactivate until OTP is verified
-            user.save()
-            
-            # Generate 6-digit OTP
-            code = str(random.randint(100000, 999999))
-            PasswordResetOTP.objects.filter(user=user).delete()
-            PasswordResetOTP.objects.create(user=user, otp_code=code)
-            
-            # Save user ID in the dedicated signup session key
-            request.session['signup_user_id'] = user.id
-            
-            # ALWAYS display the code directly on the screen for easy use
-            success_message = f"Your verification code is: {code}"
+            try:
+                user = form.save(commit=False)
+                user.is_active = False  # Deactivate until OTP is verified
+                user.save()
                 
-            request.session['signup_success_message'] = success_message
-            return redirect('signup_verify_otp')
+                # Generate 6-digit OTP
+                code = str(random.randint(100000, 999999))
+                PasswordResetOTP.objects.filter(user=user).delete()
+                PasswordResetOTP.objects.create(user=user, otp_code=code)
+                
+                # Save user ID in the session
+                request.session['signup_user_id'] = user.id
+                
+                # SEND VIA RESEND API (HTTPS / Port 443 - Works on Render free tier!)
+                resend.api_key = os.environ.get('EMAIL_HOST_PASSWORD')
+                params = {
+                    "from": os.environ.get('DEFAULT_FROM_EMAIL', 'onboarding@resend.dev'),
+                    "to": [user.email],
+                    "subject": "Your Verification Code",
+                    "html": f"<p>Hello,</p><p>Your verification code is: <strong>{code}</strong></p><p>Please enter this code to activate your account.</p>"
+                }
+                resend.Emails.send(params)
+                
+                # Redirect directly to the OTP verification page smoothly
+                return redirect('signup_verify_otp')
+                
+            except Exception as e:
+                print("RESEND API ERROR:", str(e))
+                return render(request, 'services/register.html', {'form': form, 'error': f"Failed to send email: {str(e)}"})
         else:
             print("REGISTRATION FORM ERRORS:", form.errors)
     else:
         form = CustomUserRegistrationForm()
         
     return render(request, 'services/register.html', {'form': form})
+
 
 def verify_signup_otp_view(request):
     user_id = request.session.get('signup_user_id')
@@ -1109,6 +1134,7 @@ def verify_signup_otp_view(request):
             
     return render(request, 'services/verify_signup_otp.html')
 
+
 def check_username(request):
     username = request.GET.get('username', None)
     exists = User.objects.filter(username__iexact=username).exists()
@@ -1125,13 +1151,11 @@ def verify_otp_view(request):
     if not user_id:
         return redirect('register')
        
-    # FIX: Use get_user_model() to prevent referencing User directly if it causes issues
     UserModel = get_user_model()
     user = get_object_or_404(UserModel, id=user_id)
    
     if request.method == 'POST':
         entered_otp = request.POST.get('otp_code', '').strip()
-        # FIX: Safe attribute check for otp_code depending on where it's stored
         stored_otp = getattr(user, 'otp_code', None)
         if stored_otp is None:
             try:
@@ -1146,7 +1170,6 @@ def verify_otp_view(request):
                 user.otp_code = None
             user.save()
             
-            # Clean up token if it exists in PasswordResetOTP table
             PasswordResetOTP.objects.filter(user=user).delete()
             
             login(request, user)

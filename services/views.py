@@ -1053,6 +1053,12 @@ def worker_dashboard(request):
 
     return render(request, 'services/dashboards/worker.html', {'assigned_jobs': assigned_jobs})
 import resend
+import os
+import random
+from django.shortcuts import render, redirect, get_object_or_404
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.models import User
+import resend
 
 @csrf_exempt
 def register_view(request):
@@ -1076,11 +1082,12 @@ def register_view(request):
                 # Save user ID in session
                 request.session['signup_user_id'] = user.id
                 
-                # Safely attempt to send email via Resend without crashing the server if network blocks
+                # Safely attempt to send email via Resend using your custom environment variable domain sender
                 try:
                     resend.api_key = os.environ.get('EMAIL_HOST_PASSWORD')
+                    sender_email = os.environ.get('DEFAULT_FROM_EMAIL', 'support@techsni.com.ng')
                     params = {
-                        "from": os.environ.get('DEFAULT_FROM_EMAIL', 'onboarding@resend.dev'),
+                        "from": sender_email,
                         "to": [user.email],
                         "subject": "Your Verification Code",
                         "html": f"<p>Hello,</p><p>Your verification code is: <strong>{code}</strong></p><p>Please enter this code to activate your account.</p>"
@@ -1089,7 +1096,7 @@ def register_view(request):
                 except Exception as mail_err:
                     print("EMAIL SENDING FAILED (Non-blocking):", str(mail_err))
                 
-                # Fallback message / Redirect to verification page
+                # Store backup message and redirect to the correct signup OTP verification route
                 request.session['signup_success_message'] = f"Your verification code is: {code}"
                 return redirect('signup_verify_otp')
                 
@@ -1097,7 +1104,9 @@ def register_view(request):
                 print("REGISTRATION ERROR:", str(e))
                 return render(request, 'services/register.html', {'form': form, 'error': f"An error occurred: {str(e)}"})
         else:
-            print("REGISTRATION FORM ERRORS:", form.errors)
+            # Prints exact form errors to your Render logs if validation fails
+            print("REGISTRATION FORM ERRORS:", form.errors.as_json() if hasattr(form.errors, 'as_json') else form.errors)
+            return render(request, 'services/register.html', {'form': form})
     else:
         form = CustomUserRegistrationForm()
         
@@ -1121,7 +1130,7 @@ def verify_signup_otp_view(request):
             user.is_active = True
             user.save()
             
-            # Clean up token records
+            # Clean up token records and session keys
             PasswordResetOTP.objects.filter(user=user).delete()
             
             if 'signup_user_id' in request.session:

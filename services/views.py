@@ -1070,9 +1070,15 @@ def register_view(request):
         form = CustomUserRegistrationForm(request.POST)
         if form.is_valid():
             try:
+                # FIX: Save through the form first so the password is securely hashed,
+                # then deactivate the account until the OTP is verified.
                 user = form.save(commit=False)
                 user.is_active = False  # Deactivate until OTP is verified
                 user.save()
+                
+                # Save many-to-many data if the form uses it (e.g., permissions/groups)
+                if hasattr(form, 'save_m2m'):
+                    form.save_m2m()
                 
                 # Generate 6-digit OTP
                 code = str(random.randint(100000, 999999))
@@ -1104,6 +1110,7 @@ def register_view(request):
         form = CustomUserRegistrationForm()
         
     return render(request, 'services/register.html', {'form': form})
+
 def verify_signup_otp_view(request):
     user_id = request.session.get('signup_user_id')
     if not user_id:

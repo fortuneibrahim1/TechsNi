@@ -3098,7 +3098,6 @@ def register_view(request):
         form = CustomUserRegistrationForm()
         
     return render(request, 'services/register.html', {'form': form})
-
 def verify_signup_otp_view(request):
     user_id = request.session.get('signup_user_id')
     if not user_id:
@@ -3107,22 +3106,30 @@ def verify_signup_otp_view(request):
     user = get_object_or_404(User, id=user_id)
     
     if request.method == 'POST':
-        entered_code = request.POST.get('otp')
+        # Safely grab the code using either 'otp' or 'otp_code' depending on your HTML template
+        entered_code = request.POST.get('otp') or request.POST.get('otp_code', '')
+        entered_code = entered_code.strip()
+        
         try:
             otp_record = PasswordResetOTP.objects.get(user=user)
+            
+            # Check if it matches (and check if your model has an is_valid() method if needed)
             if otp_record.otp_code == entered_code:
                 user.is_active = True
                 user.save()
                 otp_record.delete()
-                del request.session['signup_user_id']
+                
+                if 'signup_user_id' in request.session:
+                    del request.session['signup_user_id']
+                    
                 return redirect('login')
             else:
                 return render(request, 'services/verify_signup_otp.html', {'error': 'Invalid OTP code.'})
+                
         except PasswordResetOTP.DoesNotExist:
             return render(request, 'services/verify_signup_otp.html', {'error': 'OTP expired or not found.'})
             
     return render(request, 'services/verify_signup_otp.html')
-
 
 def check_username(request):
     username = request.GET.get('username', None)

@@ -3044,7 +3044,7 @@ def register_view(request):
                 print("Resend API Response Body:", response.text)
                 
                 # Make sure this matches your exact URL name in urls.py
-                return redirect('verify_otp')
+                return redirect('signup_verify_otp')
                 
             except Exception as e:
                 print("REGISTRATION ERROR:", str(e))

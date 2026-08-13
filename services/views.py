@@ -1075,7 +1075,6 @@ def register_view(request):
             request.session['signup_success_message'] = success_message
             return redirect('signup_verify_otp')
         else:
-            # THIS WILL PRINT ERRORS TO YOUR TERMINAL/LOGS SO YOU CAN SEE THEM
             print("REGISTRATION FORM ERRORS:", form.errors)
     else:
         form = CustomUserRegistrationForm()
@@ -1126,14 +1125,30 @@ def verify_otp_view(request):
     if not user_id:
         return redirect('register')
        
-    user = get_object_or_404(User, id=user_id)
+    # FIX: Use get_user_model() to prevent referencing User directly if it causes issues
+    UserModel = get_user_model()
+    user = get_object_or_404(UserModel, id=user_id)
    
     if request.method == 'POST':
         entered_otp = request.POST.get('otp_code', '').strip()
-        if entered_otp and entered_otp == str(user.otp_code).strip():
+        # FIX: Safe attribute check for otp_code depending on where it's stored
+        stored_otp = getattr(user, 'otp_code', None)
+        if stored_otp is None:
+            try:
+                otp_obj = PasswordResetOTP.objects.get(user=user)
+                stored_otp = otp_obj.otp_code
+            except PasswordResetOTP.DoesNotExist:
+                stored_otp = None
+
+        if entered_otp and stored_otp and entered_otp == str(stored_otp).strip():
             user.is_verified = True
-            user.otp_code = None
+            if hasattr(user, 'otp_code'):
+                user.otp_code = None
             user.save()
+            
+            # Clean up token if it exists in PasswordResetOTP table
+            PasswordResetOTP.objects.filter(user=user).delete()
+            
             login(request, user)
             if 'verify_user_id' in request.session:
                 del request.session['verify_user_id']

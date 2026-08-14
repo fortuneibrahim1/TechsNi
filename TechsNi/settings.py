@@ -25,8 +25,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'services.apps.ServicesConfig',
     'store',
-    'cloudinary_storage', 
-    'cloudinary',
+    'storages',
 ]
 
 MIDDLEWARE = [
@@ -110,24 +109,16 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 MEDIA_URL = '/media/'
 
+# Supabase S3 Storage Configuration via django-storages
 STORAGES = {
     "default": {
-        "BACKEND": "cloudinary_storage.storage.MediaCloudinaryStorage",
+        "BACKEND": "storages.backends.s3boto3.S3Boto3Storage",
     },
     "staticfiles": {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
 
-CLOUDINARY_STORAGE = {
-    'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME'),
-    'API_KEY': os.getenv('CLOUDINARY_API_KEY'),
-    'API_SECRET': os.getenv('CLOUDINARY_API_SECRET'),
-    'SECURE': True,
-}
-
-# Supabase Storage Settings
-DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
 AWS_ACCESS_KEY_ID = os.environ.get('SUPABASE_ACCESS_KEY_ID')
 AWS_SECRET_ACCESS_KEY = os.environ.get('SUPABASE_SECRET_ACCESS_KEY')
 AWS_STORAGE_BUCKET_NAME = 'media'

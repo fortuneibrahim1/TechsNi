@@ -7,9 +7,6 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
-# This checks if your superuser exists, and creates one automatically for free!
-if not User.objects.filter(is_superuser=True).exists():
-    User.objects.create_superuser('TechsNi-01', 'techsniofficial@gmail.com', '@Comcode2026')
 
 def custom_login_view(request):
     # Fetch all catalogs ordered by their display number so they render on the root login page

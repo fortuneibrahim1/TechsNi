@@ -335,14 +335,23 @@ def store_order_detail_view(request, order_id):
 
     return render(request, 'store/order_detail.html', context)
 
-
 @login_required
-def customer_invoices_view(request):
-    orders = StoreOrder.objects.filter(customer=request.user).order_by('-created_at')
-    invoices = StoreInvoice.objects.filter(order__customer=request.user).order_by('-generated_at')
-    global_settings = StoreGlobalSetting.get_settings()
+def customer_invoices_view(request, order_id=None):
+    """Displays single or multiple customer invoices/orders."""
+    global_settings = StoreGlobalSetting.objects.first()
+    
+    if order_id:
+        order = get_object_or_404(StoreOrder, id=order_id, customer=request.user)
+        invoice = StoreInvoice.objects.filter(order=order).first()
+        orders = [order]
+        invoices = [invoice] if invoice else []
+    else:
+        orders = StoreOrder.objects.filter(customer=request.user).order_by('-created_at')
+        invoices = StoreInvoice.objects.filter(order__customer=request.user).order_by('-generated_at')
 
     return render(request, 'store/customer_invoices.html', {
+        'invoice': invoices.first() if hasattr(invoices, 'first') else (invoices[0] if invoices else None),
+        'order': orders[0] if orders else None,
         'invoices': invoices, 
         'orders': orders,
         'global_settings': global_settings

@@ -2148,22 +2148,22 @@ def request_store_refund_view(request, order_id):
         issue_description = request.POST.get('issue_description')
         selected_item_ids = request.POST.getlist('selected_items') # List of StoreOrderItem IDs checked by customer
         
+        # Updated to handle maximum 2 images, removed image_3 and video_proof
         image_1 = request.FILES.get('image_1')
         image_2 = request.FILES.get('image_2')
-        image_3 = request.FILES.get('image_3')
-        video_proof = request.FILES.get('video_proof')
 
         if not selected_item_ids:
             messages.error(request, "Please select at least one item to return.")
             return redirect('request_store_refund', order_id=order.id)
 
-        if not (image_1 and image_2 and image_3 and video_proof):
-            messages.error(request, "Please provide all 3 mandatory images and 1 video proof.")
+        # Require at least 1 image, capped up to 2 images
+        if not image_1:
+            messages.error(request, "Please provide at least 1 image proof.")
             return redirect('request_store_refund', order_id=order.id)
 
         reason_obj = get_object_or_404(RefundReason, id=reason_id)
 
-        # Create the return request container
+        # Create the return request container (storing up to 2 images)
         return_req = StoreReturnRequest.objects.create(
             order=order,
             customer=request.user,
@@ -2171,8 +2171,6 @@ def request_store_refund_view(request, order_id):
             issue_description=issue_description,
             image_1=image_1,
             image_2=image_2,
-            image_3=image_3,
-            video_proof=video_proof,
             status='pending_management_approval'
         )
 

@@ -39,7 +39,7 @@
             <!-- REFUND REQUEST FORM CARD -->
             <div class="card shadow-sm border-0 rounded-0 p-4 bg-white">
                 <h3 class="fw-bold mb-1">Request Return or Refund for Order #{{ order.id }}</h3>
-                <p class="text-muted small mb-4">Select the specific items you wish to return, choose a CEO-approved reason, and upload required evidence proofs.</p>
+                <p class="text-muted small mb-4">Select the specific items you wish to return, choose a CEO-approved reason, and upload required image proofs (maximum 2 images).</p>
 
                 <form method="POST" enctype="multipart/form-data">
                     {% csrf_token %}
@@ -113,30 +113,19 @@
                         <textarea name="issue_description" rows="4" class="form-control rounded-0" placeholder="Describe the issue in detail..." required></textarea>
                     </div>
 
-                    <!-- 4. MANDATORY PROOF IMAGES (3 Required) -->
-                    <div class="row">
-                        <div class="col-md-4 mb-3">
+                    <!-- 4. MANDATORY PROOF IMAGES (Max 2 images) -->
+                    <div class="row mb-4">
+                        <div class="col-md-6 mb-3">
                             <label class="form-label fw-bold small text-danger">Proof Image 1 (Required)</label>
                             <input type="file" name="image_1" class="form-control rounded-0" accept="image/*" required>
                         </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label fw-bold small text-danger">Proof Image 2 (Required)</label>
-                            <input type="file" name="image_2" class="form-control rounded-0" accept="image/*" required>
-                        </div>
-                        <div class="col-md-4 mb-3">
-                            <label class="form-label fw-bold small text-danger">Proof Image 3 (Required)</label>
-                            <input type="file" name="image_3" class="form-control rounded-0" accept="image/*" required>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold small text-muted">Proof Image 2 (Optional)</label>
+                            <input type="file" name="image_2" class="form-control rounded-0" accept="image/*">
                         </div>
                     </div>
 
-                    <!-- 5. VIDEO PROOF -->
-                    <div class="mb-4">
-                        <label class="form-label fw-bold small text-danger">Video Proof (Required)</label>
-                        <input type="file" name="video_proof" class="form-control rounded-0" accept="video/*" required>
-                        <small class="text-muted">Upload a clear unpacking or diagnostic video showing the defect.</small>
-                    </div>
-
-                    <!-- 6. SUBMIT BUTTON -->
+                    <!-- 5. SUBMIT BUTTON -->
                     <div class="d-grid">
                         <button type="submit" class="btn btn-dark fw-bold rounded-0 py-2">
                             <i class="fas fa-paper-plane me-1"></i> Submit Official Return Request

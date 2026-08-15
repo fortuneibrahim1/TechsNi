@@ -93,20 +93,20 @@ def toggle_wishlist_view(request, product_id):
         wishlist_item.delete()
     return redirect(request.META.get('HTTP_REFERER', 'store_home'))
 
-
 @login_required
 def cart_view(request):
     """Displays cart items alongside strictly sequenced categorized customer orders hub context."""
     cart = request.session.get('store_cart', {})
     items_subtotal = sum(float(item['price']) * int(item['quantity']) for item in cart.values())
     
-    global_settings = StoreGlobalSetting.get_settings()
+    global_settings = StoreGlobalSetting.objects.first()
     
-    threshold = float(global_settings.partial_payment_threshold)
+    threshold = float(global_settings.partial_payment_threshold) if global_settings else 0.00
     if items_subtotal >= threshold:
         shipping_fee = 0.00
     else:
-        shipping_fee = sum(float(global_settings.shipping_fee_below_threshold) * int(item['quantity']) for item in cart.values())
+        shipping_fee_below = float(global_settings.shipping_fee_below_threshold) if global_settings else 0.00
+        shipping_fee = sum(shipping_fee_below * int(item['quantity']) for item in cart.values())
             
     total_amount = items_subtotal + shipping_fee
     requires_full_payment_only = items_subtotal < threshold
@@ -119,7 +119,7 @@ def cart_view(request):
     shipping_orders = customer_orders.filter(assigned_rider__isnull=False).exclude(status='delivered')
     delivered_orders = customer_orders.filter(status='delivered')
 
-    # --- ADDED: CUSTOMER RETURNS & REFUNDS TRACKING ---
+    # --- CUSTOMER RETURNS & REFUNDS TRACKING ---
     customer_returns = StoreReturnRequest.objects.filter(customer=request.user).order_by('-created_at')
     pending_returns = customer_returns.filter(status='pending')
     approved_returns = customer_returns.filter(status__in=['inspection_approved', 'approved', 'refund_processing'])
@@ -138,19 +138,17 @@ def cart_view(request):
         'paid_confirmed_orders': paid_confirmed_orders,
         'shipping_orders': shipping_orders,
         'delivered_orders': delivered_orders,
-        # Pass return categories to template hub:
         'customer_returns': customer_returns,
         'pending_returns': pending_returns,
         'approved_returns': approved_returns,
         'completed_returns': completed_returns,
         'rejected_returns': rejected_returns,
     }
-
+    
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
         return render(request, 'store/cart.html', context)
 
     return render(request, 'store/cart.html', context)
-
 
 @login_required
 def checkout_view(request):

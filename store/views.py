@@ -2208,7 +2208,6 @@ def request_store_refund_view(request, order_id):
         'refund_reasons': refund_reasons
     })
 
-
 @login_required
 def management_return_dashboard_view(request):
     """Dashboard for CEO, General Manager, and Manager to review, inspect, assign riders, or reject returns."""

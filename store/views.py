@@ -93,62 +93,70 @@ def toggle_wishlist_view(request, product_id):
         wishlist_item.delete()
     return redirect(request.META.get('HTTP_REFERER', 'store_home'))
 
+import traceback
+from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from .models import StoreGlobalSetting, StoreOrder, StoreReturnRequest
+
 @login_required
 def cart_view(request):
     """Displays cart items alongside strictly sequenced categorized customer orders hub context."""
-    cart = request.session.get('store_cart', {})
-    items_subtotal = sum(float(item['price']) * int(item['quantity']) for item in cart.values())
-    
-    global_settings = StoreGlobalSetting.objects.first()
-    
-    threshold = float(global_settings.partial_payment_threshold) if global_settings else 0.00
-    if items_subtotal >= threshold:
-        shipping_fee = 0.00
-    else:
-        shipping_fee_below = float(global_settings.shipping_fee_below_threshold) if global_settings else 0.00
-        shipping_fee = sum(shipping_fee_below * int(item['quantity']) for item in cart.values())
-            
-    total_amount = items_subtotal + shipping_fee
-    requires_full_payment_only = items_subtotal < threshold
+    try:
+        cart = request.session.get('store_cart', {})
+        items_subtotal = sum(float(item['price']) * int(item['quantity']) for item in cart.values())
+        
+        global_settings = StoreGlobalSetting.objects.first()
+        
+        threshold = float(global_settings.partial_payment_threshold) if global_settings else 0.00
+        if items_subtotal >= threshold:
+            shipping_fee = 0.00
+        else:
+            shipping_fee_below = float(global_settings.shipping_fee_below_threshold) if global_settings else 0.00
+            shipping_fee = sum(shipping_fee_below * int(item['quantity']) for item in cart.values())
+                
+        total_amount = items_subtotal + shipping_fee
+        requires_full_payment_only = items_subtotal < threshold
 
-    customer_orders = StoreOrder.objects.filter(customer=request.user).order_by('-created_at')
-    
-    pending_processing_orders = customer_orders.filter(status='pending_processing')
-    pending_payment_orders = customer_orders.filter(status__in=['pending_payment', 'partial_payment_submitted'])
-    paid_confirmed_orders = customer_orders.filter(status__in=['full_payment_confirmed', 'partial_payment_confirmed', 'balance_payment_submitted'])
-    shipping_orders = customer_orders.filter(assigned_rider__isnull=False).exclude(status='delivered')
-    delivered_orders = customer_orders.filter(status='delivered')
+        customer_orders = StoreOrder.objects.filter(customer=request.user).order_by('-created_at')
+        
+        pending_processing_orders = customer_orders.filter(status='pending_processing')
+        pending_payment_orders = customer_orders.filter(status__in=['pending_payment', 'partial_payment_submitted'])
+        paid_confirmed_orders = customer_orders.filter(status__in=['full_payment_confirmed', 'partial_payment_confirmed', 'balance_payment_submitted'])
+        shipping_orders = customer_orders.filter(assigned_rider__isnull=False).exclude(status='delivered')
+        delivered_orders = customer_orders.filter(status='delivered')
 
-    # --- CUSTOMER RETURNS & REFUNDS TRACKING ---
-    customer_returns = StoreReturnRequest.objects.filter(customer=request.user).order_by('-created_at')
-    pending_returns = customer_returns.filter(status='pending')
-    approved_returns = customer_returns.filter(status__in=['inspection_approved', 'approved', 'refund_processing'])
-    completed_returns = customer_returns.filter(status='refund_completed')
-    rejected_returns = customer_returns.filter(status='rejected')
+        # --- CUSTOMER RETURNS & REFUNDS TRACKING ---
+        customer_returns = StoreReturnRequest.objects.filter(customer=request.user).order_by('-created_at')
+        pending_returns = customer_returns.filter(status='pending')
+        approved_returns = customer_returns.filter(status__in=['inspection_approved', 'approved', 'refund_processing'])
+        completed_returns = customer_returns.filter(status='refund_completed')
+        rejected_returns = customer_returns.filter(status='rejected')
 
-    context = {
-        'cart': cart,
-        'items_subtotal': items_subtotal,
-        'shipping_fee': shipping_fee,
-        'total_amount': total_amount,
-        'requires_full_payment_only': requires_full_payment_only,
-        'global_settings': global_settings,
-        'pending_processing_orders': pending_processing_orders,
-        'pending_payment_orders': pending_payment_orders,
-        'paid_confirmed_orders': paid_confirmed_orders,
-        'shipping_orders': shipping_orders,
-        'delivered_orders': delivered_orders,
-        'customer_returns': customer_returns,
-        'pending_returns': pending_returns,
-        'approved_returns': approved_returns,
-        'completed_returns': completed_returns,
-        'rejected_returns': rejected_returns,
-    }
-    
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        context = {
+            'cart': cart,
+            'items_subtotal': items_subtotal,
+            'shipping_fee': shipping_fee,
+            'total_amount': total_amount,
+            'requires_full_payment_only': requires_full_payment_only,
+            'global_settings': global_settings,
+            'pending_processing_orders': pending_processing_orders,
+            'pending_payment_orders': pending_payment_orders,
+            'paid_confirmed_orders': paid_confirmed_orders,
+            'shipping_orders': shipping_orders,
+            'delivered_orders': delivered_orders,
+            'customer_returns': customer_returns,
+            'pending_returns': pending_returns,
+            'approved_returns': approved_returns,
+            'completed_returns': completed_returns,
+            'rejected_returns': rejected_returns,
+        }
+        
         return render(request, 'store/cart.html', context)
-
-    return render(request, 'store/cart.html', context)
+        
+    except Exception as e:
+        print("--- CART VIEW ERROR ---")
+        traceback.print_exc()
+        raise e
 
 @login_required
 def checkout_view(request):

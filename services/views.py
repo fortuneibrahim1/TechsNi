@@ -3078,7 +3078,7 @@ def manager_jobs_view(request):
     if status_filter:
         all_jobs = all_jobs.filter(status=status_filter)
 
-    return render(request, 'services/dashboards/manager_jobs.html', {
+    return render(request, 'services/dashboard/manager_jobs.html', {
         'all_jobs': all_jobs,
         'selected_status': status_filter
     })

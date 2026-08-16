@@ -3051,7 +3051,6 @@ def ceo_users_view(request):
     users = User.objects.all().order_by('-id')
     return render(request, 'services/dashboards/ceo_users.html', {'users': users})
 
-
 @login_required
 def manager_jobs_view(request):
     request.user.refresh_from_db()

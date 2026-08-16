@@ -111,7 +111,7 @@ class JobRequestForm(forms.ModelForm):
 
     class Meta:
         model = Job
-        fields = ['job_type', 'is_po_job', 'po_number', 'model_type', 'serial_number', 'condition', 'description', 'image1', 'image2', 'image3', 'video']
+        fields = ['job_type', 'is_po_job', 'po_number', 'model_type', 'serial_number', 'condition', 'description', 'image1', 'image2', 'image3']
         widgets = {
             'is_po_job': forms.CheckboxInput(attrs={'class': 'form-check-input', 'id': 'isPoJobCheckbox'}),
             'po_number': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Enter Corporate PO Number (if PO Job)'}),
@@ -122,7 +122,6 @@ class JobRequestForm(forms.ModelForm):
             'image1': forms.ClearableFileInput(attrs={'class': 'form-control'}),
             'image2': forms.ClearableFileInput(attrs={'class': 'form-control'}),
             'image3': forms.ClearableFileInput(attrs={'class': 'form-control'}),
-            'video': forms.ClearableFileInput(attrs={'class': 'form-control'}),
         }
 
 

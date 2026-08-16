@@ -2485,10 +2485,16 @@ def submit_job_view(request):
             job = form.save(commit=False)
             job.customer = request.user
             
-            if job.is_po_job and job.po_number:
+            # Explicitly clear out video if any residual data exists
+            if hasattr(job, 'video'):
+                job.video = None
+            
+            if job.is_po_job and getattr(job, 'po_number', None):
                 job.status = 'po_pending_approval'
             
             job.save()
+            form.save_m2m() # Saves any many-to-many relationships if present
+            
     return redirect('customer_dashboard')
 
 

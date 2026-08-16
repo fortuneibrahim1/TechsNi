@@ -3084,6 +3084,7 @@ def manager_jobs_view(request):
     })
 
 
+
 @login_required
 def download_quotation_pdf(request, job_id):
     job = get_object_or_404(Job, id=job_id)

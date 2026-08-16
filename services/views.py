@@ -7,6 +7,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.core.mail import send_mail
+from .forms import StatementOfAccountForm
 import random
 from decimal import Decimal
 from django.template.loader import render_to_string
@@ -4029,37 +4030,29 @@ def executive_approve_po_view(request, po_id):
         
     return redirect('ceo_dashboard')
 
-
 @login_required
 def finance_upload_statement_view(request, job_id):
-    """
-    Finance uploads the Statement of Account upon job completion/delivery.
-    """
-    request.user.refresh_from_db()
-    if not request.user.is_superuser and request.user.role != 'finance':
-        return redirect('dashboard_router')
-        
     job = get_object_or_404(Job, id=job_id)
+    invoice = getattr(job, 'invoice', None)
+    
     if request.method == 'POST':
-        statement_pdf = request.FILES.get('statement_pdf')
-        notes = request.POST.get('notes', '')
-        
-        if statement_pdf:
-            StatementOfAccount.objects.update_or_create(
-                job=job,
-                defaults={
-                    'customer': job.customer,
-                    'statement_pdf': statement_pdf,
-                    'notes': notes,
-                    'status': 'sent_to_customer'
-                }
-            )
-            job.status = 'statement_sent'
-            job.save()
-            messages.success(request, f"Statement of Account generated & uploaded for Job #{job.id}.")
-            
-    return redirect('finance_invoices')
+        form = StatementOfAccountForm(request.POST, request.FILES) # or however you process your form/file upload
+        if form.is_valid():
+            statement = form.save(commit=False)
+            statement.job = job
+            statement.invoice = invoice
+            statement.generated_by = request.user
+            statement.save()
+            messages.success(request, "Statement of account uploaded successfully.")
+            return redirect('finance_po_review') # adjust redirect as needed
+    else:
+        form = StatementOfAccountForm()
 
+    return render(request, 'services/dashboards/finance_upload_statement.html', {
+        'form': form,
+        'job': job,
+        'invoice': invoice
+    })
 
 @login_required
 def customer_approve_via_po(request, job_id):

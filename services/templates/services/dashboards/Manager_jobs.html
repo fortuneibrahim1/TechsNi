@@ -35,7 +35,7 @@
                             <th class="py-3 px-3">ID</th>
                             <th class="py-3">Customer</th>
                             <th class="py-3">Model / Item</th>
-                            <th class="py-3">Description & Media (Images / Video)</th>
+                            <th class="py-3">Description & Media (Images)</th>
                             <th class="py-3">Status</th>
                             <th class="py-3">Actions</th>
                         </tr>
@@ -61,33 +61,6 @@
                                     <a href="{{ job.image3.url }}" target="_blank" class="btn btn-outline-primary btn-sm py-0 px-2 font-monospace" style="font-size: 11px;">Img 3</a>
                                     {% endif %}
                                 </div>
-
-                                <!-- Video Player Trigger / Embedded element -->
-                                {% if job.video %}
-                                <div>
-                                    <button type="button" class="btn btn-sm btn-dark py-0 px-2" style="font-size: 11px;" data-bs-toggle="modal" data-bs-target="#videoModal{{ job.id }}">
-                                        <i class="bi bi-play-circle me-1"></i> Watch Video
-                                    </button>
-                                </div>
-
-                                <!-- Video Modal -->
-                                <div class="modal fade" id="videoModal{{ job.id }}" tabindex="-1">
-                                    <div class="modal-dialog modal-dialog-centered">
-                                        <div class="modal-content bg-dark text-white border-0 shadow">
-                                            <div class="modal-header border-secondary py-2">
-                                                <h6 class="modal-title fw-bold">Customer Video - Job #{{ job.id }}</h6>
-                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                                            </div>
-                                            <div class="modal-body p-2 text-center">
-                                                <video controls class="w-100 rounded" style="max-height: 350px;">
-                                                    <source src="{{ job.video.url }}" type="video/mp4">
-                                                    Your browser does not support video playback.
-                                                </video>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                {% endif %}
                             </td>
                             <td class="py-3">
                                 <span class="badge px-2 py-1" style="background-color: #b30000; color: #ffffff; border: 1px solid #800000;">{{ job.get_status_display }}</span>

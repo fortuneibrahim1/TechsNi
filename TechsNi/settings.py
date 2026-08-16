@@ -131,4 +131,4 @@ CLOUDINARY_STORAGE = {
     'PRIVATE_CDN': False,
     'RESOURCE_TYPE': 'auto',
 }
-
+DEBUG = True

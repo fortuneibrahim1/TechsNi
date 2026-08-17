@@ -4223,24 +4223,37 @@ def finance_confirm_po_settlement_view(request, po_id):
         
     return redirect('finance_po_list')
 
-from services import views
-import cloudinary.utils
+
+
+import urllib.request
+from django.http import HttpResponse, Http404
+
 @login_required
 def public_pdf_view(request, job_id):
     job = get_object_or_404(Job, id=job_id)
     invoice = getattr(job, 'invoice', None)
     
     if invoice and invoice.invoice_pdf:
-        pdf_url, options = cloudinary.utils.cloudinary_url(
-            invoice.invoice_pdf.name,
-            resource_type="image",
-            format="pdf",
-            flags="attachment"
-        )
-        return render(request, 'services/public_pdf_view.html', {
-            'job': job,
-            'pdf_url': pdf_url
-        })
+        try:
+            # Generate the secure URL from Cloudinary
+            pdf_url, options = cloudinary.utils.cloudinary_url(
+                invoice.invoice_pdf.name,
+                resource_type="image",
+                format="pdf"
+            )
+            
+            # Fetch the file bytes through backend code (bypassing browser 401 restriction)
+            req = urllib.request.Request(pdf_url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req) as response:
+                pdf_data = response.read()
+                
+            # Stream the PDF directly to the user's browser
+            http_response = HttpResponse(pdf_data, content_type='application/pdf')
+            http_response['Content-Disposition'] = f'inline; filename="invoice_{job.id}.pdf"'
+            return http_response
+            
+        except Exception as e:
+            return HttpResponse(f"Could not load PDF file: {str(e)}", status=500)
         
     return HttpResponse("PDF not found.", status=404)
 

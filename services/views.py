@@ -4257,6 +4257,37 @@ def public_pdf_view(request, job_id):
         
     return HttpResponse("PDF not found.", status=404)
 
+import urllib.request
+from django.http import HttpResponse
+
+@login_required
+def stream_cloudinary_pdf(request, job_id):
+    job = get_object_or_404(Job, id=job_id)
+    invoice = getattr(job, 'invoice', None)
+    
+    if invoice and invoice.invoice_pdf:
+        try:
+            # Generate Cloudinary URL securely on the backend
+            pdf_url, options = cloudinary.utils.cloudinary_url(
+                invoice.invoice_pdf.name,
+                resource_type="image",
+                format="pdf"
+            )
+            
+            # Fetch bytes from Cloudinary using backend credentials (bypasses browser 401)
+            req = urllib.request.Request(pdf_url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req) as response:
+                pdf_data = response.read()
+                
+            # Stream the file content directly to the browser
+            res = HttpResponse(pdf_data, content_type='application/pdf')
+            res['Content-Disposition'] = f'inline; filename="job_{job.id}_document.pdf"'
+            return res
+        except Exception as e:
+            return HttpResponse(f"Error loading PDF: {str(e)}", status=500)
+            
+    return HttpResponse("PDF not found", status=404)
+
 
 
 

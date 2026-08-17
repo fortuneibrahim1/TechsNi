@@ -4223,6 +4223,27 @@ def finance_confirm_po_settlement_view(request, po_id):
         
     return redirect('finance_po_list')
 
+from services import views
+from services.views import public_pdf_view
+import cloudinary.utils
+@login_required
+def public_pdf_view(request, job_id):
+    job = get_object_or_404(Job, id=job_id)
+    invoice = getattr(job, 'invoice', None)
+    
+    if invoice and invoice.invoice_pdf:
+        pdf_url, options = cloudinary.utils.cloudinary_url(
+            invoice.invoice_pdf.name,
+            resource_type="image",
+            format="pdf",
+            flags="attachment"
+        )
+        return render(request, 'services/public_pdf_view.html', {
+            'job': job,
+            'pdf_url': pdf_url
+        })
+        
+    return HttpResponse("PDF not found.", status=404)
 
 
 

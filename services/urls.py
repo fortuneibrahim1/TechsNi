@@ -2,7 +2,6 @@ from django.contrib.auth import views as auth_views
 from django.urls import path
 from . import views
 from .views import login_view
-from services.views import public_pdf_view
 
 urlpatterns = [
     path('', login_view, name='home_login'),

@@ -1023,13 +1023,12 @@ def finance_invoices_view(request):
         'completed_jobs': completed_jobs,
     })
 
-
 @login_required
 def worker_dashboard(request):
     request.user.refresh_from_db()
     if not request.user.is_superuser and request.user.role != 'worker':
         return redirect('dashboard_router')
-       
+        
     assigned_jobs = Job.objects.filter(assigned_worker=request.user)
 
     if request.method == 'POST':
@@ -1040,6 +1039,11 @@ def worker_dashboard(request):
         # Valid worker update statuses
         if new_status in ['on_site', 'in_progress', 'completed', 'work_completed']:
             job.status = new_status
+            
+            # Workflow Rule:
+            # If it's a PO job and worker marks it complete/work_completed, 
+            # you can trigger invoice generation or availability flags here if needed.
+            
             job.save()
             
             # If the request is sent via AJAX/Fetch, return JSON to prevent network/parsing errors
@@ -2456,26 +2460,29 @@ def customer_jobs_list_view(request):
     if not job:
         return redirect('customer_dashboard')
     return redirect('customer_job_detail', job_id=job.id)
-
 @login_required
 def customer_job_detail_view(request, job_id):
     job = get_object_or_404(Job, id=job_id, customer=request.user)
     quotation = getattr(job, 'quotation', None)
-    
-    # Logic: Only show invoice if status is 'completed' or 'closed'
     invoice = getattr(job, 'invoice', None)
-    is_job_finished = job.status in ['completed', 'closed', 'settled']
     
-    # Flag for "I Have Paid" button
-    show_po_payment_button = job.is_po_job and is_job_finished and job.status != 'settled'
+    # Invoice visibility based on job type:
+    if job.is_po_job:
+        # PO Job: Show invoice as soon as worker completes the job
+        is_invoice_visible = job.status in ['completed', 'work_completed', 'settled', 'closed']
+    else:
+        # Non-PO Job: Show invoice only when settled or closed (after finance confirmation)
+        is_invoice_visible = job.status in ['settled', 'closed']
+        
+    # Flag for "I Have Paid" button (only for PO jobs that aren't settled yet)
+    show_po_payment_button = job.is_po_job and is_invoice_visible and job.status != 'settled'
 
     return render(request, 'services/dashboards/customer_job_detail.html', {
         'job': job,
         'quotation': quotation,
-        'invoice': invoice if is_job_finished else None,
+        'invoice': invoice if is_invoice_visible else None,
         'show_po_payment_button': show_po_payment_button,
     })
-
 
 @login_required
 def submit_job_view(request):

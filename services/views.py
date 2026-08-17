@@ -3773,7 +3773,6 @@ def finance_invoices_view(request):
         'model_filter': model_filter,
     })
 
-
 @login_required
 def download_invoice_pdf(request, job_id):
     job = get_object_or_404(Job, id=job_id)
@@ -3782,11 +3781,10 @@ def download_invoice_pdf(request, job_id):
     if not request.user.is_superuser and request.user.role not in ['ceo', 'finance', 'manager', 'general_manager', 'assistant_manager'] and job.customer != request.user:
         return redirect('dashboard_router')
    
-    # Rule 1: Invoice should ONLY become accessible/generated when job status is marked as Completed
-    # (Checking if status is completed, case-insensitive or exact match based on your system)
+    # Updated: Allow invoice download for completed, closed, settled, or work completed statuses
     job_status_lower = str(job.status).strip().lower()
-    if job_status_lower not in ['completed', 'complete job', 'closed']:
-        return HttpResponse("Invoice is not available yet. The job must be marked as completed first.", status=403)
+    if job_status_lower not in ['completed', 'complete job', 'closed', 'settled', 'work_completed', 'repair_completed']:
+        return HttpResponse("Invoice is not available yet. The job must be marked as completed or settled first.", status=403)
 
     # Check if a pre-generated file exists, but skip if it's a PO job to ensure PO details display dynamically
     po_record = PurchaseOrderRecord.objects.filter(job=job).first()
@@ -3833,7 +3831,7 @@ def download_invoice_pdf(request, job_id):
 
     grand_total = (inv.total_amount if inv and inv.total_amount else None) or (q.total_amount if q else 0.00)
 
-    # Rule 1 & 3: Conditional PO block - Only display for PO jobs with valid PO data
+    # Conditional PO block - Only display for PO jobs with valid PO data
     po_details_html = ""
     if is_po_job and po_record:
         po_details_html = f"""

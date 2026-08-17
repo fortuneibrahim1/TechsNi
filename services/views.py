@@ -969,12 +969,14 @@ def confirm_balance_paid(request, quotation_id):
                 }
             )
             
+        messages.success(request, f"Final balance for Job #{job.id} confirmed successfully! Invoice is now unlocked.")
+
         if request.headers.get('x-requested-with') == 'XMLHttpRequest':
             return JsonResponse({'success': True, 'message': 'Balance confirmed successfully! Invoice is now unlocked.'})
             
-        return redirect('finance_dashboard')
+        return redirect('finance_quotations')
         
-    return redirect('finance_dashboard')
+    return redirect('finance_quotations')
 
 
 @login_required

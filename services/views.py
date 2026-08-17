@@ -2460,6 +2460,7 @@ def customer_jobs_list_view(request):
     if not job:
         return redirect('customer_dashboard')
     return redirect('customer_job_detail', job_id=job.id)
+
 @login_required
 def customer_job_detail_view(request, job_id):
     job = get_object_or_404(Job, id=job_id, customer=request.user)

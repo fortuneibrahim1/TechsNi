@@ -4224,7 +4224,6 @@ def finance_confirm_po_settlement_view(request, po_id):
     return redirect('finance_po_list')
 
 from services import views
-from services.views import public_pdf_view
 import cloudinary.utils
 @login_required
 def public_pdf_view(request, job_id):

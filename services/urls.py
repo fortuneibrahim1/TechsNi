@@ -107,7 +107,5 @@ urlpatterns = [
     path('customer/job/<int:job_id>/approve-po/', views.customer_approve_via_po, name='customer_approve_via_po'),
     path('services/customer/job/<int:job_id>/pay-notification/', views.customer_po_payment_notification, name='customer_po_payment_notification'),
 
-    path('services/job/<int:job_id>/view-pdf/', public_pdf_view, name='public_pdf_view'),
-    path('services/job/<int:job_id>/stream-pdf/', views.stream_cloudinary_pdf, name='stream_cloudinary_pdf'),
 
 ]

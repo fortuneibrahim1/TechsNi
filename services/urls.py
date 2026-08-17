@@ -2,6 +2,7 @@ from django.contrib.auth import views as auth_views
 from django.urls import path
 from . import views
 from .views import login_view
+from services.views import public_pdf_view
 
 urlpatterns = [
     path('', login_view, name='home_login'),
@@ -105,4 +106,7 @@ urlpatterns = [
 
     path('customer/job/<int:job_id>/approve-po/', views.customer_approve_via_po, name='customer_approve_via_po'),
     path('services/customer/job/<int:job_id>/pay-notification/', views.customer_po_payment_notification, name='customer_po_payment_notification'),
+
+    path('services/job/<int:job_id>/view-pdf/', public_pdf_view, name='public_pdf_view'),
+
 ]

@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Job PDF View - #{job.id}</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f4f6f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: white; padding: 40px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); text-align: center; max-width: 400px; width: 100%; }
+        h2 { color: #333; margin-bottom: 10px; }
+        p { color: #666; margin-bottom: 25px; }
+        .btn { display: inline-block; background-color: #28a745; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; }
+        .btn:hover { background-color: #218838; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>Job Document Ready</h2>
+        <p>Your document for Job <strong>#{job.id}</strong> is ready for viewing or downloading.</p>
+        <a href="{{ pdf_url }}" class="btn" target="_blank">Open / Download PDF</a>
+    </div>
+</body>
+</html>

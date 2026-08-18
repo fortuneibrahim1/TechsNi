@@ -1,26 +1,20 @@
 from django.contrib import admin
-from django.urls import path, include, reverse
+from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from django.contrib.sitemaps.views import sitemap
-from django.contrib.sitemaps import Sitemap
+from django.http import HttpResponse
 from TechsNi.views import portal_gateway_view, custom_login_view
 
-# Define the sitemap class for your static/login pages
-class StaticViewSitemap(Sitemap):
-    priority = 1.0
-    changefreq = 'daily'
-
-    def items(self):
-        return ['login']  # Points to your login page's url name
-
-    def location(self, item):
-        return reverse(item)
-
-# Dictionary of sitemaps to pass to the sitemap view
-sitemaps = {
-    'static': StaticViewSitemap,
-}
+def sitemap_view(request):
+    xml_content = '''<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://techsni.com.ng/</loc>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>'''
+    return HttpResponse(xml_content, content_type="application/xml")
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -33,10 +27,9 @@ urlpatterns = [
     
     path('services/', include('services.urls')),
     path('store/', include('store.urls')),
-    
 
     # Sitemap route
-    path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='django.contrib.sitemaps.views.sitemap'),
+    path('sitemap.xml', sitemap_view, name='sitemap'),
 ]
 
 if settings.DEBUG:

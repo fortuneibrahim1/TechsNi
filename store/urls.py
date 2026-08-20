@@ -4,7 +4,7 @@ from . import views
 urlpatterns = [
     # Storefront & Browsing
     path('', views.store_home_view, name='store_home'),
-    path('product/<str:product_slug>/', views.product_detail_view, name='store_product_detail'),
+    path('product/<path:product_slug>/', views.product_detail_view, name='store_product_detail'),
     path('product/wishlist/toggle/<int:product_id>/', views.toggle_wishlist_view, name='toggle_wishlist'),
     
     # Customer Hubs & Cart

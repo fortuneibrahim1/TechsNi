@@ -69,12 +69,11 @@ urlpatterns = [
     
     path('store/order/<int:order_id>/refund/request/', views.request_store_refund_view, name='request_refund'),
 
-
     path('store/ceo/return-policy/', views.ceo_manage_return_policy, name='ceo_manage_return_policy'),
 
     # Rider Dashboard URL
     path('rider/dashboard/', views.store_rider_dashboard, name='store_rider_dashboard'),
     
-    # Rider Return Status Update URL (matches the form action your rider template)
+    # Rider Return Status Update URL (matches the form action in your rider template)
     path('rider/return/<int:return_id>/update/', views.rider_return_status_update_view, name='rider_return_status_update'),
 ]

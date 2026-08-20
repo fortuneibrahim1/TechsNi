@@ -83,6 +83,7 @@ def product_detail_view(request, product_slug):
     return render(request, 'store/product_detail.html', context)
 
 
+
 @login_required
 def toggle_wishlist_view(request, product_id):
     """Allows customers to love/save an item to their wishlist instead of leaving it in cart."""

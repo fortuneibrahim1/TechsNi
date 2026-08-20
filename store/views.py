@@ -48,7 +48,6 @@ def store_home_view(request):
         
     return render(request, 'store/home.html', context)
 
-
 def product_detail_view(request, product_slug):
     product = get_object_or_404(Product, slug=product_slug, is_active=True)
     ratings = product.ratings.all().order_by('-created_at')

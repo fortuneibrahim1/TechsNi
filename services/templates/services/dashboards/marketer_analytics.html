@@ -7,7 +7,7 @@
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="fw-bold text-dark"><i class="bi bi-graph-up-arrow text-success me-2"></i> Marketer Analytics & Referrals</h2>
-            <p class="text-muted mb-0">Track referral performance, customer spending volume, and commission metrics.</p>
+            <p class="text-muted mb-0">Track referral performance, customer spending volume, and commission metrics based on Confidential Vendor Prices.</p>
         </div>
     </div>
 
@@ -37,7 +37,8 @@
                         <strong class="text-dark">{{ stat.percentage_share }}%</strong>
                     </div>
                     <div class="d-flex justify-content-between align-items-center pt-2 border-top">
-                        <span class="text-muted small">Estimated Commission (50%):</span>
+                        <!-- Updated label to show calculation based on Confidential Vendor Price -->
+                        <span class="text-muted small">Estimated Commission (from Vendor Price):</span>
                         <strong class="text-primary fs-5">₦{{ stat.estimated_commission|floatformat:2 }}</strong>
                     </div>
                 </div>

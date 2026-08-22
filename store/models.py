@@ -122,16 +122,6 @@ class Product(models.Model):
     slug = models.SlugField(max_length=255, unique=True)
     description = models.TextField()
     
-    # State-based inventory assignment field (Made optional with default to prevent live server column errors)
-    state = models.CharField(
-        max_length=50, 
-        choices=UserAddressBook.NIGERIAN_STATES_CHOICES,
-        blank=True,
-        null=True,
-        default='Rivers',
-        help_text="Nigerian State where this good is uploaded/stocked by the state store keeper"
-    )
-    
     # Pricing fields
     price = models.DecimalField(max_digits=12, decimal_places=2, help_text="Original Regular Price")
     discount_price = models.DecimalField(max_digits=12, decimal_places=2, blank=True, null=True, help_text="Standard discounted price on normal days")
@@ -173,7 +163,7 @@ class Product(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.name} ({self.state or 'General'})"
+        return self.name
 
     @property
     def current_active_price(self):

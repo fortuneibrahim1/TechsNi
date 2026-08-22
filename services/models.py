@@ -186,7 +186,13 @@ class JobExpense(models.Model):
 
     def __str__(self):
         return f"Expenses for Job #{self.job.id} - Spent: ₦{self.amount_spent}"
-
+        
+class Quotation(models.Model):
+    title = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return self.title
 
 class QuotationItem(models.Model):
     quotation = models.ForeignKey('Quotation', on_delete=models.CASCADE, related_name='items')

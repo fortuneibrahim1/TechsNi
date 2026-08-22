@@ -194,6 +194,13 @@ class Quotation(models.Model):
     deposit_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0.00, verbose_name="Deposit Percentage (%)")
     vat_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="VAT / Tax (₦)")
     quotation_pdf = models.FileField(upload_to='quotations/pdfs/', blank=True, null=True, verbose_name="Upload Quotation PDF")
+    
+    # Missing fields expected by QuotationAdmin
+    balance_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Balance Amount (₦)")
+    is_approved_by_client = models.BooleanField(default=False, verbose_name="Approved by Client")
+    is_deposit_paid = models.BooleanField(default=False, verbose_name="Deposit Paid")
+    is_balance_paid = models.BooleanField(default=False, verbose_name="Balance Paid")
+    
     created_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):

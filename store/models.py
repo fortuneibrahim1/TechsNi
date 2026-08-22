@@ -350,7 +350,7 @@ class StoreReturnPolicy(models.Model):
 
 class StoreReturnRequest(models.Model):
     """
-    Handles the rigorous 3-day return/refund process including multimedia proofs,
+    Handles the rigorous 4-day return/refund process including multimedia proofs,
     rider tracking logistics, management verification, and finance settlement.
     """
     STATUS_CHOICES = (

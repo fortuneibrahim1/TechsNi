@@ -112,7 +112,6 @@ from .models import (
     UserAddressBook, Product, StoreOrderItem, StoreInvoice, 
     CompanyBankAccount, ActivityAuditLog, Notification, StoreRating
 )
-
 @login_required
 def cart_view(request):
     """Displays cart items alongside strictly sequenced categorized customer orders hub context."""
@@ -175,7 +174,7 @@ def cart_view(request):
 
 @login_required
 def checkout_view(request):
-    """Processes checkout with validation tied to user's registered address book state."""
+    """Processes checkout with validation tied to user's registered address book state and uses active red promotional prices."""
     cart = request.session.get('store_cart', {})
     if not cart:
         return redirect('store_home')
@@ -240,12 +239,15 @@ def checkout_view(request):
         for prod_id, item in cart.items():
             product = get_object_or_404(Product, id=int(prod_id), is_active=True)
 
+            # Explicitly force the unit price to be the active red price (promo price or discount price if available)
+            effective_unit_price = float(product.promo_price) if product.promo_price else (float(product.discount_price) if product.discount_price else float(product.price))
+
             StoreOrderItem.objects.create(
                 order=order,
                 product=product,
                 quantity=int(item['quantity']),
-                unit_price=float(item['price']),
-                total_price=float(item['price']) * int(item['quantity']),
+                unit_price=effective_unit_price,
+                total_price=effective_unit_price * int(item['quantity']),
                 vendor_unit_price=product.vendor_price
             )
             product.stock_quantity -= int(item['quantity'])

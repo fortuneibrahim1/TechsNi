@@ -190,6 +190,10 @@ class JobExpense(models.Model):
         
 class Quotation(models.Model):
     title = models.CharField(max_length=255)
+    discount_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Discount (₦)")
+    deposit_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0.00, verbose_name="Deposit Percentage (%)")
+    vat_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="VAT / Tax (₦)")
+    quotation_pdf = models.FileField(upload_to='quotations/pdfs/', blank=True, null=True, verbose_name="Upload Quotation PDF")
     created_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):

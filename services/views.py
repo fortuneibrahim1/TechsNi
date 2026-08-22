@@ -1687,8 +1687,8 @@ def marketer_analytics_view(request):
             cust_jobs = Job.objects.filter(customer=cust)
             for job in cust_jobs:
                 if hasattr(job, 'quotation') and job.quotation and job.quotation.is_approved_by_client:
-                    # Calculate total based on Confidential Vendor Price from job/quotation items
-                    items = job.items.all() if hasattr(job, 'items') else []
+                    # Corrected: Access items via job.quotation.items.all()
+                    items = job.quotation.items.all() if hasattr(job.quotation, 'items') else []
                     for item in items:
                         price = getattr(item, 'confidential_vendor_price', None)
                         if price is not None:
@@ -1699,7 +1699,7 @@ def marketer_analytics_view(request):
         marketer_stats_raw.append({
             'marketer': marketer,
             'customer_count': referred_customers.count(),
-            'total_spend': vendor_spend,  # Now represents Confidential Vendor Price total
+            'total_spend': vendor_spend,  # Represents Confidential Vendor Price total
         })
 
     # Calculate percentage share and estimated commission using proper Decimal arithmetic
@@ -1773,7 +1773,8 @@ def marketer_dashboard_view(request):
         customer_jobs = Job.objects.filter(customer=cust)
         for j in customer_jobs:
             if hasattr(j, 'quotation') and j.quotation and j.quotation.is_approved_by_client:
-                items = j.items.all() if hasattr(j, 'items') else []
+                # Corrected: Access items via j.quotation.items.all()
+                items = j.quotation.items.all() if hasattr(j.quotation, 'items') else []
                 for item in items:
                     price = getattr(item, 'confidential_vendor_price', None)
                     if price is not None:
@@ -1803,7 +1804,6 @@ def marketer_dashboard_view(request):
         'estimated_commission': estimated_commission,
     }
     return render(request, 'services/dashboards/marketer_dashboard.html', context)
-  
 
 import csv
 from django.http import HttpResponse

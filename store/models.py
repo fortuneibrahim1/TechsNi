@@ -187,13 +187,7 @@ class ProductImage(models.Model):
         return f"Image for {self.product.name}"
 
 
-class ProductVideo(models.Model):
-    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='product_videos')
-    video_file = models.FileField(upload_to='store/products/videos/')
-    uploaded_at = models.DateTimeField(auto_now_add=True)
 
-    def __str__(self):
-        return f"Video for {self.product.name}"
 
 
 class StoreOrder(models.Model):

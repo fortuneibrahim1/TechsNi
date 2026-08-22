@@ -233,7 +233,8 @@
                                         <tr>
                                             <td class="fw-semibold text-dark">{{ item.product.name }}</td>
                                             <td class="text-center">{{ item.quantity }}</td>
-                                            <td class="text-end">₦{{ item.product.price }}</td>
+                                            <!-- Updated to use item.unit_price instead of item.product.price -->
+                                            <td class="text-end">₦{{ item.unit_price }}</td>
                                             <td class="text-end fw-bold">₦{{ item.total_price }}</td>
                                         </tr>
                                     {% endfor %}

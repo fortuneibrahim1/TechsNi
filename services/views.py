@@ -1677,37 +1677,31 @@ def marketer_analytics_view(request):
     marketers = User.objects.filter(role='marketer') if hasattr(User, 'role') else User.objects.none()
 
     marketer_stats_raw = []
-    grand_total_vendor_revenue = Decimal('0.00')
+    grand_total_revenue = Decimal('0.00')
 
     for marketer in marketers:
         referred_customers = User.objects.filter(referred_by=marketer) if hasattr(User, 'referred_by') else User.objects.none()
         
-        vendor_spend = Decimal('0.00')
+        total_spend = Decimal('0.00')
         for cust in referred_customers:
             cust_jobs = Job.objects.filter(customer=cust)
             for job in cust_jobs:
                 if hasattr(job, 'quotation') and job.quotation and job.quotation.is_approved_by_client:
-                    # Corrected: Access items via job.quotation.items.all()
-                    items = job.quotation.items.all() if hasattr(job.quotation, 'items') else []
-                    for item in items:
-                        price = getattr(item, 'confidential_vendor_price', None)
-                        if price is not None:
-                            qty = getattr(item, 'quantity', 1)
-                            vendor_spend += Decimal(str(price)) * Decimal(str(qty))
+                    total_spend += job.quotation.total_amount or Decimal('0.00')
 
-        grand_total_vendor_revenue += vendor_spend
+        grand_total_revenue += total_spend
         marketer_stats_raw.append({
             'marketer': marketer,
             'customer_count': referred_customers.count(),
-            'total_spend': vendor_spend,  # Represents Confidential Vendor Price total
+            'total_spend': total_spend,
         })
 
     # Calculate percentage share and estimated commission using proper Decimal arithmetic
     marketer_stats = []
     for item in marketer_stats_raw:
         spend = item['total_spend']
-        percentage_share = (float(spend) / float(grand_total_vendor_revenue) * 100) if grand_total_vendor_revenue > 0 else 0.0
-        estimated_commission = spend * Decimal('0.50')  # 50% commission rate as Decimal from Vendor Price
+        percentage_share = (float(spend) / float(grand_total_revenue) * 100) if grand_total_revenue > 0 else 0.0
+        estimated_commission = spend * Decimal('0.50')  # 50% commission rate as Decimal
 
         item['percentage_share'] = round(percentage_share, 1)
         item['estimated_commission'] = estimated_commission
@@ -1720,7 +1714,6 @@ def marketer_analytics_view(request):
         'marketer_stats': marketer_stats,
         'referred_users': referred_users,
     })
-
 
 @login_required
 def edit_site_config_view(request):
@@ -1752,7 +1745,6 @@ def edit_site_config_view(request):
         
     return render(request, 'services/dashboards/edit_site_config.html', {'config': config})
 
-
 from .models import Job, Quotation, User, JobType, SiteConfiguration
 
 @login_required
@@ -1765,22 +1757,15 @@ def marketer_dashboard_view(request):
     # Get all customers referred by this logged-in marketer
     referred_customers = User.objects.filter(referred_by=request.user)
     
-    # Calculate total spending by their referred customers based on Confidential Vendor Price
-    total_spend = Decimal('0.00')
+    # Calculate total spending by their referred customers
+    total_spend = 0
     customer_data = []
     for cust in referred_customers:
-        cust_spend = Decimal('0.00')
+        cust_spend = 0
         customer_jobs = Job.objects.filter(customer=cust)
         for j in customer_jobs:
             if hasattr(j, 'quotation') and j.quotation and j.quotation.is_approved_by_client:
-                # Corrected: Access items via j.quotation.items.all()
-                items = j.quotation.items.all() if hasattr(j.quotation, 'items') else []
-                for item in items:
-                    price = getattr(item, 'confidential_vendor_price', None)
-                    if price is not None:
-                        qty = getattr(item, 'quantity', 1)
-                        cust_spend += Decimal(str(price)) * Decimal(str(qty))
-                        
+                cust_spend += float(j.quotation.total_amount)
         total_spend += cust_spend
         customer_data.append({
             'customer': cust,
@@ -1794,7 +1779,7 @@ def marketer_dashboard_view(request):
     else:
         commission_rate = float(config.commission_percentage)
         
-    estimated_commission = total_spend * (Decimal(str(commission_rate)) / Decimal('100'))
+    estimated_commission = total_spend * (commission_rate / 100)
         
     context = {
         'referred_customers': referred_customers,

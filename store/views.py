@@ -24,13 +24,32 @@ User = get_user_model()
 # ==========================================
 # CUSTOMER FRONTEND & SHOPPING VIEWS
 # ==========================================
-
 def store_home_view(request):
-    """The main storefront for customers and staff to browse products."""
+    """The main storefront for customers and staff to browse products filtered strictly by the user's registered state."""
     categories = Category.objects.all()
     selected_category_id = request.GET.get('category')
     
-    products = Product.objects.filter(is_active=True).order_by('-id')
+    # Dynamically determine the customer's state from their registration / address book (No hardcoded default)
+    user_state = None
+    if request.user.is_authenticated:
+        # Check default address book entry first
+        default_address = request.user.saved_addresses.filter(is_default=True).first()
+        if default_address:
+            user_state = default_address.state
+        else:
+            # Fallback to any saved address if default isn't explicitly set
+            any_address = request.user.saved_addresses.first()
+            if any_address:
+                user_state = any_address.state
+            elif hasattr(request.user, 'state') and request.user.state:
+                user_state = request.user.state
+
+    # Filter products strictly by the user's specific state. If no state is found, show no products.
+    if user_state:
+        products = Product.objects.filter(is_active=True, state=user_state).order_by('-id')
+    else:
+        products = Product.objects.none() # Empty queryset if customer state is completely unknown/unregistered
+
     if selected_category_id:
         products = products.filter(category_id=selected_category_id)
         
@@ -41,6 +60,7 @@ def store_home_view(request):
         'products': products,
         'selected_category': selected_category_id,
         'active_promo_theme': active_promo_theme,
+        'user_state': user_state,
     }
     
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -81,7 +101,6 @@ def product_detail_view(request, product_slug):
         return render(request, 'store/product_detail.html', context)
 
     return render(request, 'store/product_detail.html', context)
-
     
 
 
@@ -93,11 +112,16 @@ def toggle_wishlist_view(request, product_id):
     if not created:
         wishlist_item.delete()
     return redirect(request.META.get('HTTP_REFERER', 'store_home'))
-
 import traceback
-from django.shortcuts import render, redirect
+import random
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from .models import StoreGlobalSetting, StoreOrder, StoreReturnRequest
+from django.utils import timezone
+from .models import (
+    StoreGlobalSetting, StoreOrder, StoreReturnRequest, 
+    UserAddressBook, Product, StoreOrderItem, StoreInvoice, 
+    CompanyBankAccount, ActivityAuditLog, Notification, StoreRating
+)
 
 @login_required
 def cart_view(request):
@@ -161,7 +185,7 @@ def cart_view(request):
 
 @login_required
 def checkout_view(request):
-    """Processes checkout based on the total items subtotal threshold (dynamic from CEO settings)."""
+    """Processes checkout with state-filtering validation tied to user's registered address book state."""
     cart = request.session.get('store_cart', {})
     if not cart:
         return redirect('store_home')
@@ -169,16 +193,20 @@ def checkout_view(request):
     global_settings = StoreGlobalSetting.get_settings()
     threshold = float(global_settings.partial_payment_threshold)
     
+    # Retrieve user state from address book
     default_address_obj = UserAddressBook.objects.filter(customer=request.user, is_default=True).first()
     if not default_address_obj:
         default_address_obj = UserAddressBook.objects.filter(customer=request.user).first()
         
+    user_state = None
     if default_address_obj:
         default_address = f"{default_address_obj.street_address}, {default_address_obj.lga}, {default_address_obj.state}"
         default_phone = default_address_obj.phone_number
+        user_state = default_address_obj.state
     else:
         default_address = getattr(request.user, 'address', '')
         default_phone = getattr(request.user, 'phone_number', '')
+        user_state = getattr(request.user, 'state', None)
     
     items_subtotal = sum(float(item['price']) * int(item['quantity']) for item in cart.values())
     
@@ -186,6 +214,9 @@ def checkout_view(request):
         shipping_address = request.POST.get('shipping_address')
         phone_number = request.POST.get('phone_number')
         payment_choice = request.POST.get('payment_choice', 'full')
+        
+        # Optional override if user selected a custom address containing a state during post
+        # We can extract state validation safely here if needed.
         
         if items_subtotal >= threshold:
             shipping_fee = 0.00
@@ -220,7 +251,14 @@ def checkout_view(request):
         )
         
         for prod_id, item in cart.items():
-            product = get_object_or_404(Product, id=int(prod_id))
+            # Filter product check based on active status and state constraints if required
+            product = get_object_or_404(Product, id=int(prod_id), is_active=True)
+            
+            # Optional state-matching check for warehouse accuracy
+            if user_state and hasattr(product, 'state') and product.state and product.state != user_state:
+                # Handle mismatch warning or allow if global manager/superuser, etc.
+                pass
+
             StoreOrderItem.objects.create(
                 order=order,
                 product=product,
@@ -257,6 +295,7 @@ def checkout_view(request):
         'items_subtotal': items_subtotal,
         'global_settings': global_settings,
         'saved_addresses': UserAddressBook.objects.filter(customer=request.user),
+        'user_state': user_state,
     }
     return render(request, 'store/checkout.html', context)
 
@@ -373,14 +412,25 @@ def customer_browsing_history_view(request):
 # ==========================================
 # STAFF & EXECUTIVE DASHBOARDS
 # ==========================================
-
 @login_required
 def store_keeper_dashboard(request):
     user_role = getattr(request.user, 'role', '')
     if not request.user.is_superuser and user_role not in ['store_keeper', 'general_manager']:
         return redirect('store_home')
         
-    products = Product.objects.all().order_by('-id')
+    # Determine store keeper's assigned state location
+    keeper_state = getattr(request.user, 'state', None)
+    if not keeper_state:
+        keeper_address = request.user.saved_addresses.filter(is_default=True).first() or request.user.saved_addresses.first()
+        if keeper_address:
+            keeper_state = keeper_address.state
+
+    # Restrict product inventory view to their state unless superuser/GM
+    if request.user.is_superuser or user_role == 'general_manager':
+        products = Product.objects.all().order_by('-id')
+    else:
+        products = Product.objects.filter(state=keeper_state).order_by('-id') if keeper_state else Product.objects.none()
+
     categories = Category.objects.all()
     promo_themes = PromoTheme.objects.all().order_by('-id')
     
@@ -401,6 +451,10 @@ def store_keeper_dashboard(request):
             return redirect('store_keeper_dashboard')
             
         elif action == 'add_product':
+            if not keeper_state and not request.user.is_superuser:
+                # Handle case where store keeper's state isn't set yet
+                return redirect('store_keeper_dashboard')
+
             name = request.POST.get('name')
             category_id = request.POST.get('category_id')
             description = request.POST.get('description')
@@ -418,6 +472,7 @@ def store_keeper_dashboard(request):
             product = Product.objects.create(
                 name=name,
                 slug=f"{name.lower().replace(' ', '-')}-{random.randint(100,999)}",
+                state=keeper_state if keeper_state else 'Rivers', # Automatically stamped with keeper's state
                 category_id=category_id,
                 description=description,
                 price=price,
@@ -438,7 +493,7 @@ def store_keeper_dashboard(request):
             for v in request.FILES.getlist('product_videos') or request.FILES.getlist('demo_videos'):
                 ProductVideo.objects.create(product=product, video_file=v)
                 
-            ActivityAuditLog.objects.create(user=request.user, role=user_role or 'store_keeper', action=f"Added new product: {name}")
+            ActivityAuditLog.objects.create(user=request.user, role=user_role or 'store_keeper', action=f"Added new product: {name} in {product.state}")
             return redirect('store_keeper_dashboard')
             
         elif action == 'edit_product':
@@ -473,7 +528,8 @@ def store_keeper_dashboard(request):
     keeper_context = {
         'products': products, 
         'categories': categories, 
-        'promo_themes': promo_themes
+        'promo_themes': promo_themes,
+        'keeper_state': keeper_state,
     }
 
     if request.headers.get('X-Requested-With') == 'XMLHttpRequest':

@@ -88,11 +88,47 @@ class RefundReason(models.Model):
         return self.reason_text
 
 
+class UserAddressBook(models.Model):
+    """Customer saved delivery locations with Nigerian States, LGAs, Street Address, and Phone numbers."""
+    
+    NIGERIAN_STATES_CHOICES = (
+        ('Abia', 'Abia'), ('Adamawa', 'Adamawa'), ('Akwa Ibom', 'Akwa Ibom'), ('Anambra', 'Anambra'),
+        ('Bauchi', 'Bauchi'), ('Bayelsa', 'Bayelsa'), ('Benue', 'Benue'), ('Borno', 'Borno'),
+        ('Cross River', 'Cross River'), ('Delta', 'Delta'), ('Ebonyi', 'Ebonyi'), ('Edo', 'Edo'),
+        ('Ekiti', 'Ekiti'), ('Enugu', 'Enugu'), ('Gombe', 'Gombe'), ('Imo', 'Imo'),
+        ('Jigawa', 'Jigawa'), ('Kaduna', 'Kaduna'), ('Kano', 'Kano'), ('Katsina', 'Katsina'),
+        ('Kebbi', 'Kebbi'), ('Kogi', 'Kogi'), ('Kwara', 'Kwara'), ('Lagos', 'Lagos'),
+        ('Nasarawa', 'Nasarawa'), ('Niger', 'Niger'), ('Ogun', 'Ogun'), ('Ondo', 'Ondo'),
+        ('Osun', 'Osun'), ('Oyo', 'Oyo'), ('Plateau', 'Plateau'), ('Rivers', 'Rivers'),
+        ('Sokoto', 'Sokoto'), ('Taraba', 'Taraba'), ('Yobe', 'Yobe'), ('Zamfara', 'Zamfara'),
+        ('FCT - Abuja', 'FCT - Abuja')
+    )
+
+    customer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='saved_addresses')
+    state = models.CharField(max_length=50, choices=NIGERIAN_STATES_CHOICES)
+    lga = models.CharField(max_length=100, help_text="Local Government Area (e.g. Ikeja, Eti-Osa)")
+    street_address = models.TextField(help_text="Full street address and land marks")
+    phone_number = models.CharField(max_length=20, help_text="Contact phone number for this delivery location")
+    is_default = models.BooleanField(default=False, help_text="Set as default address for quick checkout")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        default_tag = " [DEFAULT]" if self.is_default else ""
+        return f"{self.customer.username} - {self.street_address}, {self.lga}, {self.state}{default_tag}"
+
+
 class Product(models.Model):
     category = models.ForeignKey('Category', on_delete=models.CASCADE, related_name='products')
     name = models.CharField(max_length=255)
     slug = models.SlugField(max_length=255, unique=True)
     description = models.TextField()
+    
+    # State-based inventory assignment field (matched with customer registration state choices)
+    state = models.CharField(
+        max_length=50, 
+        choices=UserAddressBook.NIGERIAN_STATES_CHOICES,
+        help_text="Nigerian State where this good is uploaded/stocked by the state store keeper"
+    )
     
     # Pricing fields
     price = models.DecimalField(max_digits=12, decimal_places=2, help_text="Original Regular Price")
@@ -135,7 +171,7 @@ class Product(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return self.name
+        return f"{self.name} ({self.state})"
 
     @property
     def current_active_price(self):
@@ -148,35 +184,6 @@ class Product(models.Model):
         if self.promo_price and self.promo_theme and self.promo_theme.is_active:
             return self.promo_price
         return self.discount_price if self.discount_price else self.price
-
-
-class UserAddressBook(models.Model):
-    """Customer saved delivery locations with Nigerian States, LGAs, Street Address, and Phone numbers."""
-    
-    NIGERIAN_STATES_CHOICES = (
-        ('Abia', 'Abia'), ('Adamawa', 'Adamawa'), ('Akwa Ibom', 'Akwa Ibom'), ('Anambra', 'Anambra'),
-        ('Bauchi', 'Bauchi'), ('Bayelsa', 'Bayelsa'), ('Benue', 'Benue'), ('Borno', 'Borno'),
-        ('Cross River', 'Cross River'), ('Delta', 'Delta'), ('Ebonyi', 'Ebonyi'), ('Edo', 'Edo'),
-        ('Ekiti', 'Ekiti'), ('Enugu', 'Enugu'), ('Gombe', 'Gombe'), ('Imo', 'Imo'),
-        ('Jigawa', 'Jigawa'), ('Kaduna', 'Kaduna'), ('Kano', 'Kano'), ('Katsina', 'Katsina'),
-        ('Kebbi', 'Kebbi'), ('Kogi', 'Kogi'), ('Kwara', 'Kwara'), ('Lagos', 'Lagos'),
-        ('Nasarawa', 'Nasarawa'), ('Niger', 'Niger'), ('Ogun', 'Ogun'), ('Ondo', 'Ondo'),
-        ('Osun', 'Osun'), ('Oyo', 'Oyo'), ('Plateau', 'Plateau'), ('Rivers', 'Rivers'),
-        ('Sokoto', 'Sokoto'), ('Taraba', 'Taraba'), ('Yobe', 'Yobe'), ('Zamfara', 'Zamfara'),
-        ('FCT - Abuja', 'FCT - Abuja')
-    )
-
-    customer = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='saved_addresses')
-    state = models.CharField(max_length=50, choices=NIGERIAN_STATES_CHOICES, default='Lagos')
-    lga = models.CharField(max_length=100, help_text="Local Government Area (e.g. Ikeja, Eti-Osa)")
-    street_address = models.TextField(help_text="Full street address and land marks")
-    phone_number = models.CharField(max_length=20, help_text="Contact phone number for this delivery location")
-    is_default = models.BooleanField(default=False, help_text="Set as default address for quick checkout")
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        default_tag = " [DEFAULT]" if self.is_default else ""
-        return f"{self.customer.username} - {self.street_address}, {self.lga}, {self.state}{default_tag}"
 
 
 class ProductImage(models.Model):

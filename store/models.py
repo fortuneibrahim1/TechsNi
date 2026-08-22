@@ -116,17 +116,19 @@ class UserAddressBook(models.Model):
         default_tag = " [DEFAULT]" if self.is_default else ""
         return f"{self.customer.username} - {self.street_address}, {self.lga}, {self.state}{default_tag}"
 
-
 class Product(models.Model):
     category = models.ForeignKey('Category', on_delete=models.CASCADE, related_name='products')
     name = models.CharField(max_length=255)
     slug = models.SlugField(max_length=255, unique=True)
     description = models.TextField()
     
-    # State-based inventory assignment field (matched with customer registration state choices)
+    # State-based inventory assignment field (Made optional with default to prevent live server column errors)
     state = models.CharField(
         max_length=50, 
         choices=UserAddressBook.NIGERIAN_STATES_CHOICES,
+        blank=True,
+        null=True,
+        default='Rivers',
         help_text="Nigerian State where this good is uploaded/stocked by the state store keeper"
     )
     
@@ -171,7 +173,7 @@ class Product(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.name} ({self.state})"
+        return f"{self.name} ({self.state or 'General'})"
 
     @property
     def current_active_price(self):
@@ -184,7 +186,7 @@ class Product(models.Model):
         if self.promo_price and self.promo_theme and self.promo_theme.is_active:
             return self.promo_price
         return self.discount_price if self.discount_price else self.price
-
+    
 
 class ProductImage(models.Model):
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='additional_images')

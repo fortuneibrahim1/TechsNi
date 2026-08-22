@@ -1377,7 +1377,6 @@ def delete_account_view(request):
 def portal_gateway_view(request):
     return render(request, 'store/portal_gateway.html')
 
-
 @login_required
 def add_to_cart_view(request, product_id):
     product = get_object_or_404(Product, id=product_id, is_active=True)
@@ -1397,7 +1396,13 @@ def add_to_cart_view(request, product_id):
     if product.stock_quantity < (current_qty + requested_qty):
         return redirect(request.META.get('HTTP_REFERER', 'store_home'))
 
-    active_price = float(product.current_active_price)
+    # Explicitly prioritize promo_price, then discount_price, then regular price (Red price logic)
+    if product.promo_price and float(product.promo_price) > 0:
+        active_price = float(product.promo_price)
+    elif product.discount_price and float(product.discount_price) > 0:
+        active_price = float(product.discount_price)
+    else:
+        active_price = float(product.price)
 
     if str_id in cart:
         cart[str_id]['quantity'] += requested_qty
@@ -1414,6 +1419,7 @@ def add_to_cart_view(request, product_id):
         
     request.session['store_cart'] = cart
     return redirect('store_cart')
+    
 
 
 @login_required

@@ -18,28 +18,24 @@
                     {% endif %}
                 </div>
                 <div class="card-body bg-light">
-                    {% if policy %}
-                        <h5 class="fw-bold text-dark">{{ policy.title }}</h5>
-                        <p class="small text-muted mb-2">{{ policy.content|linebreaks }}</p>
-                        <div class="d-flex justify-content-between align-items-center mt-2 flex-wrap gap-2">
-                            <div class="alert alert-danger rounded-0 small mb-0 py-2 flex-grow-1">
-                                <strong>ATTENTION:</strong> Ensure your item selections and media proofs match requirements to avoid rejection.
-                            </div>
-                            <!-- Button to trigger full modal policy view -->
-                            <button type="button" class="btn btn-outline-dark btn-sm fw-bold rounded-0" data-bs-toggle="modal" data-bs-target="#policyModal">
-                                <i class="fas id-card me-1"></i> Read Full Terms
-                            </button>
+                    <h5 class="fw-bold text-dark">TechsNi Store Return & Refund Policy</h5>
+                    <p class="small text-muted mb-2">Items can be returned within 3 days of delivery with proper media proof, provided they are unused and in their original packaging.</p>
+                    <div class="d-flex justify-content-between align-items-center mt-2 flex-wrap gap-2">
+                        <div class="alert alert-danger rounded-0 small mb-0 py-2 flex-grow-1">
+                            <strong>ATTENTION:</strong> Ensure your item selections and media proofs match requirements to avoid rejection.
                         </div>
-                    {% else %}
-                        <p class="small text-muted mb-0">Please review store delivery and return guidelines. Ensure all items are unused and packaging is intact before filing a request.</p>
-                    {% endif %}
+                        <!-- Button to trigger full modal policy view -->
+                        <button type="button" class="btn btn-outline-dark btn-sm fw-bold rounded-0" data-bs-toggle="modal" data-bs-target="#policyModal">
+                            <i class="fas id-card me-1"></i> Read Full Terms
+                        </button>
+                    </div>
                 </div>
             </div>
 
             <!-- REFUND REQUEST FORM CARD -->
             <div class="card shadow-sm border-0 rounded-0 p-4 bg-white">
                 <h3 class="fw-bold mb-1">Request Return or Refund for Order #{{ order.id }}</h3>
-                <p class="text-muted small mb-4">Select the specific items you wish to return, choose a approved reason, and upload required image proofs (maximum 2 images).</p>
+                <p class="text-muted small mb-4">Select the specific items you wish to return, choose an approved reason, and upload required image proofs (maximum 2 images).</p>
 
                 <form method="POST" enctype="multipart/form-data">
                     {% csrf_token %}
@@ -139,16 +135,15 @@
 </div>
 
 <!-- POLICY MODAL POPUP -->
-{% if policy %}
 <div class="modal fade" id="policyModal" tabindex="-1" aria-labelledby="policyModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content rounded-0 border-0 shadow">
             <div class="modal-header bg-dark text-white rounded-0">
-                <h5 class="modal-title fw-bold" id="policyModalLabel"><i class="fas fa-file-contract text-warning me-2"></i> {{ policy.title }}</h5>
+                <h5 class="modal-title fw-bold" id="policyModalLabel"><i class="fas fa-file-contract text-warning me-2"></i> TechsNi Store Return & Refund Policy</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4">
-                <p class="text-dark" style="white-space: pre-line;">{{ policy.content }}</p>
+                <p class="text-dark" style="white-space: pre-line;">Items can be returned within 3 days of delivery with proper media proof, provided they are unused and in their original packaging.</p>
                 {% if policy.policy_document %}
                     <hr class="my-4">
                     <div class="text-center">
@@ -164,7 +159,6 @@
         </div>
     </div>
 </div>
-{% endif %}
 
 <!-- SELECT ALL JAVASCRIPT SCRIPT -->
 <script>

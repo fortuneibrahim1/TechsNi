@@ -189,7 +189,7 @@ class JobExpense(models.Model):
 
 
 class QuotationItem(models.Model):
-    quotation = models.ForeignKey(Quotation, on_delete=models.CASCADE, related_name='items')
+    quotation = models.ForeignKey('Quotation', on_delete=models.CASCADE, related_name='items')
     description = models.CharField(max_length=255, verbose_name="Item / Service Description")
     serial_number = models.CharField(max_length=100, blank=True, null=True, verbose_name="Serial Number")
     quantity = models.PositiveIntegerField(default=1, verbose_name="Quantity")

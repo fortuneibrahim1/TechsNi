@@ -2170,7 +2170,7 @@ from .forms import CustomerReturnRequestForm
 @login_required
 def request_store_refund_view(request, order_id):
     """
-    Allows a customer to request a refund within 4 days of delivery,
+    Allows a customer to request a refund within 3 days of delivery,
     choose from CEO-managed dynamic reasons, select specific order items with images and prices,
     and review the store policy/downloadable PDF.
     """
@@ -2192,7 +2192,7 @@ def request_store_refund_view(request, order_id):
         messages.warning(request, "A return request has already been submitted for this order.")
         return redirect('store_order_detail', order_id=order.id)
 
-    # Fetch the official store return policy & dynamic reasons created by the CEO
+    # Fetch the official store return policy & dynamic reasons created
     policy = StoreReturnPolicy.objects.first()
     refund_reasons = RefundReason.objects.filter(is_active=True)
 

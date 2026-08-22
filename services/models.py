@@ -186,49 +186,46 @@ class JobExpense(models.Model):
 
     def __str__(self):
         return f"Expenses for Job #{self.job.id} - Spent: ₦{self.amount_spent}"
-        
-        
+
+
 class Quotation(models.Model):
-    job = models.ForeignKey('Job', on_delete=models.CASCADE, related_name='quotations', null=True, blank=True)
-    title = models.CharField(max_length=255)
-    
-    # Financial fields expected by QuotationAdmin
-    total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Total Amount (₦)")
-    deposit_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Deposit Amount (₦)")
-    balance_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Balance Amount (₦)")
-    
+    job = models.OneToOneField(Job, on_delete=models.CASCADE, related_name='quotation')
+    subtotal_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     discount_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Discount (₦)")
-    deposit_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=0.00, verbose_name="Deposit Percentage (%)")
     vat_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="VAT / Tax (₦)")
-    quotation_pdf = models.FileField(upload_to='quotations/pdfs/', blank=True, null=True, verbose_name="Upload Quotation PDF")
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     
-    is_approved_by_client = models.BooleanField(default=False, verbose_name="Approved by Client")
-    is_deposit_paid = models.BooleanField(default=False, verbose_name="Deposit Paid")
-    is_balance_paid = models.BooleanField(default=False, verbose_name="Balance Paid")
+    deposit_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=50.00)
+    deposit_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
+    balance_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00)
     
+    valid_until = models.DateTimeField(blank=True, null=True, verbose_name="Valid Until Date")
+    quotation_pdf = models.FileField(upload_to='quotations/pdfs/', blank=True, null=True, verbose_name="Upload Quote PDF")
+    
+    rejection_reason = models.TextField(blank=True, null=True)
+    is_approved_by_client = models.BooleanField(default=False)
+    is_deposit_paid = models.BooleanField(default=False)
+    is_balance_paid = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
-    
+
+    def save(self, *args, **kwargs):
+        if not self.valid_until:
+            self.valid_until = timezone.now() + timedelta(days=5)
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return self.title
+        return f'Quote for Job #{self.job.id} - Total: ₦{self.total_amount}'
 
 
 class QuotationItem(models.Model):
-    quotation = models.ForeignKey('Quotation', on_delete=models.CASCADE, related_name='items')
+    quotation = models.ForeignKey(Quotation, on_delete=models.CASCADE, related_name='items')
     description = models.CharField(max_length=255, verbose_name="Item / Service Description")
     serial_number = models.CharField(max_length=100, blank=True, null=True, verbose_name="Serial Number")
     quantity = models.PositiveIntegerField(default=1, verbose_name="Quantity")
     amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Unit Amount (₦)")
-    
-    confidential_vendor_price = models.DecimalField(
-        max_digits=12, decimal_places=2, default=0.00, 
-        verbose_name="Confidential Vendor Price (₦)"
-    )
 
     def get_total(self):
         return (self.quantity or 1) * (self.amount or Decimal('0.00'))
-
-    def get_vendor_total(self):
-        return (self.quantity or 1) * (self.confidential_vendor_price or Decimal('0.00'))
 
     def __str__(self):
         return f"{self.description} (Qty: {self.quantity}) - ₦{self.get_total()}"

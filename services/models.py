@@ -187,12 +187,14 @@ class JobExpense(models.Model):
     def __str__(self):
         return f"Expenses for Job #{self.job.id} - Spent: ₦{self.amount_spent}"
         
+        
 class Quotation(models.Model):
     title = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
         return self.title
+
 
 class QuotationItem(models.Model):
     quotation = models.ForeignKey('Quotation', on_delete=models.CASCADE, related_name='items')
@@ -201,7 +203,6 @@ class QuotationItem(models.Model):
     quantity = models.PositiveIntegerField(default=1, verbose_name="Quantity")
     amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Unit Amount (₦)")
     
-    # --- ADD THIS FIELD ---
     confidential_vendor_price = models.DecimalField(
         max_digits=12, decimal_places=2, default=0.00, 
         verbose_name="Confidential Vendor Price (₦)"
@@ -212,19 +213,6 @@ class QuotationItem(models.Model):
 
     def get_vendor_total(self):
         return (self.quantity or 1) * (self.confidential_vendor_price or Decimal('0.00'))
-
-    def __str__(self):
-        return f"{self.description} (Qty: {self.quantity}) - ₦{self.get_total()}"
-
-class QuotationItem(models.Model):
-    quotation = models.ForeignKey('Quotation', on_delete=models.CASCADE, related_name='items')
-    description = models.CharField(max_length=255, verbose_name="Item / Service Description")
-    serial_number = models.CharField(max_length=100, blank=True, null=True, verbose_name="Serial Number")
-    quantity = models.PositiveIntegerField(default=1, verbose_name="Quantity")
-    amount = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name="Unit Amount (₦)")
-
-    def get_total(self):
-        return (self.quantity or 1) * (self.amount or Decimal('0.00'))
 
     def __str__(self):
         return f"{self.description} (Qty: {self.quantity}) - ₦{self.get_total()}"

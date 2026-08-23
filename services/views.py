@@ -1690,11 +1690,12 @@ def marketer_analytics_view(request):
                 if hasattr(job, 'quotation') and job.quotation and job.quotation.is_approved_by_client:
                     total_spend += job.quotation.total_amount or Decimal('0.00')
 
-            # 2. Calculate from Store Orders (Store purchases using vendor pricing if applicable)
+            # 2. Calculate from Store Orders using confidential vendor pricing instead of retail price
             cust_orders = StoreOrder.objects.filter(customer=cust).exclude(status__in=['pending_payment', 'rejected', 'cancelled'])
             for order in cust_orders:
-                # Include total amount or fallback to subtotal/vendor calculations
-                total_spend += order.total_amount or Decimal('0.00')
+                for item in order.items.all():
+                    vendor_cost_total = (item.vendor_unit_price or Decimal('0.00')) * Decimal(str(item.quantity))
+                    total_spend += vendor_cost_total
 
         grand_total_revenue += total_spend
         marketer_stats_raw.append({
@@ -1781,7 +1782,7 @@ def marketer_dashboard_view(request):
     # Get all customers referred by this logged-in marketer
     referred_customers = User.objects.filter(referred_by=request.user)
     
-    # Calculate total spending by their referred customers (Jobs + Store Orders)
+    # Calculate total spending by their referred customers (Jobs + Store Orders using confidential vendor pricing)
     total_spend = Decimal('0.00')
     customer_data = []
     
@@ -1794,10 +1795,12 @@ def marketer_dashboard_view(request):
             if hasattr(j, 'quotation') and j.quotation and j.quotation.is_approved_by_client:
                 cust_spend += j.quotation.total_amount or Decimal('0.00')
                 
-        # Store orders
+        # Store orders using confidential vendor unit price
         customer_orders = StoreOrder.objects.filter(customer=cust).exclude(status__in=['pending_payment', 'rejected', 'cancelled'])
         for order in customer_orders:
-            cust_spend += order.total_amount or Decimal('0.00')
+            for item in order.items.all():
+                vendor_cost_total = (item.vendor_unit_price or Decimal('0.00')) * Decimal(str(item.quantity))
+                cust_spend += vendor_cost_total
             
         total_spend += cust_spend
         customer_data.append({

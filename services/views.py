@@ -1684,10 +1684,17 @@ def marketer_analytics_view(request):
         
         total_spend = Decimal('0.00')
         for cust in referred_customers:
+            # 1. Calculate from Jobs (Services)
             cust_jobs = Job.objects.filter(customer=cust)
             for job in cust_jobs:
                 if hasattr(job, 'quotation') and job.quotation and job.quotation.is_approved_by_client:
                     total_spend += job.quotation.total_amount or Decimal('0.00')
+
+            # 2. Calculate from Store Orders (Store purchases using vendor pricing if applicable)
+            cust_orders = StoreOrder.objects.filter(customer=cust).exclude(status__in=['pending_payment', 'rejected', 'cancelled'])
+            for order in cust_orders:
+                # Include total amount or fallback to subtotal/vendor calculations
+                total_spend += order.total_amount or Decimal('0.00')
 
         grand_total_revenue += total_spend
         marketer_stats_raw.append({
@@ -1696,14 +1703,29 @@ def marketer_analytics_view(request):
             'total_spend': total_spend,
         })
 
-    # Calculate percentage share and estimated commission using proper Decimal arithmetic
+    # Global config for default commission rate fallback
+    config = SiteConfiguration.get_solo() if 'SiteConfiguration' in globals() or 'SiteConfiguration' in locals() else None
+
+    # Calculate percentage share and estimated commission using proper Decimal arithmetic & dynamic commission rates
     marketer_stats = []
     for item in marketer_stats_raw:
         spend = item['total_spend']
+        marketer_obj = item['marketer']
+        
         percentage_share = (float(spend) / float(grand_total_revenue) * 100) if grand_total_revenue > 0 else 0.0
-        estimated_commission = spend * Decimal('0.50')  # 50% commission rate as Decimal
+        
+        # Determine dynamic commission rate per marketer or global default
+        if getattr(marketer_obj, 'commission_percentage', None) is not None:
+            comm_rate = Decimal(str(marketer_obj.commission_percentage))
+        elif config and hasattr(config, 'commission_percentage'):
+            comm_rate = Decimal(str(config.commission_percentage))
+        else:
+            comm_rate = Decimal('5.00')  # Default fallback percentage
+
+        estimated_commission = spend * (comm_rate / Decimal('100.00'))
 
         item['percentage_share'] = round(percentage_share, 1)
+        item['commission_rate'] = float(comm_rate)
         item['estimated_commission'] = estimated_commission
         marketer_stats.append(item)
 
@@ -1754,18 +1776,29 @@ def marketer_dashboard_view(request):
     if not request.user.is_superuser and role != 'marketer':
         return redirect('dashboard_router')
         
+    from decimal import Decimal
+    
     # Get all customers referred by this logged-in marketer
     referred_customers = User.objects.filter(referred_by=request.user)
     
-    # Calculate total spending by their referred customers
-    total_spend = 0
+    # Calculate total spending by their referred customers (Jobs + Store Orders)
+    total_spend = Decimal('0.00')
     customer_data = []
+    
     for cust in referred_customers:
-        cust_spend = 0
+        cust_spend = Decimal('0.00')
+        
+        # Service jobs
         customer_jobs = Job.objects.filter(customer=cust)
         for j in customer_jobs:
             if hasattr(j, 'quotation') and j.quotation and j.quotation.is_approved_by_client:
-                cust_spend += float(j.quotation.total_amount)
+                cust_spend += j.quotation.total_amount or Decimal('0.00')
+                
+        # Store orders
+        customer_orders = StoreOrder.objects.filter(customer=cust).exclude(status__in=['pending_payment', 'rejected', 'cancelled'])
+        for order in customer_orders:
+            cust_spend += order.total_amount or Decimal('0.00')
+            
         total_spend += cust_spend
         customer_data.append({
             'customer': cust,
@@ -1773,13 +1806,15 @@ def marketer_dashboard_view(request):
         })
         
     # --- INDIVIDUAL / GLOBAL COMMISSION CALCULATION ---
-    config = SiteConfiguration.get_solo()
+    config = SiteConfiguration.get_solo() if 'SiteConfiguration' in globals() or 'SiteConfiguration' in locals() else None
     if request.user.commission_percentage is not None:
         commission_rate = float(request.user.commission_percentage)
-    else:
+    elif config and hasattr(config, 'commission_percentage'):
         commission_rate = float(config.commission_percentage)
+    else:
+        commission_rate = 5.0  # Dynamic default matching your configuration
         
-    estimated_commission = total_spend * (commission_rate / 100)
+    estimated_commission = total_spend * Decimal(str(commission_rate / 100.0))
         
     context = {
         'referred_customers': referred_customers,

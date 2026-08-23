@@ -2462,7 +2462,9 @@ def customer_jobs_list_view(request):
     if not job:
         return redirect('customer_dashboard')
     return redirect('customer_job_detail', job_id=job.id)
+  
 import uuid
+
 @login_required
 def customer_job_detail_view(request, job_id):
     job = get_object_or_404(Job, id=job_id, customer=request.user)
@@ -2477,14 +2479,12 @@ def customer_job_detail_view(request, job_id):
         # Non-PO Job: Show invoice only when settled or closed (after finance confirmation)
         is_invoice_visible = job.status in ['settled', 'closed']
         
-    # Automatically get or create invoice if it should be visible but doesn't exist yet (Strictly handles PO/Unique constraints safely)
+    # Automatically get or create invoice if it should be visible but doesn't exist yet
     if is_invoice_visible and not invoice:
-        if job.is_po_job:
-            # For PO jobs, safely generate with a unique invoice number to prevent IntegrityError
-            inv_number = f"PO-INV-{job.id}-{uuid.uuid4().hex[:6].upper()}"
-            invoice, created = Invoice.objects.get_or_create(job=job, defaults={'invoice_number': inv_number})
-        else:
-            invoice, created = Invoice.objects.get_or_create(job=job)
+        # Always generate a unique invoice number for any job type to prevent IntegrityError
+        prefix = "PO-INV" if job.is_po_job else "INV"
+        inv_number = f"{prefix}-{job.id}-{uuid.uuid4().hex[:6].upper()}"
+        invoice, created = Invoice.objects.get_or_create(job=job, defaults={'invoice_number': inv_number})
 
     # Flag for "I Have Paid" button (only for PO jobs that aren't settled yet)
     show_po_payment_button = job.is_po_job and is_invoice_visible and job.status != 'settled'
@@ -2495,7 +2495,7 @@ def customer_job_detail_view(request, job_id):
         'invoice': invoice if is_invoice_visible else None,
         'show_po_payment_button': show_po_payment_button,
     })
-
+  
 @login_required
 def submit_job_view(request):
     if request.method == 'POST':

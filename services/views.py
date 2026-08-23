@@ -1665,7 +1665,8 @@ def service_job_history_view(request):
 from django.shortcuts import render, redirect
 from django.contrib.auth.decorators import login_required
 from decimal import Decimal
-from .models import Job, Quotation, User, JobType, SiteConfiguration, StoreOrder
+from .models import Job, Quotation, User, JobType, SiteConfiguration
+from store.models import StoreOrder
 
 @login_required
 def marketer_analytics_view(request):

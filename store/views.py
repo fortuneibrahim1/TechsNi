@@ -2170,7 +2170,7 @@ from .forms import CustomerReturnRequestForm
 @login_required
 def request_store_refund_view(request, order_id):
     """
-    Allows a customer to request a refund within 4 days of delivery,
+    Allows a customer to request a refund within 3 days of delivery,
     choose from CEO-managed dynamic reasons, select specific order items with images and prices,
     and review the store policy/downloadable PDF.
     """

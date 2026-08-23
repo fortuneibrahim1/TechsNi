@@ -174,7 +174,7 @@ def cart_view(request):
 
 @login_required
 def checkout_view(request):
-    """Processes checkout with validation tied to user's registered address book state and uses active red promotional prices."""
+    """Processes checkout with validation tied to user's registered address book state and uses active red promotional prices and confidential vendor costs."""
     cart = request.session.get('store_cart', {})
     if not cart:
         return redirect('store_home')
@@ -242,18 +242,21 @@ def checkout_view(request):
             # Explicitly force the unit price to be the active red price (promo price or discount price if available)
             effective_unit_price = float(product.promo_price) if product.promo_price else (float(product.discount_price) if product.discount_price else float(product.price))
 
+            # Store item with calculated retail subtotal and confidential vendor unit cost
             StoreOrderItem.objects.create(
                 order=order,
                 product=product,
                 quantity=int(item['quantity']),
                 unit_price=effective_unit_price,
                 total_price=effective_unit_price * int(item['quantity']),
-                vendor_unit_price=product.vendor_price
+                vendor_unit_price=product.vendor_price  # Pulls main confidential vendor price automatically
             )
             product.stock_quantity -= int(item['quantity'])
             product.save()
             
-        order.update_vendor_cost()
+        # Run order level vendor calculation update method
+        if hasattr(order, 'update_vendor_cost'):
+            order.update_vendor_cost()
             
         ActivityAuditLog.objects.create(
             user=request.user,
@@ -281,7 +284,6 @@ def checkout_view(request):
         'user_state': user_state,
     }
     return render(request, 'store/checkout.html', context)
-
 
 @login_required
 def store_order_detail_view(request, order_id):

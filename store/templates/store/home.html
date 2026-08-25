@@ -8,7 +8,7 @@
     <div class="col-md-3 mb-4">
         <div class="card shadow-sm border-0 p-3 mb-3">
             <h5 class="fw-bold mb-3" style="color: var(--brand-red);">Categories</h5>
-            <!-- Scrollable Container Added Here -->
+            <!-- Scrollable Container -->
             <div class="list-group list-group-flush" style="max-height: 400px; overflow-y: auto;">
                 <a href="{% url 'store_home' %}" class="list-group-item list-group-item-action {% if not selected_category %}active border-0{% endif %}" {% if not selected_category %}style="background-color: var(--brand-red); color: white;"{% endif %}>
                     All Products
@@ -31,10 +31,10 @@
                 Shop top-quality items with secure payments and fast delivery right to your door.</p>
         </div>
 
-        <!-- Search Bar Form with Image Upload Support -->
-        <form method="GET" action="{% url 'store_home' %}" enctype="multipart/form-data" class="mb-4">
+        <!-- Search Bar Form (Image Search Removed) -->
+        <form method="GET" action="{% url 'store_home' %}" class="mb-4">
             <div class="card shadow-sm border-0 p-3 bg-light">
-                <div class="input-group mb-2">
+                <div class="input-group">
                     <input type="text" name="q" value="{{ search_query }}" class="form-control" placeholder="Search for products, power banks, gadgets..." aria-label="Search products">
                     {% if selected_category %}
                         <input type="hidden" name="category" value="{{ selected_category }}">
@@ -45,13 +45,6 @@
                     {% if search_query %}
                         <a href="{% url 'store_home' %}{% if selected_category %}?category={{ selected_category }}{% endif %}" class="btn btn-outline-secondary" title="Clear Search">Clear</a>
                     {% endif %}
-                </div>
-                
-                <!-- Image Search Option -->
-                <div class="d-flex align-items-center gap-2 flex-wrap mt-1">
-                    <label for="image_search" class="text-muted small mb-0"><i class="fas fa-camera me-1"></i> Or search by image:</label>
-                    <input type="file" name="image_search" id="image_search" class="form-control form-control-sm" style="max-width: 300px;" accept="image/*">
-                    <small class="text-muted" style="font-size: 11px;">(Upload picture of gadget)</small>
                 </div>
             </div>
         </form>

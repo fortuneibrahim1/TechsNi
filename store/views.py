@@ -26,11 +26,14 @@ User = get_user_model()
 # ==========================================
 from django.db.models import Q
 
+from django.db.models import Q
+
 def store_home_view(request):
     """The main storefront for customers and staff to browse products."""
     categories = Category.objects.all()
     selected_category_id = request.GET.get('category')
     search_query = request.GET.get('q', '').strip()
+    image_search_file = request.FILES.get('image_search')
     
     # Dynamically determine the customer's state for UI reference only (without filtering missing db column)
     user_state = None
@@ -53,6 +56,15 @@ def store_home_view(request):
             Q(name__icontains=search_query) | Q(description__icontains=search_query)
         )
         
+    # Handle visual search tag matching if an image file is uploaded
+    if image_search_file:
+        # We can extract the filename (without extension) as a keyword to match visual_search_tag
+        filename = image_search_file.name.rsplit('.', 1)[0].replace('_', ' ').replace('-', ' ')
+        if filename:
+            products = products.filter(
+                Q(visual_search_tag__icontains=filename) | Q(name__icontains=filename)
+            )
+
     active_promo_theme = PromoTheme.objects.filter(is_active=True).first()
     
     context = {
@@ -69,7 +81,6 @@ def store_home_view(request):
         
     return render(request, 'store/home.html', context)
 
-    
 def product_detail_view(request, product_slug):
     product = get_object_or_404(Product, slug=product_slug, is_active=True)
     ratings = product.ratings.all().order_by('-created_at')

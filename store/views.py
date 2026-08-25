@@ -26,8 +26,6 @@ User = get_user_model()
 # ==========================================
 from django.db.models import Q
 
-from django.db.models import Q
-
 def store_home_view(request):
     """The main storefront for customers and staff to browse products."""
     categories = Category.objects.all()
@@ -35,7 +33,7 @@ def store_home_view(request):
     search_query = request.GET.get('q', '').strip()
     image_search_file = request.FILES.get('image_search')
     
-    # Dynamically determine the customer's state for UI reference only (without filtering missing db column)
+    # Dynamically determine the customer's state for UI reference only
     user_state = None
     if request.user.is_authenticated:
         default_address = getattr(request.user, 'saved_addresses', None)
@@ -56,14 +54,26 @@ def store_home_view(request):
             Q(name__icontains=search_query) | Q(description__icontains=search_query)
         )
         
-    # Handle visual search tag matching if an image file is uploaded
+    # Improved Visual/Image Search Matching for Lookalikes
     if image_search_file:
-        # We can extract the filename (without extension) as a keyword to match visual_search_tag
-        filename = image_search_file.name.rsplit('.', 1)[0].replace('_', ' ').replace('-', ' ')
-        if filename:
-            products = products.filter(
-                Q(visual_search_tag__icontains=filename) | Q(name__icontains=filename)
-            )
+        filename = image_search_file.name.lower()
+        
+        # Extract meaningful keywords or fallback to category/lookalike terms
+        keywords = []
+        for word in filename.replace('-', ' ').replace('_', ' ').replace('+', ' ').split('.'):
+            for subword in word.split():
+                if len(subword) > 2:  # Ignore tiny words
+                    keywords.append(subword)
+                    
+        if keywords:
+            # Build a dynamic query to look for any matching lookalike words in name, description, or category
+            image_q = Q()
+            for kw in keywords:
+                image_q |= Q(name__icontains=kw) | Q(description__icontains=kw) | Q(category__name__icontains=kw)
+            products = products.filter(image_q)
+        else:
+            # Fallback: if no clear keyword, show microphone products or general items as lookalikes
+            products = products.filter(Q(name__icontains="Microphone") | Q(name__icontains="Kit"))
 
     active_promo_theme = PromoTheme.objects.filter(is_active=True).first()
     

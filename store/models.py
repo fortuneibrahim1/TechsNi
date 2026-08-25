@@ -87,6 +87,14 @@ class RefundReason(models.Model):
     def __str__(self):
         return self.reason_text
 
+class UserSearchHistory(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, null=True, blank=True)
+    session_key = models.CharField(max_length=40, null=True, blank=True)
+    keyword = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.keyword} ({self.user or self.session_key})"
 
 class UserAddressBook(models.Model):
     """Customer saved delivery locations with Nigerian States, LGAs, Street Address, and Phone numbers."""

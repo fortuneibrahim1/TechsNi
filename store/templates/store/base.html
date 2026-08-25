@@ -179,7 +179,7 @@
             opacity: 0.9;
             color: #ffffff;
         }
-        .btn-wishlist-pro {
+        .btn-wishlist-pro, .btn-history-pro {
             background-color: #ffffff;
             color: #111111;
             font-weight: 600;
@@ -190,7 +190,7 @@
             border-radius: 4px;
             transition: all 0.2s;
         }
-        .btn-wishlist-pro:hover {
+        .btn-wishlist-pro:hover, .btn-history-pro:hover {
             background-color: #f8f9fa;
             border-color: #adb5bd;
             color: var(--brand-red);
@@ -407,6 +407,10 @@
                 <div class="container-fluid d-flex justify-content-between align-items-center px-2 px-md-3">
                     <a class="brand-logo fs-5 fs-md-4" href="{% url 'store_home' %}">TechsNi<span>Store</span></a>
                     <div class="d-flex align-items-center gap-2">
+                        <!-- History Button Added Here -->
+                        <a href="{% url 'store_user_history' %}" class="btn btn-history-pro px-2 px-md-3">
+                            <i class="fas fa-history text-secondary me-1"></i> <span class="d-none d-sm-inline">History</span>
+                        </a>
                         <a href="{% url 'customer_wishlist' %}" class="btn btn-wishlist-pro px-2 px-md-3">
                             <i class="fas fa-heart text-danger me-1"></i> <span class="d-none d-sm-inline">Wishlist</span>
                         </a>

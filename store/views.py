@@ -26,23 +26,20 @@ User = get_user_model()
 # ==========================================
 from django.db.models import Q
 
+from django.shortcuts import render, redirect
+from django.db.models import Q
+from .models import Category, Product, UserSearchHistory, Cart, Order # adjust imports to match your project
+
 def store_home_view(request):
-    """The main storefront for customers and staff to browse products using smart filename/tag matching."""
+    """The main storefront that logs searches and saves history."""
     categories = Category.objects.all()
     selected_category_id = request.GET.get('category')
     search_query = request.GET.get('q', '').strip()
     image_search_file = request.FILES.get('image_search')
     
-    # Dynamically determine the customer's state for UI reference only
-    user_state = None
-    if request.user.is_authenticated:
-        default_address = getattr(request.user, 'saved_addresses', None)
-        if default_address:
-            addr_obj = default_address.filter(is_default=True).first() or default_address.first()
-            if addr_obj:
-                user_state = addr_obj.state
-        if not user_state and hasattr(request.user, 'state'):
-            user_state = request.user.state
+    if not request.session.session_key:
+        request.session.create()
+    session_key = request.session.session_key
 
     products = Product.objects.filter(is_active=True).order_by('-id')
     
@@ -53,28 +50,22 @@ def store_home_view(request):
         products = products.filter(
             Q(name__icontains=search_query) | Q(description__icontains=search_query)
         )
+        # Log search history
+        UserSearchHistory.objects.create(
+            user=request.user if request.user.is_authenticated else None,
+            session_key=session_key if not request.user.is_authenticated else None,
+            keyword=search_query
+        )
         
-    # Smart Local Image-to-Keyword Search (No API Key Required)
-    if image_search_file:
+    elif image_search_file:
         filename = image_search_file.name.lower()
-        
-        # Clean up common separators in filenames (dashes, underscores, plus signs, extensions)
         for char in ['-', '_', '+', '.', 'jfif', 'jpg', 'jpeg', 'png']:
             filename = filename.replace(char, ' ')
-            
-        # Extract individual significant words
-        raw_words = filename.split()
-        keywords = [w for w in raw_words if len(w) > 2]  # Keep words longer than 2 characters
-        
+        keywords = [w for w in filename.split() if len(w) > 2]
         if keywords:
-            # Search for products matching any of the extracted keywords in name, description, or tags
             image_q = Q()
             for kw in keywords:
-                image_q |= (
-                    Q(name__icontains=kw) | 
-                    Q(description__icontains=kw) | 
-                    Q(visual_search_tag__icontains=kw)
-                )
+                image_q |= Q(name__icontains=kw) | Q(description__icontains=kw) | Q(visual_search_tag__icontains=kw)
             products = products.filter(image_q)
 
     active_promo_theme = PromoTheme.objects.filter(is_active=True).first()
@@ -85,13 +76,28 @@ def store_home_view(request):
         'selected_category': selected_category_id,
         'search_query': search_query,
         'active_promo_theme': active_promo_theme,
-        'user_state': user_state,
     }
     
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return render(request, 'store/home.html', context)
-        
     return render(request, 'store/home.html', context)
+
+
+def store_user_history_view(request):
+    """Displays user search history and previously added or viewed items."""
+    if not request.session.session_key:
+        request.session.create()
+    session_key = request.session.session_key
+
+    # Fetch searches
+    if request.user.is_authenticated:
+        searches = UserSearchHistory.objects.filter(user=request.user).order_by('-created_at')[:20]
+    else:
+        searches = UserSearchHistory.objects.filter(session_key=session_key).order_by('-created_at')[:20]
+
+    context = {
+        'searches': searches,
+    }
+    return render(request, 'store/history.html', context)
+
 
 def product_detail_view(request, product_slug):
     product = get_object_or_404(Product, slug=product_slug, is_active=True)

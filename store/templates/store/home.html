@@ -6,7 +6,7 @@
 <div class="row">
     <!-- Categories Sidebar -->
     <div class="col-md-3 mb-4">
-        <div class="card shadow-sm border-0 p-3">
+        <div class="card shadow-sm border-0 p-3 mb-3">
             <h5 class="fw-bold mb-3" style="color: var(--brand-red);">Categories</h5>
             <div class="list-group list-group-flush">
                 <a href="{% url 'store_home' %}" class="list-group-item list-group-item-action {% if not selected_category %}active border-0{% endif %}" {% if not selected_category %}style="background-color: var(--brand-red); color: white;"{% endif %}>
@@ -18,6 +18,15 @@
                     </a>
                 {% endfor %}
             </div>
+        </div>
+
+        <!-- Quick View History Card Button -->
+        <div class="card shadow-sm border-0 p-3 bg-light text-center">
+            <h6 class="fw-bold mb-2">Activity Tracker</h6>
+            <p class="text-muted small mb-2">Check items you searched for previously.</p>
+            <a href="{% url 'store_user_history' %}" class="btn btn-outline-danger btn-sm fw-bold">
+                <i class="fas fa-history me-1"></i> View History
+            </a>
         </div>
     </div>
 

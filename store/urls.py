@@ -73,7 +73,8 @@ urlpatterns = [
 
     # Rider Dashboard URL
     path('rider/dashboard/', views.store_rider_dashboard, name='store_rider_dashboard'),
-    
+
+    path('history/', views.store_user_history_view, name='store_user_history'),
     # Rider Return Status Update URL (matches the form action in your rider template)
     path('rider/return/<int:return_id>/update/', views.rider_return_status_update_view, name='rider_return_status_update'),
 ]

@@ -28,7 +28,7 @@ from django.db.models import Q
 
 from django.shortcuts import render, redirect
 from django.db.models import Q
-from .models import Category, Product, UserSearchHistory, Cart, Order # adjust imports to match your project
+from .models import Category, Product, UserSearchHistory
 
 def store_home_view(request):
     """The main storefront that logs searches and saves history."""
@@ -87,7 +87,6 @@ def store_user_history_view(request):
         request.session.create()
     session_key = request.session.session_key
 
-    # Fetch searches
     if request.user.is_authenticated:
         searches = UserSearchHistory.objects.filter(user=request.user).order_by('-created_at')[:20]
     else:
@@ -97,7 +96,6 @@ def store_user_history_view(request):
         'searches': searches,
     }
     return render(request, 'store/history.html', context)
-
 
 def product_detail_view(request, product_slug):
     product = get_object_or_404(Product, slug=product_slug, is_active=True)

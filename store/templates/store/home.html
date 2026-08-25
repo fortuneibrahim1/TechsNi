@@ -13,7 +13,7 @@
                     All Products
                 </a>
                 {% for cat in categories %}
-                    <a href="{% url 'store_home' %}?category={{ cat.id }}" class="list-group-item list-group-item-action {% if selected_category == cat.id|stringformat:'s' %}active border-0{% endif %}" {% if selected_category == cat.id|stringformat:'s' %}style="background-color: var(--brand-red); color: white;"{% endif %}>
+                    <a href="{% url 'store_home' %}?category={{ cat.id }}{% if search_query %}&q={{ search_query }}{% endif %}" class="list-group-item list-group-item-action {% if selected_category == cat.id|stringformat:'s' %}active border-0{% endif %}" {% if selected_category == cat.id|stringformat:'s' %}style="background-color: var(--brand-red); color: white;"{% endif %}>
                         {{ cat.name }}
                     </a>
                 {% endfor %}
@@ -21,21 +21,38 @@
         </div>
     </div>
 
-    <!-- Product Grid -->
+    <!-- Product Grid Column -->
     <div class="col-md-9">
-        <div class="p-4 mb-4 rounded text-white shadow-sm" style="background: linear-gradient(135deg, var(--brand-red), var(--brand-dark));">
+        <!-- Store Banner -->
+        <div class="p-4 mb-3 rounded text-white shadow-sm" style="background: linear-gradient(135deg, var(--brand-red), var(--brand-dark));">
             <h1>{% if active_promo_theme %}{{ active_promo_theme.name }} Flash Sales{% else %}Flash Sales & Latest Gadgets{% endif %}</h1>
             <p class="lead mb-0">(Goods from top quality vendors)
                 Shop top-quality items with secure payments and fast delivery right to your door.</p>
         </div>
 
-        <!-- CHANGED: row-cols-2 for mobile (2 items per row), row-cols-md-3 for desktop (3 items per row), tighter gutters (g-2 g-md-4) -->
+        <!-- Search Bar Form -->
+        <form method="GET" action="{% url 'store_home' %}" class="mb-4">
+            <div class="input-group shadow-sm">
+                <input type="text" name="q" value="{{ search_query }}" class="form-control form-control-lg" placeholder="Search for products, power banks, gadgets..." aria-label="Search products">
+                {% if selected_category %}
+                    <input type="hidden" name="category" value="{{ selected_category }}">
+                {% endif %}
+                <button class="btn text-white fw-bold px-4" type="submit" style="background-color: var(--brand-red);">
+                    <i class="fas fa-search me-1"></i> Search
+                </button>
+                {% if search_query %}
+                    <a href="{% url 'store_home' %}{% if selected_category %}?category={{ selected_category }}{% endif %}" class="btn btn-outline-secondary" title="Clear Search">Clear</a>
+                {% endif %}
+            </div>
+        </form>
+
+        <!-- Product Grid -->
         <div class="row row-cols-2 row-cols-md-3 g-2 g-md-4">
             {% for product in products %}
                 <div class="col">
                     <div class="card h-100 shadow-sm border-0">
                         {% if product.image %}
-                            <img src="{{ product.image.url }}" class="card-img-top" alt="{{ product.name }}" style="height: 140px; object-fit: cover;" class="img-fluid">
+                            <img src="{{ product.image.url }}" class="card-img-top img-fluid" alt="{{ product.name }}" style="height: 140px; object-fit: cover;">
                         {% else %}
                             <div class="bg-secondary text-white d-flex align-items-center justify-content-center" style="height: 140px;">No Image</div>
                         {% endif %}
@@ -88,7 +105,13 @@
                 </div>
             {% empty %}
                 <div class="col-12">
-                    <div class="alert alert-warning text-center">No products available in this category right now. Check back soon!</div>
+                    <div class="alert alert-warning text-center">
+                        {% if search_query %}
+                            No products found matching "<strong>{{ search_query }}</strong>". Try searching for something else or clear the filter.
+                        {% else %}
+                            No products available in this category right now. Check back soon!
+                        {% endif %}
+                    </div>
                 </div>
             {% endfor %}
         </div>

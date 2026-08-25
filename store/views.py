@@ -24,10 +24,13 @@ User = get_user_model()
 # ==========================================
 # CUSTOMER FRONTEND & SHOPPING VIEWS
 # ==========================================
+from django.db.models import Q
+
 def store_home_view(request):
     """The main storefront for customers and staff to browse products."""
     categories = Category.objects.all()
     selected_category_id = request.GET.get('category')
+    search_query = request.GET.get('q', '').strip()
     
     # Dynamically determine the customer's state for UI reference only (without filtering missing db column)
     user_state = None
@@ -41,8 +44,14 @@ def store_home_view(request):
             user_state = request.user.state
 
     products = Product.objects.filter(is_active=True).order_by('-id')
+    
     if selected_category_id:
         products = products.filter(category_id=selected_category_id)
+        
+    if search_query:
+        products = products.filter(
+            Q(name__icontains=search_query) | Q(description__icontains=search_query)
+        )
         
     active_promo_theme = PromoTheme.objects.filter(is_active=True).first()
     
@@ -50,6 +59,7 @@ def store_home_view(request):
         'categories': categories,
         'products': products,
         'selected_category': selected_category_id,
+        'search_query': search_query,
         'active_promo_theme': active_promo_theme,
         'user_state': user_state,
     }
@@ -59,6 +69,7 @@ def store_home_view(request):
         
     return render(request, 'store/home.html', context)
 
+    
 def product_detail_view(request, product_slug):
     product = get_object_or_404(Product, slug=product_slug, is_active=True)
     ratings = product.ratings.all().order_by('-created_at')

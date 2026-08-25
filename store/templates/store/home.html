@@ -8,7 +8,8 @@
     <div class="col-md-3 mb-4">
         <div class="card shadow-sm border-0 p-3 mb-3">
             <h5 class="fw-bold mb-3" style="color: var(--brand-red);">Categories</h5>
-            <div class="list-group list-group-flush">
+            <!-- Scrollable Container Added Here -->
+            <div class="list-group list-group-flush" style="max-height: 400px; overflow-y: auto;">
                 <a href="{% url 'store_home' %}" class="list-group-item list-group-item-action {% if not selected_category %}active border-0{% endif %}" {% if not selected_category %}style="background-color: var(--brand-red); color: white;"{% endif %}>
                     All Products
                 </a>

@@ -144,12 +144,15 @@
                 {% endif %}
             </div>
 
-            <!-- Product Description Section Moved Right Below Add to Cart / Wishlist Actions -->
+            <!-- Product Description Section Moved Right Below Add to Cart / Wishlist Actions with See More/See Less -->
             <div class="card shadow-sm border-0 rounded-0 p-3 p-md-4 bg-white mb-4">
                 <h5 class="fw-bold mb-3 border-bottom pb-2">Product Description</h5>
-                <div class="text-secondary product-desc-content" style="line-height: 1.75; font-size: 15px;">
+                <div id="descriptionText" class="text-secondary product-desc-content collapsed" style="line-height: 1.75; font-size: 15px;">
                     {{ product.description|linebreaks|safe }}
                 </div>
+                <button type="button" id="toggleDescBtn" class="btn btn-link p-0 mt-2 text-danger fw-semibold text-decoration-none text-start" onclick="toggleDescription()" style="display: none;">
+                    See More
+                </button>
             </div>
         </div>
     </div>
@@ -220,7 +223,25 @@
     </div>
 </div>
 
-<!-- JavaScript to handle switching media and interactive star rating UI smoothly -->
+<style>
+.product-desc-content.collapsed {
+    display: -webkit-box;
+    display: -moz-box;
+    display: box;
+    -webkit-line-clamp: 4;
+    line-clamp: 4;
+    -webkit-box-orient: vertical;
+    box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.product-desc-content.expanded {
+    display: block;
+    overflow: visible;
+}
+</style>
+
+<!-- JavaScript to handle switching media, description collapse/expand, and interactive star rating UI smoothly -->
 <script>
     const mediaItems = [];
     const thumbElements = document.querySelectorAll('.media-thumb-item');
@@ -281,8 +302,38 @@
         renderCurrentMedia();
     }
 
-    // Interactive Star Rating Hover & Click Script
+    // Toggle Product Description Functionality
+    function toggleDescription() {
+        const desc = document.getElementById('descriptionText');
+        const btn = document.getElementById('toggleDescBtn');
+        
+        if (desc.classList.contains('collapsed')) {
+            desc.classList.remove('collapsed');
+            desc.classList.add('expanded');
+            btn.textContent = 'See Less';
+        } else {
+            desc.classList.remove('expanded');
+            desc.classList.add('collapsed');
+            btn.textContent = 'See More';
+        }
+    }
+
+    // Check if description text overflows to show "See More" button automatically
     document.addEventListener("DOMContentLoaded", function() {
+        const desc = document.getElementById('descriptionText');
+        const btn = document.getElementById('toggleDescBtn');
+        if (desc && btn) {
+            desc.classList.remove('collapsed');
+            const fullHeight = desc.scrollHeight;
+            desc.classList.add('collapsed');
+            const clampedHeight = desc.clientHeight;
+
+            if (fullHeight > clampedHeight + 10) {
+                btn.style.display = 'inline-block';
+            }
+        }
+
+        // Interactive Star Rating Hover & Click Script
         const stars = document.querySelectorAll(".star-icon");
         const ratingInput = document.getElementById("selectedRatingValue");
         
@@ -319,7 +370,7 @@
                     updateStars(parseInt(ratingInput.value));
                 });
             }
-      }
+        }
     });
 </script>
 {% endblock %}

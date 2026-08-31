@@ -9,24 +9,24 @@
             <div class="card shadow-sm border-0 p-3 p-md-4 rounded-0 text-white" style="background: linear-gradient(135deg, #222, #444);">
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
                     <div>
-                        <h2 class="fw-bold mb-1 fs-3 fs-md-2">📦 Store Keeper Inventory Control Panel</h2>
-                        <p class="text-muted mb-0 small fs-md-6">Manage warehouse stock levels, assign pre-set promo events, confidential vendor costs, and product entries.</p>
+                        <h2 class="fw-bold mb-1 fs-3 fs-md-2 text-white">📦 Store Keeper Inventory Control Panel</h2>
+                        <p class="text-white-50 mb-0 small fs-md-6" style="color: #ffffff !important;">Manage warehouse stock levels, assign pre-set promo events, confidential vendor costs, and product entries.</p>
                     </div>
                     <div class="d-flex align-items-center gap-2 flex-wrap">
                         <button class="btn btn-warning rounded-0 fw-semibold px-3 py-2 btn-sm btn-md-base text-white" id="toggleProductFormBtn" type="button" style="background-color: #cc0001; border: none;" onclick="toggleProductForm()">
-                            <span id="toggleIcon" class="fw-bold fs-5 me-1">+</span> <span id="toggleText">Add New Product</span>
+                            <span id="toggleIcon" class="fw-bold fs-5 me-1 text-white">+</span> <span id="toggleText" class="text-white">Add New Product</span>
                         </button>
                         <div class="dropdown">
-                            <button class="btn btn-danger rounded-0 fw-semibold px-3 py-2 btn-sm btn-md-base dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="background-color: #444; border: 1px solid #666;">
+                            <button class="btn btn-danger rounded-0 fw-semibold px-3 py-2 btn-sm btn-md-base dropdown-toggle text-white" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="background-color: #444; border: 1px solid #666;">
                                 📊 Export Inventory (CSV)
                             </button>
                             <ul class="dropdown-menu dropdown-menu-dark rounded-0 shadow">
-                                <li><a class="dropdown-item small" href="{% url 'export_inventory_excel' %}">📁 Export All Vendors (Complete)</a></li>
+                                <li><a class="dropdown-item small text-white" href="{% url 'export_inventory_excel' %}">📁 Export All Vendors (Complete)</a></li>
                                 {% if vendors %}
                                     <li><hr class="dropdown-divider"></li>
-                                    <li><h6 class="dropdown-header text-uppercase" style="font-size: 10px; letter-spacing: 0.5px;">Filter By Vendor:</h6></li>
+                                    <li><h6 class="dropdown-header text-uppercase text-white" style="font-size: 10px; letter-spacing: 0.5px;">Filter By Vendor:</h6></li>
                                     {% for v in vendors %}
-                                        <li><a class="dropdown-item small" href="{% url 'export_inventory_excel' %}?vendor={{ v.id }}">↳ Export for {{ v.name }}</a></li>
+                                        <li><a class="dropdown-item small text-white" href="{% url 'export_inventory_excel' %}?vendor={{ v.id }}">↳ Export for {{ v.name }}</a></li>
                                     {% endfor %}
                                 {% endif %}
                             </ul>

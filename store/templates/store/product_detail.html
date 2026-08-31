@@ -110,11 +110,11 @@
                 {% endif %}
             </div>
 
-            <!-- Product Description with clean paragraph & bullet point formatting -->
+            <!-- Product Description with clean line breaks preservation -->
             <div class="mb-4">
                 <h5 class="fw-bold mb-2">Description</h5>
                 <div class="text-secondary product-desc-content" style="line-height: 1.75; font-size: 15px;">
-                    {{ product.description|safe }}
+                    {{ product.description|linebreaks|safe }}
                 </div>
             </div>
 

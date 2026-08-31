@@ -96,12 +96,14 @@
                         </div>
                     </div>
 
-                    <!-- CONFIDENTIAL VENDOR PRICE FIELD -->
+                    <!-- CONFIDENTIAL VENDOR PRICE FIELD (MANAGEMENT ONLY) -->
+                    {% if is_management %}
                     <div class="mb-3 p-2 bg-light border border-warning">
                         <label class="form-label fw-bold small text-dark mb-1">🔒 Confidential Vendor Price (₦)</label>
                         <input type="number" step="0.01" name="vendor_price" class="form-control rounded-0 border-danger" placeholder="Hidden from customers" required>
                         <div class="form-text" style="font-size: 11px;">Only visible to Stock Keeper, Finance, General Manager & CEO.</div>
                     </div>
+                    {% endif %}
 
                     <div class="row">
                         <div class="col-6 mb-3">
@@ -187,8 +189,10 @@
                                         <td>
                                             <div class="fw-bold text-dark text-wrap" style="min-width: 130px;">{{ product.name }}</div>
                                             <div class="small text-muted text-truncate" style="max-width: 150px;">{{ product.description }}</div>
-                                            <!-- Vendor price inline indicator for authorized users -->
+                                            <!-- Vendor price inline indicator for authorized users (Management Only) -->
+                                            {% if is_management %}
                                             <div class="badge bg-light text-danger border border-danger mt-1" style="font-size: 10px;">Vendor Cost: ₦{{ product.vendor_price|default:'0.00' }}</div>
+                                            {% endif %}
                                         </td>
                                         <td>
                                             <div class="fw-semibold text-success">₦{{ product.current_active_price }}</div>
@@ -294,12 +298,14 @@
                                                             </div>
                                                         </div>
 
-                                                        <!-- CONFIDENTIAL VENDOR PRICE MODAL FIELD -->
+                                                        <!-- CONFIDENTIAL VENDOR PRICE MODAL FIELD (MANAGEMENT ONLY) -->
+                                                        {% if is_management %}
                                                         <div class="mb-3 p-3 bg-light border border-danger">
                                                             <label class="form-label fw-bold text-dark small">🔒 Confidential Vendor Price (₦)</label>
                                                             <input type="number" step="0.01" name="vendor_price" class="form-control rounded-0 border-danger" value="{{ product.vendor_price|default:'' }}" required>
                                                             <div class="form-text text-danger" style="font-size: 11px;">Restricted viewing: Stock Keeper, Finance, General Manager, CEO only.</div>
                                                         </div>
+                                                        {% endif %}
 
                                                         <div class="row">
                                                             <div class="col-md-6 mb-3">

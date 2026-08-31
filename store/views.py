@@ -443,16 +443,16 @@ def store_keeper_dashboard(request):
     if not request.user.is_superuser and user_role not in ['store_keeper', 'general_manager']:
         return redirect('store_home')
         
-    # Determine store keeper's assigned state location for UI/reference purposes
+    # Check if user has management privileges (GM, CEO, or Superuser)
+    is_management = request.user.is_superuser or user_role == 'general_manager'
+
     keeper_state = getattr(request.user, 'state', None)
     if not keeper_state:
         keeper_address = request.user.saved_addresses.filter(is_default=True).first() or request.user.saved_addresses.first()
         if keeper_address:
             keeper_state = keeper_address.state
 
-    # Fetch all active products
     products = Product.objects.all().order_by('-id')
-
     categories = Category.objects.all()
     vendors = Vendor.objects.all().order_by('name')
     promo_themes = PromoTheme.objects.all().order_by('-id')
@@ -468,12 +468,18 @@ def store_keeper_dashboard(request):
 
         action = request.POST.get('action') or ('add_product' if request.POST.get('add_product') == '1' else 'edit_product')
         
+        # Restrict Category creation to Management/Superuser
         if action == 'add_category':
+            if not is_management:
+                return redirect('store_keeper_dashboard')
             cat_name = request.POST.get('category_name')
             Category.objects.get_or_create(name=cat_name, defaults={'slug': cat_name.lower().replace(' ', '-')})
             return redirect('store_keeper_dashboard')
 
+        # Restrict Vendor creation to Management/Superuser
         elif action == 'add_vendor':
+            if not is_management:
+                return redirect('store_keeper_dashboard')
             v_name = request.POST.get('vendor_name')
             if v_name:
                 Vendor.objects.get_or_create(name=v_name)
@@ -486,14 +492,16 @@ def store_keeper_dashboard(request):
             description = request.POST.get('description')
             price = request.POST.get('price')
             discount_price = request.POST.get('discount_price') or None
-            vendor_price = request.POST.get('vendor_price') or '0.00'
+            vendor_price = request.POST.get('vendor_price') or '0.00' if is_management else '0.00'
             promo_price = request.POST.get('promo_price') or None
             promo_theme_id = request.POST.get('promo_theme_id') or None
             stock_quantity = request.POST.get('stock_quantity')
             image = request.FILES.get('image')
-            internal_brand_tag = request.POST.get('internal_brand_tag', '')
-            allow_partial = True if request.POST.get('allow_partial_payment') == 'on' else False
-            deposit_pct = int(request.POST.get('partial_deposit_percentage', 80))
+            
+            # Restrict internal tags and partial payments to management
+            internal_brand_tag = request.POST.get('internal_brand_tag', '') if is_management else ''
+            allow_partial = True if (is_management and request.POST.get('allow_partial_payment') == 'on') else False
+            deposit_pct = int(request.POST.get('partial_deposit_percentage', 80)) if is_management else 80
             
             product = Product.objects.create(
                 name=name,
@@ -531,12 +539,15 @@ def store_keeper_dashboard(request):
             product.description = request.POST.get('description', product.description)
             product.price = request.POST.get('price', product.price)
             product.discount_price = request.POST.get('discount_price') or None
-            product.vendor_price = request.POST.get('vendor_price', product.vendor_price)
+            
+            if is_management:
+                product.vendor_price = request.POST.get('vendor_price', product.vendor_price)
+                product.internal_brand_tag = request.POST.get('internal_brand_tag', product.internal_brand_tag)
+                product.allow_partial_payment = True if request.POST.get('allow_partial_payment') == 'on' else False
+
             product.promo_price = request.POST.get('promo_price') or None
             product.promo_theme_id = request.POST.get('promo_theme_id') or None
             product.stock_quantity = request.POST.get('stock_quantity', product.stock_quantity)
-            product.internal_brand_tag = request.POST.get('internal_brand_tag', product.internal_brand_tag)
-            product.allow_partial_payment = True if request.POST.get('allow_partial_payment') == 'on' else False
             
             if request.FILES.get('image'):
                 product.image = request.FILES.get('image')
@@ -558,13 +569,10 @@ def store_keeper_dashboard(request):
         'vendors': vendors,
         'promo_themes': promo_themes,
         'keeper_state': keeper_state,
+        'is_management': is_management,
     }
 
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        return render(request, 'store/dashboards/keeper.html', keeper_context)
-        
     return render(request, 'store/dashboards/keeper.html', keeper_context)
-
 
 @login_required
 def export_inventory_excel(request):

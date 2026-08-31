@@ -536,10 +536,12 @@ def store_keeper_dashboard(request):
             product.name = request.POST.get('name', product.name)
             product.category_id = request.POST.get('category_id', product.category_id)
             
-            # Explicitly force-update vendor_id from POST data
+            # FIXED: Explicitly handle vendor update or clearing if empty string is sent
             new_vendor_id = request.POST.get('vendor_id')
             if new_vendor_id:
                 product.vendor_id = new_vendor_id
+            else:
+                product.vendor = None
 
             product.description = request.POST.get('description', product.description)
             product.price = request.POST.get('price', product.price)

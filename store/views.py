@@ -625,12 +625,13 @@ def export_inventory_excel(request):
     response.write('\ufeff')
     writer = csv.writer(response)
 
-    # Dynamically change the headers based on whether an individual vendor is selected
+    # Individual vendor export keeps Vendor Cost Price, but excludes customer retail/discount prices
     if vendor_id:
         writer.writerow([
             'Product Name', 
             'Vendor Name', 
             'Quantity in Stock', 
+            'Vendor Cost Price (₦)', 
             'Category', 
             'Internal Brand / Marketer Tag', 
             'Image Link', 
@@ -655,18 +656,19 @@ def export_inventory_excel(request):
         img_url = request.build_absolute_uri(p.image.url) if p.image else "No Image"
         
         if vendor_id:
-            # Exclude all prices for individual vendor exports
+            # Vendor cost price included, customer retail & discount prices excluded
             writer.writerow([
                 p.name,
                 v_name,
                 p.stock_quantity,
+                p.vendor_price,
                 p.category.name if p.category else '',
                 p.internal_brand_tag or '',
                 img_url,
                 p.description
             ])
         else:
-            # Keep all prices for the complete warehouse export
+            # Complete warehouse export containing all prices
             writer.writerow([
                 p.name,
                 v_name,
@@ -686,7 +688,6 @@ def export_inventory_excel(request):
         action=f"Exported warehouse inventory spreadsheet (Filter: {filename_suffix})"
     )
     return response
-
 
 from decimal import Decimal, InvalidOperation
 import random

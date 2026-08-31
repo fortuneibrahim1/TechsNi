@@ -14,9 +14,13 @@
                         <p class="text-muted mb-0 small fs-md-6">Manage warehouse stock levels, assign pre-set promo events, confidential vendor costs, and product entries.</p>
                     </div>
                     <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <!-- Toggle Add Product Button (+ / -) -->
+                        <button class="btn btn-warning rounded-0 fw-semibold px-3 py-2 btn-sm btn-md-base text-white" id="toggleProductFormBtn" type="button" style="background-color: #cc0001; border: none;" onclick="toggleProductForm()">
+                            <span id="toggleIcon" class="fw-bold fs-5 me-1">+</span> <span id="toggleText">Add New Product</span>
+                        </button>
                         <!-- Vendor-Specific or All Export Dropdown/Button -->
                         <div class="dropdown">
-                            <button class="btn btn-danger rounded-0 fw-semibold px-3 py-2 btn-sm btn-md-base dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="background-color: #cc0001; border: none;">
+                            <button class="btn btn-danger rounded-0 fw-semibold px-3 py-2 btn-sm btn-md-base dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="background-color: #444; border: 1px solid #666;">
                                 📊 Export Inventory (CSV)
                             </button>
                             <ul class="dropdown-menu dropdown-menu-dark rounded-0 shadow">
@@ -38,8 +42,8 @@
     </div>
 
     <div class="row">
-        <!-- ADD NEW PRODUCT FORM -->
-        <div class="col-lg-4 mb-4">
+        <!-- ADD NEW PRODUCT FORM (Initially Hidden, Expands Inventory to Full Width) -->
+        <div class="col-lg-4 mb-4" id="addProductColumn" style="display: none;">
             <div class="card shadow-sm border-0 rounded-0 p-3 p-md-4 bg-white">
                 <h4 class="fw-bold mb-3 border-bottom pb-3 fs-5" style="color: var(--store-red, #cc0001);">Add New Product</h4>
                 <form method="POST" enctype="multipart/form-data">
@@ -136,8 +140,8 @@
             </div>
         </div>
 
-        <!-- INVENTORY LISTING TABLE -->
-        <div class="col-lg-8 mb-4">
+        <!-- INVENTORY LISTING TABLE (Dynamically shifts from col-lg-8 to col-lg-12 when form is closed) -->
+        <div class="col-lg-12 mb-4" id="inventoryColumn">
             <div class="card shadow-sm border-0 rounded-0 p-3 p-md-4 bg-white">
                 <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-3 flex-wrap gap-2">
                     <h4 class="fw-bold mb-0 fs-5">Warehouse Inventory Listing & Real-Time Management</h4>
@@ -216,7 +220,7 @@
                         </table>
                     </div>
 
-                    <!-- EDIT PRODUCT MODALS (Rendered outside table layout for proper DOM structure) -->
+                    <!-- EDIT PRODUCT MODALS -->
                     {% for product in products %}
                         <div class="modal fade" id="editProductModal{{ product.id }}" tabindex="-1" aria-hidden="true">
                             <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -327,11 +331,37 @@
                 {% else %}
                     <div class="alert alert-light border text-center py-5 text-muted rounded-0 mb-0">
                         <h5 class="fw-bold text-dark mb-1">No Products Uploaded Yet</h5>
-                        <p class="mb-0 text-muted small">Use the form on the left to add your first stock listing to the store.</p>
+                        <p class="mb-0 text-muted small">Use the toggle "+" button above to add your first stock listing to the store.</p>
                     </div>
                 {% endif %}
             </div>
         </div>
     </div>
 </div>
+
+<!-- JavaScript to control the collapse / expand functionality -->
+<script>
+function toggleProductForm() {
+    const formCol = document.getElementById('addProductColumn');
+    const inventoryCol = document.getElementById('inventoryColumn');
+    const toggleIcon = document.getElementById('toggleIcon');
+    const toggleText = document.getElementById('toggleText');
+
+    if (formCol.style.display === 'none' || formCol.style.display === '') {
+        // Open Form: Show form (col-lg-4) and shrink inventory to col-lg-8
+        formCol.style.display = 'block';
+        inventoryCol.classList.remove('col-lg-12');
+        inventoryCol.classList.add('col-lg-8');
+        toggleIcon.textContent = '-';
+        toggleText.textContent = 'Close Product Form';
+    } else {
+        // Close Form: Hide form and expand inventory to fill full width (col-lg-12)
+        formCol.style.display = 'none';
+        inventoryCol.classList.remove('col-lg-8');
+        inventoryCol.classList.add('col-lg-12');
+        toggleIcon.textContent = '+';
+        toggleText.textContent = 'Add New Product';
+    }
+}
+</script>
 {% endblock %}

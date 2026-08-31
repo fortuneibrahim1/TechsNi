@@ -6,7 +6,9 @@ urlpatterns = [
     path('', views.store_home_view, name='store_home'),
     path('product/<path:product_slug>/', views.product_detail_view, name='store_product_detail'),
     path('product/wishlist/toggle/<int:product_id>/', views.toggle_wishlist_view, name='toggle_wishlist'),
-    
+
+
+    path('export/inventory-excel/', views.export_inventory_excel, name='export_inventory_excel'),
     # Customer Hubs & Cart
     path('cart/', views.cart_view, name='store_cart'),
     path('cart/add/<int:product_id>/', views.add_to_cart_view, name='store_add_to_cart'),

@@ -435,6 +435,8 @@ def customer_browsing_history_view(request):
 # ==========================================
 # STAFF & EXECUTIVE DASHBOARDS
 # ==========================================
+
+from .models import Product, Category, Vendor, PromoTheme, ActivityAuditLog, ProductImage, ProductVideo
 @login_required
 def store_keeper_dashboard(request):
     user_role = getattr(request.user, 'role', '')
@@ -448,10 +450,11 @@ def store_keeper_dashboard(request):
         if keeper_address:
             keeper_state = keeper_address.state
 
-    # Fetch all active products since the state field doesn't exist on the Product model
+    # Fetch all active products
     products = Product.objects.all().order_by('-id')
 
     categories = Category.objects.all()
+    vendors = Vendor.objects.all().order_by('name')
     promo_themes = PromoTheme.objects.all().order_by('-id')
     
     if request.method == 'POST':
@@ -469,10 +472,17 @@ def store_keeper_dashboard(request):
             cat_name = request.POST.get('category_name')
             Category.objects.get_or_create(name=cat_name, defaults={'slug': cat_name.lower().replace(' ', '-')})
             return redirect('store_keeper_dashboard')
+
+        elif action == 'add_vendor':
+            v_name = request.POST.get('vendor_name')
+            if v_name:
+                Vendor.objects.get_or_create(name=v_name)
+            return redirect('store_keeper_dashboard')
             
         elif action == 'add_product':
             name = request.POST.get('name')
             category_id = request.POST.get('category_id')
+            vendor_id = request.POST.get('vendor_id') or None
             description = request.POST.get('description')
             price = request.POST.get('price')
             discount_price = request.POST.get('discount_price') or None
@@ -489,6 +499,7 @@ def store_keeper_dashboard(request):
                 name=name,
                 slug=f"{name.lower().replace(' ', '-')}-{random.randint(100,999)}",
                 category_id=category_id,
+                vendor_id=vendor_id,
                 description=description,
                 price=price,
                 discount_price=discount_price,
@@ -516,6 +527,7 @@ def store_keeper_dashboard(request):
             product = get_object_or_404(Product, id=prod_id)
             product.name = request.POST.get('name', product.name)
             product.category_id = request.POST.get('category_id', product.category_id)
+            product.vendor_id = request.POST.get('vendor_id') or None
             product.description = request.POST.get('description', product.description)
             product.price = request.POST.get('price', product.price)
             product.discount_price = request.POST.get('discount_price') or None
@@ -543,6 +555,7 @@ def store_keeper_dashboard(request):
     keeper_context = {
         'products': products, 
         'categories': categories, 
+        'vendors': vendors,
         'promo_themes': promo_themes,
         'keeper_state': keeper_state,
     }
@@ -551,6 +564,68 @@ def store_keeper_dashboard(request):
         return render(request, 'store/dashboards/keeper.html', keeper_context)
         
     return render(request, 'store/dashboards/keeper.html', keeper_context)
+
+
+@login_required
+def export_inventory_excel(request):
+    """
+    Export warehouse inventory as a CSV/Excel spreadsheet.
+    Supports filtering by vendor ID via GET parameter (?vendor=ID).
+    """
+    user_role = getattr(request.user, 'role', '')
+    if not request.user.is_superuser and user_role not in ['store_keeper', 'general_manager', 'finance']:
+        return redirect('store_home')
+
+    vendor_id = request.GET.get('vendor')
+    products = Product.objects.all().order_by('name')
+    
+    filename_suffix = "All_Vendors"
+    if vendor_id:
+        products = products.filter(vendor_id=vendor_id)
+        vendor_obj = Vendor.objects.filter(id=vendor_id).first()
+        if vendor_obj:
+            filename_suffix = vendor_obj.name.replace(" ", "_")
+
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="Warehouse_Inventory_{filename_suffix}.csv"'
+
+    writer = csv.writer(response)
+    # Header matching all requested specs (Vendor Name, Vendor Price, Quantity, Image URL, Description, Discount Price, Regular Price, Marketer/Brand Tag, etc.)
+    writer.writerow([
+        'Product Name', 
+        'Vendor Name', 
+        'Quantity in Stock', 
+        'Vendor Cost Price (₦)', 
+        'Regular Retail Price (₦)', 
+        'Discount Price (₦)', 
+        'Category', 
+        'Internal Brand / Marketer Tag', 
+        'Image Link', 
+        'Description'
+    ])
+
+    for p in products:
+        v_name = p.vendor.name if p.vendor else "No Vendor Assigned"
+        img_url = request.build_absolute_uri(p.image.url) if p.image else "No Image"
+        writer.writerow([
+            p.name,
+            v_name,
+            p.stock_quantity,
+            p.vendor_price,
+            p.price,
+            p.discount_price or '',
+            p.category.name if p.category else '',
+            p.internal_brand_tag or '',
+            img_url,
+            p.description
+        ])
+
+    ActivityAuditLog.objects.create(
+        user=request.user, 
+        role=user_role or 'store_keeper', 
+        action=f"Exported warehouse inventory spreadsheet (Filter: {filename_suffix})"
+    )
+    return response
 
 from decimal import Decimal, InvalidOperation
 import random

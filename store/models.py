@@ -124,6 +124,17 @@ class UserAddressBook(models.Model):
         default_tag = " [DEFAULT]" if self.is_default else ""
         return f"{self.customer.username} - {self.street_address}, {self.lga}, {self.state}{default_tag}"
 
+class Vendor(models.Model):
+    name = models.CharField(max_length=255, unique=True)
+    contact_person = models.CharField(max_length=255, blank=True, null=True)
+    phone_number = models.CharField(max_length=50, blank=True, null=True)
+    email = models.EmailField(blank=True, null=True)
+    address = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.name
+    
 class Product(models.Model):
     category = models.ForeignKey('Category', on_delete=models.CASCADE, related_name='products')
     name = models.CharField(max_length=255)

@@ -437,6 +437,10 @@ def customer_browsing_history_view(request):
 # ==========================================
 
 from .models import Product, Category, Vendor, PromoTheme, ActivityAuditLog, ProductImage, ProductVideo
+import random
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+
 @login_required
 def store_keeper_dashboard(request):
     user_role = getattr(request.user, 'role', '')
@@ -493,13 +497,12 @@ def store_keeper_dashboard(request):
             description = request.POST.get('description')
             price = request.POST.get('price')
             discount_price = request.POST.get('discount_price') or None
-            vendor_price = request.POST.get('vendor_price') or '0.00' if is_management else '0.00'
+            vendor_price = request.POST.get('vendor_price') or '0.00'
             promo_price = request.POST.get('promo_price') or None
             promo_theme_id = request.POST.get('promo_theme_id') or None
             stock_quantity = request.POST.get('stock_quantity')
             image = request.FILES.get('image')
             
-            # Restrict internal tags and partial payments to management
             internal_brand_tag = request.POST.get('internal_brand_tag', '') if is_management else ''
             allow_partial = True if (is_management and request.POST.get('allow_partial_payment') == 'on') else False
             deposit_pct = int(request.POST.get('partial_deposit_percentage', 80)) if is_management else 80
@@ -534,12 +537,14 @@ def store_keeper_dashboard(request):
         elif action == 'edit_product':
             prod_id = request.POST.get('product_id')
             product = get_object_or_404(Product, id=prod_id)
+            
             product.name = request.POST.get('name', product.name)
             
             cat_id = request.POST.get('category_id')
-            product.category_id = int(cat_id) if cat_id and str(cat_id).isdigit() else product.category_id
+            if cat_id and str(cat_id).isdigit():
+                product.category_id = int(cat_id)
             
-            # Robustly handle vendor selection updates and clear if unassigned
+            # Explicitly capture and apply vendor mapping permanently
             new_vendor_id = request.POST.get('vendor_id')
             if new_vendor_id and str(new_vendor_id).isdigit():
                 product.vendor_id = int(new_vendor_id)
@@ -550,8 +555,14 @@ def store_keeper_dashboard(request):
             product.price = request.POST.get('price', product.price)
             product.discount_price = request.POST.get('discount_price') or None
             
+            # Fallback check for vendor_price on old items to prevent model validation exceptions
+            incoming_vendor_price = request.POST.get('vendor_price')
+            if incoming_vendor_price:
+                product.vendor_price = incoming_vendor_price
+            elif not product.vendor_price:
+                product.vendor_price = '0.00'
+
             if is_management:
-                product.vendor_price = request.POST.get('vendor_price', product.vendor_price)
                 product.internal_brand_tag = request.POST.get('internal_brand_tag', product.internal_brand_tag)
                 product.allow_partial_payment = True if request.POST.get('allow_partial_payment') == 'on' else False
 

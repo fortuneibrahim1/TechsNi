@@ -124,6 +124,8 @@ class UserAddressBook(models.Model):
         default_tag = " [DEFAULT]" if self.is_default else ""
         return f"{self.customer.username} - {self.street_address}, {self.lga}, {self.state}{default_tag}"
 
+from django.db import models
+
 class Vendor(models.Model):
     name = models.CharField(max_length=255, unique=True)
     contact_person = models.CharField(max_length=255, blank=True, null=True)
@@ -137,6 +139,7 @@ class Vendor(models.Model):
     
 class Product(models.Model):
     category = models.ForeignKey('Category', on_delete=models.CASCADE, related_name='products')
+    vendor = models.ForeignKey('Vendor', on_delete=models.SET_NULL, blank=True, null=True, related_name='products')
     name = models.CharField(max_length=255)
     slug = models.SlugField(max_length=255, unique=True)
     description = models.TextField()
@@ -213,7 +216,7 @@ class ProductVideo(models.Model):
 
     def __str__(self):
         return f"Video for {self.product.name}"
-
+    
 
 class StoreOrder(models.Model):
     STATUS_CHOICES = (

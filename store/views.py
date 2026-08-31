@@ -488,7 +488,7 @@ def store_keeper_dashboard(request):
         elif action == 'add_product':
             name = request.POST.get('name')
             category_id = request.POST.get('category_id')
-            vendor_id = request.POST.get('vendor_id') or None
+            vendor_id = request.POST.get('vendor_id')  # Mandatory field
             description = request.POST.get('description')
             price = request.POST.get('price')
             discount_price = request.POST.get('discount_price') or None
@@ -535,7 +535,12 @@ def store_keeper_dashboard(request):
             product = get_object_or_404(Product, id=prod_id)
             product.name = request.POST.get('name', product.name)
             product.category_id = request.POST.get('category_id', product.category_id)
-            product.vendor_id = request.POST.get('vendor_id') or None
+            
+            # Explicitly force-update vendor_id from POST data
+            new_vendor_id = request.POST.get('vendor_id')
+            if new_vendor_id:
+                product.vendor_id = new_vendor_id
+
             product.description = request.POST.get('description', product.description)
             product.price = request.POST.get('price', product.price)
             product.discount_price = request.POST.get('discount_price') or None

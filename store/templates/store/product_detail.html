@@ -3,18 +3,14 @@
 {% block content %}
 <div class="container my-5">
     <div class="row">
-        <!-- Product Media Section -->
         <div class="col-lg-6 mb-4">
             
-            <!-- Main Display Box: Centralized and expanded -->
             <div class="card shadow-sm mb-3 bg-black text-center position-relative overflow-hidden rounded d-flex align-items-center justify-content-center" style="height: 450px;">
                 
-                <!-- Left Arrow Navigation Button -->
                 <button onclick="prevMedia()" class="btn text-white position-absolute top-50 start-0 translate-middle-y px-3 py-2 fw-bold shadow" style="z-index: 20; background: rgba(0,0,0,0.7); font-size: 26px; border: none; border-top-right-radius: 6px; border-bottom-right-radius: 6px;">
                     &#10094;
                 </button>
 
-                <!-- Media Content Area -->
                 <div id="mediaDisplayContainer" class="w-100 h-100 d-flex align-items-center justify-content-center p-0">
                     {% if product.image %}
                         <img src="{{ product.image.url }}" class="w-100 h-100 rounded" alt="{{ product.name }}" style="object-fit: contain; max-height: 450px;">
@@ -23,15 +19,12 @@
                     {% endif %}
                 </div>
 
-                <!-- Right Arrow Navigation Button -->
                 <button onclick="nextMedia()" class="btn text-white position-absolute top-50 end-0 translate-middle-y px-3 py-2 fw-bold shadow" style="z-index: 20; background: rgba(0,0,0,0.7); font-size: 26px; border: none; border-top-left-radius: 6px; border-bottom-left-radius: 6px;">
                     &#10095;
                 </button>
             </div>
 
-            <!-- Fully Lined-Up Thumbnail Row (Images + Videos) -->
             <div class="d-flex flex-row overflow-auto py-2" style="gap: 10px; width: 100%;">
-                <!-- Main Product Image Thumbnail -->
                 {% if product.image %}
                     <div style="flex: 0 0 85px; height: 75px;" class="media-thumb-item" data-type="image" data-url="{{ product.image.url }}">
                         <div class="thumbnail-wrapper border rounded overflow-hidden cursor-pointer h-100 shadow-sm">
@@ -40,7 +33,6 @@
                     </div>
                 {% endif %}
 
-                <!-- Additional Gallery Images Thumbnails -->
                 {% for img in product.additional_images.all %}
                     <div style="flex: 0 0 85px; height: 75px;" class="media-thumb-item" data-type="image" data-url="{{ img.image.url }}">
                         <div class="thumbnail-wrapper border rounded overflow-hidden cursor-pointer h-100 shadow-sm">
@@ -49,7 +41,6 @@
                     </div>
                 {% endfor %}
 
-                <!-- Product Videos Thumbnails -->
                 {% for vid in product.product_videos.all %}
                     <div style="flex: 0 0 95px; height: 75px;" class="media-thumb-item" data-type="video" data-url="{{ vid.video_file.url }}">
                         <div class="thumbnail-wrapper border rounded overflow-hidden cursor-pointer bg-dark d-flex flex-column align-items-center justify-content-center text-white h-100 shadow-sm">
@@ -61,7 +52,6 @@
             </div>
         </div>
 
-        <!-- Product Details & Purchase Section -->
         <div class="col-lg-6">
             {% if product.category %}
                 <span class="badge bg-secondary mb-2">{{ product.category.name }}</span>
@@ -69,10 +59,21 @@
             {% if product.internal_brand_tag %}
                 <span class="badge bg-info text-dark mb-2">{{ product.internal_brand_tag }}</span>
             {% endif %}
+
+            {% if request.user.is_authenticated %}
+                {% if request.user.is_superuser or request.user.role in 'ceo,general_manager,manager,finance,store_keeper' %}
+                    {% if product.vendor %}
+                        <div class="mb-2">
+                            <span class="badge bg-dark text-white border" style="font-size: 12px;">
+                                <i class="fas fa-warehouse me-1"></i> Vendor: {{ product.vendor.name }}
+                            </span>
+                        </div>
+                    {% endif %}
+                {% endif %}
+            {% endif %}
             
             <h1 class="fw-bold mb-3">{{ product.name }}</h1>
 
-            <!-- Celebration / Promo Pricing Display Logic -->
             <div class="mb-3">
                 {% if product.promo_price %}
                     <h3 class="text-danger fw-bold d-inline-block me-2">₦{{ product.promo_price }}</h3>
@@ -87,7 +88,6 @@
                 {% endif %}
             </div>
 
-            <!-- Stock & Partial Payment Status -->
             <div class="mb-3">
                 {% if product.stock_quantity > 0 %}
                     <span class="badge bg-success">In Stock ({{ product.stock_quantity }} available)</span>
@@ -100,13 +100,13 @@
                 {% endif %}
             </div>
 
-            <!-- Product Description -->
             <div class="mb-4">
-                <h5 class="fw-bold">Description</h5>
-                <p class="text-muted">{{ product.description }}</p>
+                <h5 class="fw-bold mb-2">Description</h5>
+                <div class="text-secondary product-desc-content" style="line-height: 1.75; font-size: 15px;">
+                    {{ product.description|safe }}
+                </div>
             </div>
 
-            <!-- Action Buttons (Add to Cart & Wishlist) -->
             <div class="mb-4">
                 {% if product.stock_quantity > 0 %}
                     <form action="{% url 'store_add_to_cart' product.id %}" method="POST" class="d-flex flex-wrap gap-2 align-items-center">
@@ -139,7 +139,6 @@
                 {% endif %}
             </div>
 
-            <!-- Customer Reviews Section -->
             <hr class="my-4">
             <h4 class="mb-3">Customer Ratings & Reviews</h4>
             <div class="reviews-list mb-4" style="max-height: 250px; overflow-y: auto;">
@@ -164,7 +163,6 @@
                 {% endif %}
             </div>
 
-            <!-- Interactive Star Rating & Review Submission Component -->
             {% if request.user.is_authenticated %}
             <div class="card shadow-sm border-0 rounded-0 p-4 bg-light">
                 <h5 class="fw-bold mb-3">Rate & Review This Product</h5>
@@ -172,7 +170,6 @@
                 <form method="POST" action="{% url 'submit_product_rating' product.id %}">
                     {% csrf_token %}
                     
-                    <!-- Interactive Star Selector -->
                     <div class="mb-3">
                         <label class="form-label text-muted small fw-bold">Select Your Star Rating:</label>
                         <div class="star-rating-interactive d-flex gap-2 fs-4" style="cursor: pointer;">
@@ -185,7 +182,6 @@
                         <input type="hidden" name="rating" id="selectedRatingValue" value="5">
                     </div>
 
-                    <!-- Review Comment Box -->
                     <div class="mb-3">
                         <label for="reviewComment" class="form-label text-muted small fw-bold">Your Review Comments:</label>
                         <textarea class="form-control rounded-0" id="reviewComment" name="comment" rows="3" placeholder="Share your experience with this gadget..."></textarea>
@@ -203,7 +199,6 @@
     </div>
 </div>
 
-<!-- JavaScript to handle switching media and interactive star rating UI smoothly -->
 <script>
     const mediaItems = [];
     const thumbElements = document.querySelectorAll('.media-thumb-item');

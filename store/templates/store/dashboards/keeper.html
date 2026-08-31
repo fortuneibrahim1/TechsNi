@@ -11,11 +11,10 @@
                 <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
                     <div>
                         <h2 class="fw-bold mb-1 fs-3 fs-md-2">📦 Store Keeper Inventory Control Panel</h2>
-                        <p class="text-muted mb-0 small fs-md-6">Manage warehouse stock levels, assign pre-set promo events, and product entries.</p>
+                        <p class="text-muted mb-0 small fs-md-6">Manage warehouse stock levels, assign pre-set promo events, confidential vendor costs, and product entries.</p>
                     </div>
                     <div class="d-flex align-items-center gap-2 flex-wrap">
-                        <!-- VENDOR EXPORT FILTER: MANAGEMENT ONLY -->
-                        {% if is_management %}
+                        <!-- Vendor-Specific or All Export Dropdown/Button -->
                         <div class="dropdown">
                             <button class="btn btn-danger rounded-0 fw-semibold px-3 py-2 btn-sm btn-md-base dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="background-color: #cc0001; border: none;">
                                 📊 Export Inventory (CSV)
@@ -31,10 +30,6 @@
                                 {% endif %}
                             </ul>
                         </div>
-                        {% else %}
-                        <a href="{% url 'export_inventory_excel' %}" class="btn btn-danger rounded-0 fw-semibold px-3 py-2 btn-sm btn-md-base" style="background-color: #cc0001; border: none;">📊 Export Inventory (CSV)</a>
-                        {% endif %}
-
                         <a href="{% url 'export_audit_logs' %}" class="btn btn-outline-light rounded-0 fw-semibold px-3 py-2 btn-sm btn-md-base">Export Audit Logs (CSV)</a>
                     </div>
                 </div>
@@ -66,8 +61,7 @@
                         </select>
                     </div>
 
-                    <!-- VENDOR SELECTION FIELD (MANAGEMENT ONLY) -->
-                    {% if is_management %}
+                    <!-- VENDOR SELECTION FIELD -->
                     <div class="mb-3">
                         <div class="d-flex justify-content-between align-items-center">
                             <label class="form-label fw-semibold small text-muted mb-1">Assigned Vendor / Supplier</label>
@@ -80,7 +74,6 @@
                             {% endfor %}
                         </select>
                     </div>
-                    {% endif %}
                     
                     <div class="mb-3">
                         <label class="form-label fw-semibold small text-muted">Description</label>
@@ -107,8 +100,8 @@
                     {% if is_management %}
                     <div class="mb-3 p-2 bg-light border border-warning">
                         <label class="form-label fw-bold small text-dark mb-1">🔒 Confidential Vendor Price (₦)</label>
-                        <input type="number" step="0.01" name="vendor_price" class="form-control rounded-0 border-danger" placeholder="Hidden from store keepers">
-                        <div class="form-text" style="font-size: 11px;">Only visible to Management & Finance.</div>
+                        <input type="number" step="0.01" name="vendor_price" class="form-control rounded-0 border-danger" placeholder="Hidden from customers" required>
+                        <div class="form-text" style="font-size: 11px;">Only visible to Stock Keeper, Finance, General Manager & CEO.</div>
                     </div>
                     {% endif %}
 
@@ -133,13 +126,10 @@
                         <input type="number" name="stock_quantity" class="form-control rounded-0" placeholder="0" required>
                     </div>
 
-                    <!-- MANAGEMENT ONLY: PARTIAL PAYMENT TOGGLE -->
-                    {% if is_management %}
                     <div class="mb-3 form-check bg-light p-2 border">
                         <input type="checkbox" name="allow_partial_payment" class="form-check-input ms-1" id="allow_partial_add" checked>
                         <label class="form-check-label small fw-semibold text-dark ms-2" for="allow_partial_add">Allow Partial Payment (Awoof/Deposit)</label>
                     </div>
-                    {% endif %}
                     
                     <div class="mb-3">
                         <label class="form-label fw-semibold small text-muted">Primary Product Image</label>
@@ -166,12 +156,10 @@
             <div class="card shadow-sm border-0 rounded-0 p-3 p-md-4 bg-white">
                 <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-3 flex-wrap gap-2">
                     <h4 class="fw-bold mb-0 fs-5">Warehouse Inventory Listing & Real-Time Management</h4>
-                    <!-- QUICK CREATOR BUTTONS: MANAGEMENT ONLY -->
+                    <!-- Quick category / vendor creator buttons -->
                     <div class="d-flex gap-2">
                         <button type="button" class="btn btn-outline-dark btn-sm rounded-0" data-bs-toggle="modal" data-bs-target="#addCategoryModal">+ Add Category</button>
-                        {% if is_management %}
                         <button type="button" class="btn btn-outline-danger btn-sm rounded-0" data-bs-toggle="modal" data-bs-target="#addVendorModal">+ Add Vendor</button>
-                        {% endif %}
                     </div>
                 </div>
                 
@@ -183,7 +171,7 @@
                                     <th>Image</th>
                                     <th>Name & Details</th>
                                     <th>Pricing</th>
-                                    {% if is_management %}<th>Vendor</th>{% endif %}
+                                    <th>Vendor</th>
                                     <th class="text-center">Stock</th>
                                     <th class="text-end">Actions</th>
                                 </tr>
@@ -201,7 +189,7 @@
                                         <td>
                                             <div class="fw-bold text-dark text-wrap" style="min-width: 130px;">{{ product.name }}</div>
                                             <div class="small text-muted text-truncate" style="max-width: 150px;">{{ product.description }}</div>
-                                            <!-- Vendor price inline indicator: MANAGEMENT ONLY -->
+                                            <!-- Vendor price inline indicator for authorized users (Management Only) -->
                                             {% if is_management %}
                                             <div class="badge bg-light text-danger border border-danger mt-1" style="font-size: 10px;">Vendor Cost: ₦{{ product.vendor_price|default:'0.00' }}</div>
                                             {% endif %}
@@ -213,7 +201,6 @@
                                                 <span class="badge bg-danger" style="font-size: 9px;">{{ product.promo_theme.name }}</span>
                                             {% endif %}
                                         </td>
-                                        {% if is_management %}
                                         <td>
                                             {% if product.vendor %}
                                                 <span class="badge bg-light text-dark border" style="font-size: 11px;">{{ product.vendor.name }}</span>
@@ -221,7 +208,6 @@
                                                 <span class="text-muted small fst-italic" style="font-size: 11px;">Unassigned</span>
                                             {% endif %}
                                         </td>
-                                        {% endif %}
                                         <td class="text-center">
                                             {% if product.stock_quantity <= 0 %}
                                                 <span class="badge bg-danger rounded-0 px-2 py-1 text-uppercase fw-bold" style="font-size: 10px;">Out of Stock</span>
@@ -276,8 +262,7 @@
                                                             </select>
                                                         </div>
 
-                                                        <!-- VENDOR MODAL FIELD: MANAGEMENT ONLY -->
-                                                        {% if is_management %}
+                                                        <!-- VENDOR SELECTION MODAL -->
                                                         <div class="mb-3">
                                                             <label class="form-label fw-semibold small text-muted">Assigned Vendor / Supplier</label>
                                                             <select name="vendor_id" class="form-select rounded-0">
@@ -287,7 +272,6 @@
                                                                 {% endfor %}
                                                             </select>
                                                         </div>
-                                                        {% endif %}
                                                         
                                                         <div class="mb-3">
                                                             <label class="form-label fw-semibold small text-muted">Description</label>
@@ -318,8 +302,8 @@
                                                         {% if is_management %}
                                                         <div class="mb-3 p-3 bg-light border border-danger">
                                                             <label class="form-label fw-bold text-dark small">🔒 Confidential Vendor Price (₦)</label>
-                                                            <input type="number" step="0.01" name="vendor_price" class="form-control rounded-0 border-danger" value="{{ product.vendor_price|default:'' }}">
-                                                            <div class="form-text text-danger" style="font-size: 11px;">Restricted viewing: Management & Finance only.</div>
+                                                            <input type="number" step="0.01" name="vendor_price" class="form-control rounded-0 border-danger" value="{{ product.vendor_price|default:'' }}" required>
+                                                            <div class="form-text text-danger" style="font-size: 11px;">Restricted viewing: Stock Keeper, Finance, General Manager, CEO only.</div>
                                                         </div>
                                                         {% endif %}
 
@@ -339,12 +323,10 @@
                                                             </div>
                                                         </div>
 
-                                                        {% if is_management %}
                                                         <div class="mb-3 form-check bg-light p-2 border">
                                                             <input type="checkbox" name="allow_partial_payment" class="form-check-input ms-1" id="allow_partial_edit_{{ product.id }}" {% if product.allow_partial_payment %}checked{% endif %}>
                                                             <label class="form-check-label small fw-semibold text-dark ms-2" for="allow_partial_edit_{{ product.id }}">Allow Partial Payment (Awoof/Deposit)</label>
                                                         </div>
-                                                        {% endif %}
                                                         
                                                         <div class="row">
                                                             <div class="col-md-4 mb-3">
@@ -384,8 +366,7 @@
     </div>
 </div>
 
-<!-- QUICK ADD VENDOR MODAL (MANAGEMENT ONLY) -->
-{% if is_management %}
+<!-- QUICK ADD VENDOR MODAL -->
 <div class="modal fade" id="addVendorModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content rounded-0 border-0 shadow">
@@ -410,7 +391,6 @@
         </div>
     </div>
 </div>
-{% endif %}
 
 <!-- QUICK ADD CATEGORY MODAL -->
 <div class="modal fade" id="addCategoryModal" tabindex="-1" aria-hidden="true">

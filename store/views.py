@@ -621,36 +621,64 @@ def export_inventory_excel(request):
     response = HttpResponse(content_type='text/csv')
     response['Content-Disposition'] = f'attachment; filename="Warehouse_Inventory_{filename_suffix}.csv"'
 
+    # Fix character encoding for Excel so currency symbols like ₦ do not corrupt into â,¦
+    response.write('\ufeff')
     writer = csv.writer(response)
-    # Header matching all requested specs (Vendor Name, Vendor Price, Quantity, Image URL, Description, Discount Price, Regular Price, Marketer/Brand Tag, etc.)
-    writer.writerow([
-        'Product Name', 
-        'Vendor Name', 
-        'Quantity in Stock', 
-        'Vendor Cost Price (₦)', 
-        'Regular Retail Price (₦)', 
-        'Discount Price (₦)', 
-        'Category', 
-        'Internal Brand / Marketer Tag', 
-        'Image Link', 
-        'Description'
-    ])
+
+    # Dynamically change the headers based on whether an individual vendor is selected
+    if vendor_id:
+        writer.writerow([
+            'Product Name', 
+            'Vendor Name', 
+            'Quantity in Stock', 
+            'Category', 
+            'Internal Brand / Marketer Tag', 
+            'Image Link', 
+            'Description'
+        ])
+    else:
+        writer.writerow([
+            'Product Name', 
+            'Vendor Name', 
+            'Quantity in Stock', 
+            'Vendor Cost Price (₦)', 
+            'Regular Retail Price (₦)', 
+            'Discount Price (₦)', 
+            'Category', 
+            'Internal Brand / Marketer Tag', 
+            'Image Link', 
+            'Description'
+        ])
 
     for p in products:
         v_name = p.vendor.name if p.vendor else "No Vendor Assigned"
         img_url = request.build_absolute_uri(p.image.url) if p.image else "No Image"
-        writer.writerow([
-            p.name,
-            v_name,
-            p.stock_quantity,
-            p.vendor_price,
-            p.price,
-            p.discount_price or '',
-            p.category.name if p.category else '',
-            p.internal_brand_tag or '',
-            img_url,
-            p.description
-        ])
+        
+        if vendor_id:
+            # Exclude all prices for individual vendor exports
+            writer.writerow([
+                p.name,
+                v_name,
+                p.stock_quantity,
+                p.category.name if p.category else '',
+                p.internal_brand_tag or '',
+                img_url,
+                p.description
+            ])
+        else:
+            # Keep all prices for the complete warehouse export
+            writer.writerow([
+                p.name,
+                v_name,
+                p.stock_quantity,
+                p.vendor_price,
+                p.price,
+                p.discount_price or '',
+                p.category.name if p.category else '',
+                p.internal_brand_tag or '',
+                img_url,
+                p.description
+            ])
 
     ActivityAuditLog.objects.create(
         user=request.user, 
@@ -658,6 +686,7 @@ def export_inventory_excel(request):
         action=f"Exported warehouse inventory spreadsheet (Filter: {filename_suffix})"
     )
     return response
+
 
 from decimal import Decimal, InvalidOperation
 import random

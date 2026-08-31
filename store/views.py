@@ -25,13 +25,13 @@ User = get_user_model()
 # CUSTOMER FRONTEND & SHOPPING VIEWS
 # ==========================================
 from django.db.models import Q
-
 from django.shortcuts import render, redirect
-from django.db.models import Q
 from .models import Category, Product, UserSearchHistory
+from .models import Category, Product, UserSearchHistory, PromoTheme
+from .models import Category, Product, UserSearchHistory, BrowsingHistory, PromoTheme
 
 def store_home_view(request):
-    """The main storefront that logs searches and saves history."""
+    """The main storefront that logs searches, tracks personalization via search/browsing history, and displays random or recommended products."""
     categories = Category.objects.all()
     selected_category_id = request.GET.get('category')
     search_query = request.GET.get('q', '').strip()
@@ -41,15 +41,19 @@ def store_home_view(request):
         request.session.create()
     session_key = request.session.session_key
 
-    products = Product.objects.filter(is_active=True).order_by('-id')
+    # Base queryset for active products
+    products = Product.objects.filter(is_active=True)
     
     if selected_category_id:
-        products = products.filter(category_id=selected_category_id)
+        # If a category is selected, filter by that category and randomize them
+        products = products.filter(category_id=selected_category_id).order_by('?')
         
-    if search_query:
+    elif search_query:
+        # Filter products matching the search query
         products = products.filter(
             Q(name__icontains=search_query) | Q(description__icontains=search_query)
-        )
+        ).order_by('?')
+        
         # Log search history
         UserSearchHistory.objects.create(
             user=request.user if request.user.is_authenticated else None,
@@ -67,6 +71,41 @@ def store_home_view(request):
             for kw in keywords:
                 image_q |= Q(name__icontains=kw) | Q(description__icontains=kw) | Q(visual_search_tag__icontains=kw)
             products = products.filter(image_q)
+        products = products.order_by('?')
+
+    else:
+        # Default home view: Personalized recommendations based on search history and BrowsingHistory model
+        personalized_products = Product.objects.none()
+
+        # 1. Fetch recent search keywords
+        if request.user.is_authenticated:
+            recent_searches = UserSearchHistory.objects.filter(user=request.user).values_list('keyword', flat=True)[:5]
+        else:
+            recent_searches = UserSearchHistory.objects.filter(session_key=session_key).values_list('keyword', flat=True)[:5]
+
+        if recent_searches:
+            search_query_filter = Q()
+            for kw in recent_searches:
+                search_query_filter |= Q(name__icontains=kw) | Q(description__icontains=kw) | Q(category__name__icontains=kw)
+            personalized_products = Product.objects.filter(is_active=True).filter(search_query_filter)
+
+        # 2. Fetch recently viewed items from your existing BrowsingHistory model for authenticated users
+        if request.user.is_authenticated:
+            viewed_product_ids = BrowsingHistory.objects.filter(customer=request.user).order_by('-viewed_at').values_list('product_id', flat=True)[:10]
+            if viewed_product_ids:
+                viewed_categories = Product.objects.filter(id__in=viewed_product_ids).values_list('category_id', flat=True)
+                viewed_filter = Q(id__in=viewed_product_ids) | Q(category_id__in=viewed_categories)
+                viewed_recommendations = Product.objects.filter(is_active=True).filter(viewed_filter)
+                personalized_products = personalized_products | viewed_recommendations
+
+        if personalized_products.exists():
+            # Blend personalized items with fresh random items to keep the homepage dynamic and varied
+            products = Product.objects.filter(is_active=True).filter(
+                Q(id__in=personalized_products.values('id')) | Q(id__in=Product.objects.filter(is_active=True).order_by('?')[:12].values('id'))
+            ).distinct().order_by('?')
+        else:
+            # Complete fallback: Fully random product display if no search or view history exists yet
+            products = products.order_by('?')
 
     active_promo_theme = PromoTheme.objects.filter(is_active=True).first()
     
@@ -79,7 +118,6 @@ def store_home_view(request):
     }
     
     return render(request, 'store/home.html', context)
-
 
 def store_user_history_view(request):
     """Displays user search history and previously added or viewed items."""

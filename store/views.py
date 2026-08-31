@@ -473,7 +473,8 @@ def store_keeper_dashboard(request):
             if not is_management:
                 return redirect('store_keeper_dashboard')
             cat_name = request.POST.get('category_name')
-            Category.objects.get_or_create(name=cat_name, defaults={'slug': cat_name.lower().replace(' ', '-')})
+            if cat_name:
+                Category.objects.get_or_create(name=cat_name, defaults={'slug': cat_name.lower().replace(' ', '-')})
             return redirect('store_keeper_dashboard')
 
         # Restrict Vendor creation to Management/Superuser
@@ -488,7 +489,7 @@ def store_keeper_dashboard(request):
         elif action == 'add_product':
             name = request.POST.get('name')
             category_id = request.POST.get('category_id')
-            vendor_id = request.POST.get('vendor_id')  # Mandatory field
+            vendor_id = request.POST.get('vendor_id')
             description = request.POST.get('description')
             price = request.POST.get('price')
             discount_price = request.POST.get('discount_price') or None
@@ -506,14 +507,14 @@ def store_keeper_dashboard(request):
             product = Product.objects.create(
                 name=name,
                 slug=f"{name.lower().replace(' ', '-')}-{random.randint(100,999)}",
-                category_id=category_id,
-                vendor_id=vendor_id,
+                category_id=int(category_id) if category_id and str(category_id).isdigit() else None,
+                vendor_id=int(vendor_id) if vendor_id and str(vendor_id).isdigit() else None,
                 description=description,
                 price=price,
                 discount_price=discount_price,
                 vendor_price=vendor_price,
                 promo_price=promo_price,
-                promo_theme_id=promo_theme_id,
+                promo_theme_id=int(promo_theme_id) if promo_theme_id and str(promo_theme_id).isdigit() else None,
                 stock_quantity=stock_quantity,
                 image=image,
                 internal_brand_tag=internal_brand_tag,
@@ -534,12 +535,14 @@ def store_keeper_dashboard(request):
             prod_id = request.POST.get('product_id')
             product = get_object_or_404(Product, id=prod_id)
             product.name = request.POST.get('name', product.name)
-            product.category_id = request.POST.get('category_id', product.category_id)
             
-            # FIXED: Explicitly handle vendor update or clearing if empty string is sent
+            cat_id = request.POST.get('category_id')
+            product.category_id = int(cat_id) if cat_id and str(cat_id).isdigit() else product.category_id
+            
+            # Robustly handle vendor selection updates and clear if unassigned
             new_vendor_id = request.POST.get('vendor_id')
-            if new_vendor_id:
-                product.vendor_id = new_vendor_id
+            if new_vendor_id and str(new_vendor_id).isdigit():
+                product.vendor_id = int(new_vendor_id)
             else:
                 product.vendor = None
 
@@ -553,7 +556,10 @@ def store_keeper_dashboard(request):
                 product.allow_partial_payment = True if request.POST.get('allow_partial_payment') == 'on' else False
 
             product.promo_price = request.POST.get('promo_price') or None
-            product.promo_theme_id = request.POST.get('promo_theme_id') or None
+            
+            p_theme = request.POST.get('promo_theme_id')
+            product.promo_theme_id = int(p_theme) if p_theme and str(p_theme).isdigit() else None
+            
             product.stock_quantity = request.POST.get('stock_quantity', product.stock_quantity)
             
             if request.FILES.get('image'):

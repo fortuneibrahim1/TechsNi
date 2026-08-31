@@ -63,10 +63,7 @@
 
                     <!-- VENDOR SELECTION FIELD -->
                     <div class="mb-3">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <label class="form-label fw-semibold small text-muted mb-1">Assigned Vendor / Supplier</label>
-                            <button type="button" class="btn btn-link text-danger p-0 text-decoration-none" style="font-size: 11px;" data-bs-toggle="modal" data-bs-target="#addVendorModal">+ New Vendor</button>
-                        </div>
+                        <label class="form-label fw-semibold small text-muted mb-1">Assigned Vendor / Supplier</label>
                         <select name="vendor_id" class="form-select rounded-0">
                             <option value="">Select Vendor (Optional)</option>
                             {% for v in vendors %}
@@ -78,11 +75,6 @@
                     <div class="mb-3">
                         <label class="form-label fw-semibold small text-muted">Description</label>
                         <textarea name="description" class="form-control rounded-0" rows="3" placeholder="Provide specs and details..." required></textarea>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold small text-muted">Internal Brand / Marketer Tag</label>
-                        <input type="text" name="internal_brand_tag" class="form-control rounded-0" placeholder="e.g. Official Partner / Marketer Name">
                     </div>
                     
                     <div class="row">
@@ -123,11 +115,6 @@
                         <label class="form-label fw-semibold small text-muted">Stock Quantity / Units</label>
                         <input type="number" name="stock_quantity" class="form-control rounded-0" placeholder="0" required>
                     </div>
-
-                    <div class="mb-3 form-check bg-light p-2 border">
-                        <input type="checkbox" name="allow_partial_payment" class="form-check-input ms-1" id="allow_partial_add" checked>
-                        <label class="form-check-label small fw-semibold text-dark ms-2" for="allow_partial_add">Allow Partial Payment (Awoof/Deposit)</label>
-                    </div>
                     
                     <div class="mb-3">
                         <label class="form-label fw-semibold small text-muted">Primary Product Image</label>
@@ -154,11 +141,6 @@
             <div class="card shadow-sm border-0 rounded-0 p-3 p-md-4 bg-white">
                 <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-3 flex-wrap gap-2">
                     <h4 class="fw-bold mb-0 fs-5">Warehouse Inventory Listing & Real-Time Management</h4>
-                    <!-- Quick category / vendor creator buttons -->
-                    <div class="d-flex gap-2">
-                        <button type="button" class="btn btn-outline-dark btn-sm rounded-0" data-bs-toggle="modal" data-bs-target="#addCategoryModal">+ Add Category</button>
-                        <button type="button" class="btn btn-outline-danger btn-sm rounded-0" data-bs-toggle="modal" data-bs-target="#addVendorModal">+ Add Vendor</button>
-                    </div>
                 </div>
                 
                 {% if products %}
@@ -273,11 +255,6 @@
                                                             <label class="form-label fw-semibold small text-muted">Description</label>
                                                             <textarea name="description" class="form-control rounded-0" rows="3" required>{{ product.description }}</textarea>
                                                         </div>
-
-                                                        <div class="mb-3">
-                                                            <label class="form-label fw-semibold small text-muted">Internal Brand / Marketer Tag</label>
-                                                            <input type="text" name="internal_brand_tag" class="form-control rounded-0" value="{{ product.internal_brand_tag|default:'' }}">
-                                                        </div>
                                                         
                                                         <div class="row">
                                                             <div class="col-md-4 mb-3">
@@ -316,11 +293,6 @@
                                                                 <input type="number" step="0.01" name="promo_price" class="form-control rounded-0" value="{{ product.promo_price|default:'' }}">
                                                             </div>
                                                         </div>
-
-                                                        <div class="mb-3 form-check bg-light p-2 border">
-                                                            <input type="checkbox" name="allow_partial_payment" class="form-check-input ms-1" id="allow_partial_edit_{{ product.id }}" {% if product.allow_partial_payment %}checked{% endif %}>
-                                                            <label class="form-check-label small fw-semibold text-dark ms-2" for="allow_partial_edit_{{ product.id }}">Allow Partial Payment (Awoof/Deposit)</label>
-                                                        </div>
                                                         
                                                         <div class="row">
                                                             <div class="col-md-4 mb-3">
@@ -356,58 +328,6 @@
                     </div>
                 {% endif %}
             </div>
-        </div>
-    </div>
-</div>
-
-<!-- QUICK ADD VENDOR MODAL -->
-<div class="modal fade" id="addVendorModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content rounded-0 border-0 shadow">
-            <div class="modal-header bg-dark text-white rounded-0">
-                <h5 class="modal-title fw-bold fs-6">Register New Vendor / Supplier</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form method="POST">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="add_vendor">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold small text-muted">Vendor Name</label>
-                        <input type="text" name="vendor_name" class="form-control rounded-0" placeholder="e.g. Apex Tech Supplies Ltd" required>
-                    </div>
-                </div>
-                <div class="modal-footer rounded-0">
-                    <button type="button" class="btn btn-secondary rounded-0 btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-danger rounded-0 btn-sm" style="background-color: #cc0001;">Save Vendor</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- QUICK ADD CATEGORY MODAL -->
-<div class="modal fade" id="addCategoryModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content rounded-0 border-0 shadow">
-            <div class="modal-header bg-dark text-white rounded-0">
-                <h5 class="modal-title fw-bold fs-6">Add New Category</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <form method="POST">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="add_category">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold small text-muted">Category Name</label>
-                        <input type="text" name="category_name" class="form-control rounded-0" placeholder="e.g. Computing & Accessories" required>
-                    </div>
-                </div>
-                <div class="modal-footer rounded-0">
-                    <button type="button" class="btn btn-secondary rounded-0 btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-danger rounded-0 btn-sm" style="background-color: #cc0001;">Save Category</button>
-                </div>
-            </form>
         </div>
     </div>
 </div>

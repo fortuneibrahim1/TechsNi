@@ -1319,7 +1319,6 @@ def store_ceo_dashboard(request):
         
     return render(request, 'store/dashboards/ceo.html', context)
 
-
 @login_required
 def store_rider_dashboard(request):
     """Rider dashboard with GPS telemetry coordinate broadcasting and ready pool order claiming."""
@@ -1327,8 +1326,8 @@ def store_rider_dashboard(request):
     if not request.user.is_superuser and user_role not in ['rider', 'general_manager']:
         return redirect('store_home')
         
-    assigned_deliveries = StoreOrder.objects.filter(assigned_rider=request.user).order_by('-id')
-    ready_pool_orders = StoreOrder.objects.filter(status='order_ready', assigned_rider__isnull=True).order_by('-id')
+    assigned_deliveries = StoreOrder.objects.filter(assigned_rider=request.user).prefetch_related('items__product__vendor').order_by('-id')
+    ready_pool_orders = StoreOrder.objects.filter(status='order_ready', assigned_rider__isnull=True).prefetch_related('items__product__vendor').order_by('-id')
     rider_history = assigned_deliveries.exclude(delivery_proof_photo='')
     
     if request.method == 'POST':
@@ -1388,7 +1387,6 @@ def store_rider_dashboard(request):
         return render(request, 'store/dashboards/rider.html', rider_context)
         
     return render(request, 'store/dashboards/rider.html', rider_context)
-
 
 @login_required
 def ceo_gm_dispatch_logs_view(request):

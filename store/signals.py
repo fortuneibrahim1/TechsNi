@@ -46,7 +46,7 @@ def generate_order_items_html(instance):
             price = getattr(item, 'price', 0)
             
             # Fetch product image URL
-            image_url = "https://techsni.onrender.com/static/store/logo.jpg"
+            image_url = "https://techsni.com.ng/static/store/logo.jpg"
             if hasattr(item.product, 'image') and item.product.image:
                 try:
                     image_url = item.product.image.url
@@ -73,7 +73,7 @@ def generate_order_items_html(instance):
 
 def wrap_email_template(title, content_body):
     """Wraps core email content in branded HTML layout with TechsNi logo."""
-    logo_url = "https://techsni.onrender.com/static/store/logo.jpg"
+    logo_url = "https://techsni.com.ng/static/store/logo.jpg"
     
     return f"""
     <!DOCTYPE html>
@@ -190,7 +190,7 @@ def notify_order_status_change(sender, instance, created, **kwargs):
         if instance.customer.email:
             recipients.append(instance.customer.email)
             
-        if instance.assigned_rider and instance.assigned_rider.email:
+        if hasattr(instance, 'assigned_rider') and instance.assigned_rider and instance.assigned_rider.email:
             recipients.append(instance.assigned_rider.email)
             
         if recipients:
@@ -232,7 +232,7 @@ def notify_return_request_status(sender, instance, created, **kwargs):
         recipients = list(staff_emails)
         if instance.customer.email:
             recipients.append(instance.customer.email)
-        if instance.assigned_rider and instance.assigned_rider.email:
+        if hasattr(instance, 'assigned_rider') and instance.assigned_rider and instance.assigned_rider.email:
             recipients.append(instance.assigned_rider.email)
 
         unique_recipients = list(set(recipients))

@@ -1,3 +1,4 @@
+import threading
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
 from django.core.mail import EmailMultiAlternatives
@@ -19,8 +20,15 @@ def get_staff_emails(roles=None):
         .values_list('email', flat=True)
     )
 
+def _send_email_thread(msg):
+    """Executes message sending inside a background thread."""
+    try:
+        msg.send(fail_silently=True)
+    except Exception:
+        pass
+
 def send_html_email(subject, text_message, html_message, recipient_list):
-    """Helper to construct multi-part HTML emails with proper reply-to headers."""
+    """Helper to construct multi-part HTML emails sent asynchronously in a background thread."""
     if not recipient_list:
         return
     
@@ -32,7 +40,9 @@ def send_html_email(subject, text_message, html_message, recipient_list):
         reply_to=['support@techsni.com.ng']
     )
     msg.attach_alternative(html_message, "text/html")
-    msg.send(fail_silently=True)
+    
+    # Run email sending asynchronously so checkout HTTP response returns immediately
+    threading.Thread(target=_send_email_thread, args=(msg,)).start()
 
 def generate_order_items_html(instance):
     """Dynamically builds HTML table rows for ordered items including product images."""

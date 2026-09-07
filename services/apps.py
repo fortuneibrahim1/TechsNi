@@ -5,4 +5,4 @@ class ServicesConfig(AppConfig):
     name = 'services'
 
     def ready(self):
-        import services.signals.
+        import services.signals  # Removed trailing dot

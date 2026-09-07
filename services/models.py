@@ -6,6 +6,7 @@ from django.utils import timezone
 from django.conf import settings
 
 
+
 class User(AbstractUser):
     groups = models.ManyToManyField(
         'auth.Group',

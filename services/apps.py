@@ -1,8 +1,8 @@
 from django.apps import AppConfig
 
-class ServiceConfig(AppConfig):
+class ServicesConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'services'  # Change to your actual service app directory name if different
+    name = 'services'
 
     def ready(self):
-        import services.signals  # Ensures signals register on startup
+        import services.signals.

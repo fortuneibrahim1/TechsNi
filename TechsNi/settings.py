@@ -96,14 +96,15 @@ LOGOUT_REDIRECT_URL = 'login'
 
 AUTH_USER_MODEL = 'services.User'
 
-# --- EMAIL CONFIGURATION (Fixes OTP & Password Resets) ---
+# --- EMAIL CONFIGURATION ---
 EMAIL_BACKEND = os.environ.get('EMAIL_BACKEND', 'django.core.mail.backends.smtp.EmailBackend')
 EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.resend.com')
 EMAIL_PORT = int(os.environ.get('EMAIL_PORT', 587))
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'resend')
 EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD')
-DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'onboarding@resend.dev')
+# Updated default sender address to your custom domain support email
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'TechsNi <support@techsni.com.ng>')
 
 # --- STATIC & MEDIA STORAGE CONFIGURATION ---
 
@@ -131,4 +132,5 @@ CLOUDINARY_STORAGE = {
     'PRIVATE_CDN': False,
     'RESOURCE_TYPE': 'auto',
 }
+
 DEBUG = True

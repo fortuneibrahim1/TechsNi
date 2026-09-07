@@ -46,7 +46,7 @@ def generate_order_items_html(instance):
             price = getattr(item, 'price', 0)
             
             # Fetch product image URL
-            image_url = "https://techsni.com.ng/static/images/logo.png"
+            image_url = "https://techsni.onrender.com/static/store/logo.jpg"
             if hasattr(item.product, 'image') and item.product.image:
                 try:
                     image_url = item.product.image.url
@@ -72,7 +72,9 @@ def generate_order_items_html(instance):
     return items_html
 
 def wrap_email_template(title, content_body):
-    """Wraps core email content in branded HTML layout."""
+    """Wraps core email content in branded HTML layout with TechsNi logo."""
+    logo_url = "https://techsni.onrender.com/static/store/logo.jpg"
+    
     return f"""
     <!DOCTYPE html>
     <html>
@@ -81,8 +83,8 @@ def wrap_email_template(title, content_body):
         <style>
             body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f6f9; margin: 0; padding: 20px; }}
             .container {{ max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }}
-            .header {{ background-color: #0d6efd; padding: 25px; text-align: center; color: #ffffff; }}
-            .header h1 {{ margin: 0; font-size: 24px; letter-spacing: 1px; }}
+            .header {{ background-color: #ffffff; padding: 20px; text-align: center; border-bottom: 2px solid #f0f0f0; }}
+            .header img {{ max-width: 160px; height: auto; display: block; margin: 0 auto; }}
             .content {{ padding: 30px; color: #333333; line-height: 1.6; }}
             .order-table {{ width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 20px; }}
             .footer {{ background-color: #f8f9fa; padding: 15px; text-align: center; font-size: 12px; color: #777777; border-top: 1px solid #eeeeee; }}
@@ -92,14 +94,14 @@ def wrap_email_template(title, content_body):
     <body>
         <div class="container">
             <div class="header">
-                <h1>TechsNi Store</h1>
+                <img src="{logo_url}" alt="TechsNi Logo">
             </div>
             <div class="content">
                 <h2 style="color: #111; margin-top: 0;">{title}</h2>
                 {content_body}
             </div>
             <div class="footer">
-                <p>&copy; TechsNi. All rights reserved.</p>
+                <p>&copy; TechsNi Store. All rights reserved.</p>
                 <p>Need help? Contact us at <a href="mailto:support@techsni.com.ng" style="color: #0d6efd; text-decoration: none;">support@techsni.com.ng</a></p>
             </div>
         </div>

@@ -26,12 +26,13 @@ User = get_user_model()
 # ==========================================
 from django.db.models import Q
 from django.shortcuts import render, redirect
-from .models import Category, Product, UserSearchHistory
-from .models import Category, Product, UserSearchHistory, PromoTheme
+from django.core.paginator import Paginator
+from django.http import JsonResponse
+from django.template.loader import render_to_string
 from .models import Category, Product, UserSearchHistory, BrowsingHistory, PromoTheme
 
 def store_home_view(request):
-    """The main storefront that logs searches, tracks personalization via search/browsing history, and displays random or recommended products."""
+    """The main storefront that logs searches, tracks personalization via search/browsing history, and displays random or recommended products with pagination support."""
     categories = Category.objects.all()
     selected_category_id = request.GET.get('category')
     search_query = request.GET.get('q', '').strip()
@@ -109,9 +110,25 @@ def store_home_view(request):
 
     active_promo_theme = PromoTheme.objects.filter(is_active=True).first()
     
+    # Paginate products (12 items per batch/page)
+    paginator = Paginator(products, 12)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+
+    # Handle AJAX / JSON requests for infinite scrolling or load-more buttons
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('format') == 'json':
+        html = render_to_string('store/partials/product_cards_list.html', {
+            'products': page_obj,
+            'active_promo_theme': active_promo_theme
+        }, request=request)
+        return JsonResponse({
+            'html': html,
+            'has_next': page_obj.has_next()
+        })
+    
     context = {
         'categories': categories,
-        'products': products,
+        'products': page_obj,
         'selected_category': selected_category_id,
         'search_query': search_query,
         'active_promo_theme': active_promo_theme,

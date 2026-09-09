@@ -31,7 +31,7 @@
                 Shop top-quality items with secure payments and fast delivery right to your door.</p>
         </div>
 
-        <!-- Search Bar Form (Image Search Removed) -->
+        <!-- Search Bar Form -->
         <form method="GET" action="{% url 'store_home' %}" class="mb-4">
             <div class="card shadow-sm border-0 p-3 bg-light">
                 <div class="input-group">
@@ -49,10 +49,10 @@
             </div>
         </form>
 
-        <!-- Product Grid -->
-        <div class="row row-cols-2 row-cols-md-3 g-2 g-md-4">
+        <!-- Product Grid Container -->
+        <div id="product-grid" class="row row-cols-2 row-cols-md-3 g-2 g-md-4">
             {% for product in products %}
-                <div class="col">
+                <div class="col product-item">
                     <div class="card h-100 shadow-sm border-0">
                         {% if product.image %}
                             <img src="{{ product.image.url }}" class="card-img-top img-fluid" alt="{{ product.name }}" style="height: 140px; object-fit: cover;">
@@ -107,7 +107,7 @@
                     </div>
                 </div>
             {% empty %}
-                <div class="col-12">
+                <div class="col-12" id="no-products-alert">
                     <div class="alert alert-warning text-center">
                         {% if search_query %}
                             No products found matching your search. Try searching for something else or clear the filter.
@@ -118,6 +118,81 @@
                 </div>
             {% endfor %}
         </div>
+
+        <!-- Infinite Scroll / Load More Trigger Container -->
+        <div id="load-more-container" class="text-center my-4" {% if not products.has_next %}style="display: none;"{% endif %}>
+            <button id="load-more-btn" class="btn text-white fw-bold px-5 py-2 shadow-sm" style="background-color: var(--brand-red);">
+                Load More Products <i class="fas fa-spinner fa-spin ms-2" id="loading-spinner" style="display: none;"></i>
+            </button>
+        </div>
     </div>
 </div>
+
+<!-- Hidden data container to safely pass Django variables to JavaScript without linter errors -->
+<div id="pagination-data" 
+     data-page="{{ products.number|default:1 }}"
+     data-has-next="{% if products.has_next %}true{% else %}false{% endif %}"
+     data-category="{{ selected_category|default:'' }}"
+     data-search="{{ search_query|default:'' }}"
+     style="display: none;"></div>
+
+<!-- Infinite Scroll / Load More JavaScript Handler -->
+<script>
+    const dataEl = document.getElementById('pagination-data');
+    let page = parseInt(dataEl.dataset.page) || 1;
+    let hasNext = dataEl.dataset.hasNext === 'true';
+    let selectedCategory = dataEl.dataset.category;
+    let searchQuery = dataEl.dataset.search;
+    let isLoading = false;
+
+    const loadMoreBtn = document.getElementById('load-more-btn');
+    const spinner = document.getElementById('loading-spinner');
+    const productGrid = document.getElementById('product-grid');
+    const loadContainer = document.getElementById('load-more-container');
+
+    function fetchMoreProducts() {
+        if (isLoading || !hasNext) return;
+        isLoading = true;
+        spinner.style.display = 'inline-block';
+        page++;
+
+        let url = `?page=${page}`;
+        if (selectedCategory) {
+            url += `&category=${encodeURIComponent(selectedCategory)}`;
+        }
+        if (searchQuery) {
+            url += `&q=${encodeURIComponent(searchQuery)}`;
+        }
+        url += `&format=json`;
+
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data.html) {
+                    productGrid.insertAdjacentHTML('beforeend', data.html);
+                }
+                hasNext = data.has_next;
+                if (!hasNext) {
+                    loadContainer.style.display = 'none';
+                }
+                isLoading = false;
+                spinner.style.display = 'none';
+            })
+            .catch(error => {
+                console.error('Error loading more products:', error);
+                isLoading = false;
+                spinner.style.display = 'none';
+            });
+    }
+
+    if (loadMoreBtn) {
+        loadMoreBtn.addEventListener('click', fetchMoreProducts);
+    }
+
+    window.addEventListener('scroll', () => {
+        if (window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 600) {
+            fetchMoreProducts();
+        }
+    });
+</script>
 {% endblock %}

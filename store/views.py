@@ -33,7 +33,7 @@ from django.template.loader import render_to_string
 from .models import Category, Product, UserSearchHistory, BrowsingHistory, PromoTheme
 
 def store_home_view(request):
-    """The main storefront that logs searches, tracks personalization via search/browsing history, and displays session-shuffled randomized products with reliable pagination."""
+    """The main storefront that generates a fresh random shuffle on every visit while keeping infinite scroll stable and showing all inventory."""
     categories = Category.objects.all()
     selected_category_id = request.GET.get('category')
     search_query = request.GET.get('q', '').strip()
@@ -43,22 +43,44 @@ def store_home_view(request):
         request.session.create()
     session_key = request.session.session_key
 
+    # Check if this is an infinite scroll AJAX request
+    is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('format') == 'json'
+    
+    # If it's a fresh page load (not an AJAX scroll), clear old shuffles so it looks completely new and random on every visit
+    session_key_name = 'store_shuffled_product_ids'
+    if not is_ajax and session_key_name in request.session:
+        del request.session[session_key_name]
+
     # Base filtering matching user search, category, or image queries
     if selected_category_id:
-        products = list(Product.objects.filter(is_active=True, category_id=selected_category_id).order_by('-id'))
+        cat_session_key = f'store_shuffled_cat_{selected_category_id}_ids'
+        if not is_ajax and cat_session_key in request.session:
+            del request.session[cat_session_key]
+            
+        if cat_session_key not in request.session:
+            all_ids = list(Product.objects.filter(is_active=True, category_id=selected_category_id).values_list('id', flat=True))
+            random.shuffle(all_ids)
+            request.session[cat_session_key] = all_ids
+        
+        all_ids = request.session[cat_session_key]
+        product_dict = {p.id: p for p in Product.objects.filter(id__in=all_ids, is_active=True)}
+        products = [product_dict[pid] for pid in all_ids if pid in product_dict]
         
     elif search_query:
-        products = list(Product.objects.filter(
-            is_active=True
-        ).filter(
-            Q(name__icontains=search_query) | Q(description__icontains=search_query)
-        ).order_by('-id'))
-        
         UserSearchHistory.objects.create(
             user=request.user if request.user.is_authenticated else None,
             session_key=session_key if not request.user.is_authenticated else None,
             keyword=search_query
         )
+        all_ids = list(Product.objects.filter(
+            is_active=True
+        ).filter(
+            Q(name__icontains=search_query) | Q(description__icontains=search_query)
+        ).values_list('id', flat=True))
+        random.shuffle(all_ids)
+        
+        product_dict = {p.id: p for p in Product.objects.filter(id__in=all_ids, is_active=True)}
+        products = [product_dict[pid] for pid in all_ids if pid in product_dict]
         
     elif image_search_file:
         filename = image_search_file.name.lower()
@@ -69,9 +91,17 @@ def store_home_view(request):
             image_q = Q()
             for kw in keywords:
                 image_q |= Q(name__icontains=kw) | Q(description__icontains=kw) | Q(visual_search_tag__icontains=kw)
-            products = list(Product.objects.filter(is_active=True).filter(image_q).order_by('-id'))
+            all_ids = list(Product.objects.filter(is_active=True).filter(image_q).values_list('id', flat=True))
+            random.shuffle(all_ids)
         else:
-            products = list(Product.objects.filter(is_active=True).order_by('-id'))
+            if session_key_name not in request.session:
+                all_ids = list(Product.objects.filter(is_active=True).values_list('id', flat=True))
+                random.shuffle(all_ids)
+                request.session[session_key_name] = all_ids
+            all_ids = request.session[session_key_name]
+
+        product_dict = {p.id: p for p in Product.objects.filter(id__in=all_ids, is_active=True)}
+        products = [product_dict[pid] for pid in all_ids if pid in product_dict]
 
     else:
         personalized_products = Product.objects.none()
@@ -101,8 +131,6 @@ def store_home_view(request):
             random.shuffle(remaining_pks)
             all_ids = matched_pks + remaining_pks
         else:
-            # Session-based randomized shuffling for thousands of goods without duplicates or missing inventory
-            session_key_name = 'store_shuffled_product_ids'
             if session_key_name not in request.session:
                 all_ids = list(Product.objects.filter(is_active=True).values_list('id', flat=True))
                 random.shuffle(all_ids)
@@ -119,7 +147,7 @@ def store_home_view(request):
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
 
-    if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('format') == 'json':
+    if is_ajax:
         html = render_to_string('store/partials/product_cards_list.html', {
             'products': page_obj,
             'active_promo_theme': active_promo_theme

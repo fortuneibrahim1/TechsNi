@@ -32,7 +32,7 @@ from django.template.loader import render_to_string
 from .models import Category, Product, UserSearchHistory, BrowsingHistory, PromoTheme
 
 def store_home_view(request):
-    """The main storefront that logs searches, tracks personalization via search/browsing history, and displays random or recommended products with pagination support."""
+    """The main storefront that logs searches, tracks personalization via search/browsing history, and displays products with stable pagination support."""
     categories = Category.objects.all()
     selected_category_id = request.GET.get('category')
     search_query = request.GET.get('q', '').strip()
@@ -42,20 +42,17 @@ def store_home_view(request):
         request.session.create()
     session_key = request.session.session_key
 
-    # Base queryset for active products
+    # Base queryset for active products with stable ordering (-id) to prevent pagination duplication/missing items
     products = Product.objects.filter(is_active=True)
     
     if selected_category_id:
-        # If a category is selected, filter by that category and randomize them
-        products = products.filter(category_id=selected_category_id).order_by('?')
+        products = products.filter(category_id=selected_category_id).order_by('-id')
         
     elif search_query:
-        # Filter products matching the search query
         products = products.filter(
             Q(name__icontains=search_query) | Q(description__icontains=search_query)
-        ).order_by('?')
+        ).order_by('-id')
         
-        # Log search history
         UserSearchHistory.objects.create(
             user=request.user if request.user.is_authenticated else None,
             session_key=session_key if not request.user.is_authenticated else None,
@@ -72,13 +69,11 @@ def store_home_view(request):
             for kw in keywords:
                 image_q |= Q(name__icontains=kw) | Q(description__icontains=kw) | Q(visual_search_tag__icontains=kw)
             products = products.filter(image_q)
-        products = products.order_by('?')
+        products = products.order_by('-id')
 
     else:
-        # Default home view: Personalized recommendations based on search history and BrowsingHistory model
         personalized_products = Product.objects.none()
 
-        # 1. Fetch recent search keywords
         if request.user.is_authenticated:
             recent_searches = UserSearchHistory.objects.filter(user=request.user).values_list('keyword', flat=True)[:5]
         else:
@@ -90,7 +85,6 @@ def store_home_view(request):
                 search_query_filter |= Q(name__icontains=kw) | Q(description__icontains=kw) | Q(category__name__icontains=kw)
             personalized_products = Product.objects.filter(is_active=True).filter(search_query_filter)
 
-        # 2. Fetch recently viewed items from your existing BrowsingHistory model for authenticated users
         if request.user.is_authenticated:
             viewed_product_ids = BrowsingHistory.objects.filter(customer=request.user).order_by('-viewed_at').values_list('product_id', flat=True)[:10]
             if viewed_product_ids:
@@ -100,22 +94,18 @@ def store_home_view(request):
                 personalized_products = personalized_products | viewed_recommendations
 
         if personalized_products.exists():
-            # Blend personalized items with fresh random items to keep the homepage dynamic and varied
             products = Product.objects.filter(is_active=True).filter(
-                Q(id__in=personalized_products.values('id')) | Q(id__in=Product.objects.filter(is_active=True).order_by('?')[:12].values('id'))
-            ).distinct().order_by('?')
+                Q(id__in=personalized_products.values('id')) | Q(id__in=Product.objects.filter(is_active=True).order_by('-id')[:12].values('id'))
+            ).distinct().order_by('-id')
         else:
-            # Complete fallback: Fully random product display if no search or view history exists yet
-            products = products.order_by('?')
+            products = products.order_by('-id')
 
     active_promo_theme = PromoTheme.objects.filter(is_active=True).first()
     
-    # Paginate products (12 items per batch/page)
     paginator = Paginator(products, 12)
     page_number = request.GET.get('page', 1)
     page_obj = paginator.get_page(page_number)
 
-    # Handle AJAX / JSON requests for infinite scrolling or load-more buttons
     if request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('format') == 'json':
         html = render_to_string('store/partials/product_cards_list.html', {
             'products': page_obj,

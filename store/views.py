@@ -24,6 +24,7 @@ User = get_user_model()
 # ==========================================
 # CUSTOMER FRONTEND & SHOPPING VIEWS
 # ==========================================
+import random
 from django.db.models import Q
 from django.shortcuts import render, redirect
 from django.core.paginator import Paginator
@@ -32,7 +33,7 @@ from django.template.loader import render_to_string
 from .models import Category, Product, UserSearchHistory, BrowsingHistory, PromoTheme
 
 def store_home_view(request):
-    """The main storefront that logs searches, tracks personalization via search/browsing history, and displays products with stable pagination support."""
+    """The main storefront that logs searches, tracks personalization via search/browsing history, and displays session-shuffled randomized products with reliable pagination."""
     categories = Category.objects.all()
     selected_category_id = request.GET.get('category')
     search_query = request.GET.get('q', '').strip()
@@ -42,16 +43,16 @@ def store_home_view(request):
         request.session.create()
     session_key = request.session.session_key
 
-    # Base queryset for active products with stable ordering (-id) to prevent pagination duplication/missing items
-    products = Product.objects.filter(is_active=True)
-    
+    # Base filtering matching user search, category, or image queries
     if selected_category_id:
-        products = products.filter(category_id=selected_category_id).order_by('-id')
+        products = list(Product.objects.filter(is_active=True, category_id=selected_category_id).order_by('-id'))
         
     elif search_query:
-        products = products.filter(
+        products = list(Product.objects.filter(
+            is_active=True
+        ).filter(
             Q(name__icontains=search_query) | Q(description__icontains=search_query)
-        ).order_by('-id')
+        ).order_by('-id'))
         
         UserSearchHistory.objects.create(
             user=request.user if request.user.is_authenticated else None,
@@ -68,8 +69,9 @@ def store_home_view(request):
             image_q = Q()
             for kw in keywords:
                 image_q |= Q(name__icontains=kw) | Q(description__icontains=kw) | Q(visual_search_tag__icontains=kw)
-            products = products.filter(image_q)
-        products = products.order_by('-id')
+            products = list(Product.objects.filter(is_active=True).filter(image_q).order_by('-id'))
+        else:
+            products = list(Product.objects.filter(is_active=True).order_by('-id'))
 
     else:
         personalized_products = Product.objects.none()
@@ -94,11 +96,22 @@ def store_home_view(request):
                 personalized_products = personalized_products | viewed_recommendations
 
         if personalized_products.exists():
-            products = Product.objects.filter(is_active=True).filter(
-                Q(id__in=personalized_products.values('id')) | Q(id__in=Product.objects.filter(is_active=True).order_by('-id')[:12].values('id'))
-            ).distinct().order_by('-id')
+            matched_pks = list(personalized_products.values_list('id', flat=True))
+            remaining_pks = list(Product.objects.filter(is_active=True).exclude(id__in=matched_pks).values_list('id', flat=True))
+            random.shuffle(remaining_pks)
+            all_ids = matched_pks + remaining_pks
         else:
-            products = products.order_by('-id')
+            # Session-based randomized shuffling for thousands of goods without duplicates or missing inventory
+            session_key_name = 'store_shuffled_product_ids'
+            if session_key_name not in request.session:
+                all_ids = list(Product.objects.filter(is_active=True).values_list('id', flat=True))
+                random.shuffle(all_ids)
+                request.session[session_key_name] = all_ids
+            
+            all_ids = request.session[session_key_name]
+
+        product_dict = {p.id: p for p in Product.objects.filter(id__in=all_ids, is_active=True)}
+        products = [product_dict[pid] for pid in all_ids if pid in product_dict]
 
     active_promo_theme = PromoTheme.objects.filter(is_active=True).first()
     

@@ -33,7 +33,6 @@ from django.template.loader import render_to_string
 from .models import Category, Product, UserSearchHistory, BrowsingHistory, PromoTheme
 
 def store_home_view(request):
-    """The main storefront that generates a fresh random shuffle on every visit while keeping infinite scroll stable and showing all inventory."""
     categories = Category.objects.all()
     selected_category_id = request.GET.get('category')
     search_query = request.GET.get('q', '').strip()
@@ -43,20 +42,17 @@ def store_home_view(request):
         request.session.create()
     session_key = request.session.session_key
 
-    # Check if this is an infinite scroll AJAX request
     is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.GET.get('format') == 'json'
     
-    # If it's a fresh page load (not an AJAX scroll), clear old shuffles so it looks completely new and random on every visit
-    session_key_name = 'store_shuffled_product_ids'
-    if not is_ajax and session_key_name in request.session:
-        del request.session[session_key_name]
+    # Clear all cached shuffled lists on every regular page refresh so everything reshuffles completely
+    if not is_ajax:
+        for key in list(request.session.keys()):
+            if key.startswith('store_shuffled_'):
+                del request.session[key]
+        request.session.modified = True
 
-    # Base filtering matching user search, category, or image queries
     if selected_category_id:
         cat_session_key = f'store_shuffled_cat_{selected_category_id}_ids'
-        if not is_ajax and cat_session_key in request.session:
-            del request.session[cat_session_key]
-            
         if cat_session_key not in request.session:
             all_ids = list(Product.objects.filter(is_active=True, category_id=selected_category_id).values_list('id', flat=True))
             random.shuffle(all_ids)
@@ -94,6 +90,7 @@ def store_home_view(request):
             all_ids = list(Product.objects.filter(is_active=True).filter(image_q).values_list('id', flat=True))
             random.shuffle(all_ids)
         else:
+            session_key_name = 'store_shuffled_product_ids'
             if session_key_name not in request.session:
                 all_ids = list(Product.objects.filter(is_active=True).values_list('id', flat=True))
                 random.shuffle(all_ids)
@@ -104,40 +101,13 @@ def store_home_view(request):
         products = [product_dict[pid] for pid in all_ids if pid in product_dict]
 
     else:
-        personalized_products = Product.objects.none()
-
-        if request.user.is_authenticated:
-            recent_searches = UserSearchHistory.objects.filter(user=request.user).values_list('keyword', flat=True)[:5]
-        else:
-            recent_searches = UserSearchHistory.objects.filter(session_key=session_key).values_list('keyword', flat=True)[:5]
-
-        if recent_searches:
-            search_query_filter = Q()
-            for kw in recent_searches:
-                search_query_filter |= Q(name__icontains=kw) | Q(description__icontains=kw) | Q(category__name__icontains=kw)
-            personalized_products = Product.objects.filter(is_active=True).filter(search_query_filter)
-
-        if request.user.is_authenticated:
-            viewed_product_ids = BrowsingHistory.objects.filter(customer=request.user).order_by('-viewed_at').values_list('product_id', flat=True)[:10]
-            if viewed_product_ids:
-                viewed_categories = Product.objects.filter(id__in=viewed_product_ids).values_list('category_id', flat=True)
-                viewed_filter = Q(id__in=viewed_product_ids) | Q(category_id__in=viewed_categories)
-                viewed_recommendations = Product.objects.filter(is_active=True).filter(viewed_filter)
-                personalized_products = personalized_products | viewed_recommendations
-
-        if personalized_products.exists():
-            matched_pks = list(personalized_products.values_list('id', flat=True))
-            remaining_pks = list(Product.objects.filter(is_active=True).exclude(id__in=matched_pks).values_list('id', flat=True))
-            random.shuffle(remaining_pks)
-            all_ids = matched_pks + remaining_pks
-        else:
-            if session_key_name not in request.session:
-                all_ids = list(Product.objects.filter(is_active=True).values_list('id', flat=True))
-                random.shuffle(all_ids)
-                request.session[session_key_name] = all_ids
-            
-            all_ids = request.session[session_key_name]
-
+        session_key_name = 'store_shuffled_product_ids'
+        if session_key_name not in request.session:
+            all_ids = list(Product.objects.filter(is_active=True).values_list('id', flat=True))
+            random.shuffle(all_ids)
+            request.session[session_key_name] = all_ids
+        
+        all_ids = request.session[session_key_name]
         product_dict = {p.id: p for p in Product.objects.filter(id__in=all_ids, is_active=True)}
         products = [product_dict[pid] for pid in all_ids if pid in product_dict]
 

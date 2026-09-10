@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>{% block title %}TechsNi{% endblock %}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
@@ -23,12 +23,16 @@
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             overflow-x: hidden;
             margin: 0;
+            width: 100%;
+            max-width: 100vw;
         }
 
         /* App Layout with Sidebar */
         .app-wrapper {
             display: flex;
             min-height: 100vh;
+            width: 100%;
+            position: relative;
         }
 
         /* Sidebar Styling */
@@ -115,7 +119,8 @@
             display: flex;
             flex-direction: column;
             min-height: 100vh;
-            transition: margin 0.3s ease;
+            width: calc(100% - 260px);
+            transition: margin 0.3s ease, width 0.3s ease;
         }
 
         /* Top Utility Bar */
@@ -252,6 +257,7 @@
             }
             .app-main {
                 margin-left: 0;
+                width: 100%;
             }
             .corporate-header, .utility-bar {
                 padding-left: 15px;

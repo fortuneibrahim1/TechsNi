@@ -118,7 +118,7 @@
                         <div class="mb-3 form-check">
                             <input type="checkbox" class="form-check-input" id="termsAgreement" required>
                             <label class="form-check-label text-light" for="termsAgreement">
-                                I acknowledge that I have read and agree to <a href="/policy/" class="text-success text-decoration-underline" target="_blank">TechsNi Services and Store Agreement</a>
+                                I acknowledge that I have read and agree to <a href="#" class="text-danger text-decoration-underline" data-bs-toggle="modal" data-bs-target="#policyModal">TechsNi Services & Store  – Master Business Policy</a>
                             </label>
                         </div>
 
@@ -130,6 +130,38 @@
     </div>
 </div>
 
+<!-- General Company Policy Modal Container -->
+<div class="modal fade text-dark" id="policyModal" tabindex="-1" aria-labelledby="policyModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content bg-dark text-white border-secondary">
+            <div class="modal-header border-secondary bg-secondary">
+                <h5 class="modal-title text-danger fw-bold" id="policyModalLabel">General Company Policy</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <h6 class="text-light fw-bold mb-3">TechsNi Official Guidelines</h6>
+                
+                <p><strong>Techsni Store & Services – Master Business Policy</strong><br>
+                <strong>Entity Status:</strong> Registered Business Enterprise<br>
+                <strong>Effective Date:</strong> September 13, 2026</p>
+
+                <h6 class="text-danger mt-4">1. User Registration & Agreement</h6>
+                <p><strong>Binding Acceptance:</strong> By registering an account, submitting details or utilizing retail or repair services provided by Techsni Store & Services, you explicitly agree to the terms and conditions set forth in this policy document.</p>
+
+                <h6 class="text-danger mt-4">2. Account Security & User Responsibilities</h6>
+                <p>Users are solely responsible for maintaining the strict confidentiality of their account credentials, passwords, and any actions or activities conducted under their registered account profile.</p>
+
+                <h6 class="text-danger mt-4">3. Service & Store Guidelines</h6>
+                <p>All device repairs, retail transactions, and digital services are subject to verification, standard warranty limitations, and proper fulfillment of due payments. TechsNi maintains the right to suspend accounts or refuse services in cases of suspected fraudulent behavior or policy violations.</p>
+            </div>
+            <div class="modal-footer border-secondary bg-secondary">
+                <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Close & Return</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     document.addEventListener("DOMContentLoaded", function() {
         const sField = document.querySelector("#id_state");

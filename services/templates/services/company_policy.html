@@ -9,16 +9,18 @@
         body { background: #121212; color: #ffffff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; }
         .card { background: #1a1a1a; border: 1px solid #4a1015; border-radius: 10px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); color: #ffffff; }
         h1 { color: #ff4d4d; font-weight: bold; }
-        p, li, span, div.policy-content { color: #ffffff !important; line-height: 1.7; }
+        p, li, span { color: #ffffff !important; }
         .text-muted { color: #ffffff !important; opacity: 0.9; }
         a.btn-back { background: #b30000; color: white; border: none; }
         a.btn-back:hover { background: #cc0000; color: white; }
         
-        /* Enhanced spacing and list formatting for database text */
-        .policy-content p { margin-bottom: 1.2rem; }
-        .policy-content ul, .policy-content ol { margin-bottom: 1.5rem; padding-left: 1.5rem; }
-        .policy-content li { margin-bottom: 0.75rem; }
-        .policy-content h2, .policy-content h3, .policy-content h4, .policy-content h5 { margin-top: 1.8rem; margin-bottom: 0.8rem; color: #ff8080; font-weight: 600; }
+        /* This class preserves your exact paragraph spacing, line breaks, and numbers */
+        .policy-text-box {
+            white-space: pre-line;
+            line-height: 1.8;
+            font-size: 1rem;
+            color: #ffffff;
+        }
     </style>
 </head>
 <body>
@@ -28,9 +30,9 @@
             <p class="text-muted">TechsNi Official Guidelines</p>
             <hr class="border-secondary">
             
-            <!-- Dynamic text wrapped with dedicated policy formatting class -->
-            <div class="my-3 policy-content">
-                {{ config.policy_text|safe }}
+            <!-- Dynamic text with preserved spacing and line structure -->
+            <div class="my-3 policy-text-box">
+                {{ config.policy_text }}
             </div>
 
             <!-- Optional PDF view/download button if a policy PDF was uploaded -->

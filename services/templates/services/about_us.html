@@ -6,14 +6,20 @@
     <title>About Us - TechsNi</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-    body { background: #121212; color: #ffffff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; }
-    .card { background: #1a1a1a; border: 1px solid #4a1015; border-radius: 10px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); color: #ffffff; }
-    h1 { color: #ff4d4d; font-weight: bold; }
-    p, li, span { color: #ffffff !important; }
-    .text-muted { color: #ffffff !important; opacity: 0.9; }
-    a.btn-back { background: #b30000; color: white; border: none; }
-    a.btn-back:hover { background: #cc0000; color: white; }
-</style>
+        body { background: #121212; color: #ffffff; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; }
+        .card { background: #1a1a1a; border: 1px solid #4a1015; border-radius: 10px; padding: 30px; box-shadow: 0 10px 30px rgba(0,0,0,0.8); color: #ffffff; }
+        h1 { color: #ff4d4d; font-weight: bold; }
+        p, li, span, div.about-content { color: #ffffff !important; line-height: 1.7; }
+        .text-muted { color: #ffffff !important; opacity: 0.9; }
+        a.btn-back { background: #b30000; color: white; border: none; }
+        a.btn-back:hover { background: #cc0000; color: white; }
+        
+        /* Enhanced spacing and list formatting for database text */
+        .about-content p { margin-bottom: 1.2rem; }
+        .about-content ul, .about-content ol { margin-bottom: 1.5rem; padding-left: 1.5rem; }
+        .about-content li { margin-bottom: 0.75rem; }
+        .about-content h2, .about-content h3, .about-content h4, .about-content h5 { margin-top: 1.8rem; margin-bottom: 0.8rem; color: #ff8080; font-weight: 600; }
+    </style>
 </head>
 <body>
     <div class="container mt-5" style="max-width: 800px;">
@@ -22,8 +28,8 @@
             <p class="text-muted">Services & Store Portal Management System</p>
             <hr class="border-secondary">
             
-            <!-- Dynamic About text from database SiteConfiguration -->
-            <div class="my-3">
+            <!-- Dynamic About text wrapped with dedicated about-content formatting class -->
+            <div class="my-3 about-content">
                 {{ config.about_text|safe }}
             </div>
 

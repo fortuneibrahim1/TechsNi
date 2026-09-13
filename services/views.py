@@ -1071,6 +1071,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.models import User
 
+
 @csrf_exempt
 def register_view(request):
     if request.method == 'POST':
@@ -1080,6 +1081,13 @@ def register_view(request):
                 user = form.save(commit=False)
                 user.is_active = False  # Deactivate until OTP is verified
                 user.set_password(form.cleaned_data['password'])
+                
+                # Save newly introduced fields if they exist on the model
+                if 'capital' in form.cleaned_data and hasattr(user, 'capital'):
+                    user.capital = form.cleaned_data['capital']
+                if 'referred_by' in form.cleaned_data and hasattr(user, 'referred_by'):
+                    user.referred_by = form.cleaned_data['referred_by']
+                    
                 user.save()
                 
                 if hasattr(form, 'save_m2m'):
@@ -1095,6 +1103,7 @@ def register_view(request):
                 
                 # Send email via Resend using your custom environment variable domain sender
                 try:
+                    import resend
                     resend.api_key = os.environ.get('EMAIL_HOST_PASSWORD')
                     sender_email = os.environ.get('DEFAULT_FROM_EMAIL', 'support@techsni.com.ng')
                     params = {
@@ -1120,7 +1129,6 @@ def register_view(request):
         form = CustomUserRegistrationForm()
         
     return render(request, 'services/register.html', {'form': form})
-
 
 def verify_signup_otp_view(request):
     user_id = request.session.get('signup_user_id')

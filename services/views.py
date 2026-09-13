@@ -1070,10 +1070,12 @@ import random
 from django.shortcuts import render, redirect, get_object_or_404
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth.models import User
-
-
+from .models import CompanyInfo
 @csrf_exempt
 def register_view(request):
+    # Fetch company info config for policy text display in templates
+    config = CompanyInfo.objects.first()
+
     if request.method == 'POST':
         form = CustomUserRegistrationForm(request.POST)
         if form.is_valid():
@@ -1121,14 +1123,15 @@ def register_view(request):
                 
             except Exception as e:
                 print("REGISTRATION ERROR:", str(e))
-                return render(request, 'services/register.html', {'form': form, 'error': f"An error occurred: {str(e)}"})
+                return render(request, 'services/register.html', {'form': form, 'config': config, 'error': f"An error occurred: {str(e)}"})
         else:
             print("REGISTRATION FORM ERRORS:", form.errors.as_json() if hasattr(form.errors, 'as_json') else form.errors)
-            return render(request, 'services/register.html', {'form': form})
+            return render(request, 'services/register.html', {'form': form, 'config': config})
     else:
         form = CustomUserRegistrationForm()
         
-    return render(request, 'services/register.html', {'form': form})
+    return render(request, 'services/register.html', {'form': form, 'config': config})
+
 
 def verify_signup_otp_view(request):
     user_id = request.session.get('signup_user_id')

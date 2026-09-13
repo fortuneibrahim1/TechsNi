@@ -325,6 +325,7 @@ class ServiceJobArchive(models.Model):
 
 class CompanyInfo(models.Model):
     about_us_text = models.TextField(default="Welcome to TechsNi Portal...")
+    policy_text = models.TextField(blank=True, null=True, help_text="Company policy text displayed in registration modal")
     company_policy_pdf = models.FileField(upload_to='policies/', blank=True, null=True, help_text="Upload CEO / Admin Company Policy PDF")
 
     def __str__(self):

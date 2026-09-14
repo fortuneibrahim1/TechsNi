@@ -118,46 +118,13 @@
                         <div class="mb-3 form-check">
                             <input type="checkbox" class="form-check-input" id="termsAgreement" required>
                             <label class="form-check-label text-light" for="termsAgreement">
-                                I acknowledge that I have read and agree to <a href="#" class="text-danger text-decoration-underline" data-bs-toggle="modal" data-bs-target="#policyModal">General TechsNi Policy</a>
+                                I acknowledge that I have read and agree to <a href="{% url 'company_policy' %}" target="_blank" class="text-danger text-decoration-underline">General TechsNi Policy</a>
                             </label>
                         </div>
 
                         <button type="submit" class="btn btn-danger w-100 py-2 fw-bold">Register Account</button>
                     </form>
                 </div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- General Company Policy Modal Container with Dynamic Database Integration -->
-<div class="modal fade text-dark" id="policyModal" tabindex="-1" aria-labelledby="policyModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
-        <div class="modal-content bg-dark text-white border-secondary">
-            <div class="modal-header border-secondary bg-secondary">
-                <h5 class="modal-title text-danger fw-bold" id="policyModalLabel">General TechsNi Policy</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body p-4" style="max-height: 70vh; overflow-y: auto;">
-                <div class="my-3 policy-text-box">
-                    {% if config and config.policy_text %}
-                        {{ config.policy_text|safe }}
-                    {% else %}
-                        <h6 class="text-light fw-bold mb-3">TechsNi Official Guidelines</h6>
-                        <p><strong>Techsni Services & Store – Master Business Policy</strong><br>
-                        <strong>Entity Status:</strong> Registered Business Enterprise<br>
-                        <strong>Effective Date:</strong> September 13, 2026</p>
-                        <h6 class="text-danger mt-4">1. User Registration & Agreement</h6>
-                        <p><strong>Binding Acceptance:</strong> By registering an account, submitting details or utilizing retail or repair services provided by Techsni Store & Services, you explicitly agree to the terms and conditions set forth in this policy document.</p>
-                        <h6 class="text-danger mt-4">2. Account Security & User Responsibilities</h6>
-                        <p>Users are solely responsible for maintaining the strict confidentiality of their account credentials, passwords, and any actions or activities conducted under their registered account profile.</p>
-                        <h6 class="text-danger mt-4">3. Service & Store Guidelines</h6>
-                        <p>All device repairs, retail transactions, and digital services are subject to verification, standard warranty limitations, and proper fulfillment of due payments. TechsNi maintains the right to suspend accounts or refuse services in cases of suspected fraudulent behavior or policy violations.</p>
-                    {% endif %}
-                </div>
-            </div>
-            <div class="modal-footer border-secondary bg-secondary">
-                <button type="button" class="btn btn-danger" data-bs-dismiss="modal">Close & Return</button>
             </div>
         </div>
     </div>

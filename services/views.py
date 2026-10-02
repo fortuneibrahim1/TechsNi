@@ -45,10 +45,11 @@ from django.contrib.auth import login
 from django.contrib.auth.forms import AuthenticationForm
 from django.shortcuts import redirect, render
 from .models import InstructionCatalog
-
 def login_view(request):
   catalogs = InstructionCatalog.objects.all().order_by("order")
-  company_info = CompanyInfo.objects.first()
+  
+  # Robustly fetch the first available company info record
+  company_info = CompanyInfo.objects.all().first()
 
   # Robust QR Code Generation
   qr_base64 = None
@@ -2173,9 +2174,9 @@ from openai import OpenAI
 # Initialize OpenAI client safely
 client = OpenAI(api_key="sk-proj-YOUR_ACTUAL_KEY_HERE")
 
-
 def login_view(request):
     catalogs = InstructionCatalog.objects.all().order_by("order")
+    company_info = CompanyInfo.objects.all().first()
 
     # Robust QR Code Generation
     qr_base64 = None
@@ -2223,9 +2224,9 @@ def login_view(request):
         "catalogs": catalogs,
         "portal_url": portal_url,
         "qr_code_image": qr_base64,
+        "company_info": company_info,
     }
     return render(request, "services/login.html", context)
-
 
 @login_required
 def dashboard_router(request):

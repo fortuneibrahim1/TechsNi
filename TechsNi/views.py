@@ -2,23 +2,22 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import login
 from django.contrib.auth.forms import AuthenticationForm
 from django.contrib.auth.decorators import login_required
-from services.models import InstructionCatalog  # Adjust import if your model lives elsewhere
+from services.models import InstructionCatalog, CompanyInfo  # <--- Added CompanyInfo here!
 from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
 
 def custom_login_view(request):
-    # Fetch all catalogs ordered by their display number so they render on the root login page
+    # Fetch all catalogs and company info
     catalogs = InstructionCatalog.objects.all().order_by('order')
+    company_info = CompanyInfo.objects.all().first()  # <--- Fetch the company info
 
     if request.method == 'POST':
-        # Use Django's AuthenticationForm to validate the POST data
         form = AuthenticationForm(request, data=request.POST)
         if form.is_valid():
             user = form.get_user()
             login(request, user)
-            # Explicitly force redirect to your portal gateway after login
             return redirect('portal_gateway')
     else:
         form = AuthenticationForm()
@@ -26,8 +25,10 @@ def custom_login_view(request):
     context = {
         'form': form,
         'catalogs': catalogs,
+        'company_info': company_info,  # <--- Pass it into the context here!
     }
     return render(request, 'services/login.html', context)
+
 @login_required
 def portal_gateway_view(request):
     return render(request, 'store/portal_gateway.html')

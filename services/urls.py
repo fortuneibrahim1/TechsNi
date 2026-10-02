@@ -106,5 +106,6 @@ urlpatterns = [
     path('customer/job/<int:job_id>/approve-po/', views.customer_approve_via_po, name='customer_approve_via_po'),
     path('services/customer/job/<int:job_id>/pay-notification/', views.customer_po_payment_notification, name='customer_po_payment_notification'),
 
-
+    # --- CEO ANNOUNCEMENT BANNER ROUTE ---
+    path('dashboard/ceo/announcement/', views.announcement_settings_view, name='announcement_settings'),
 ]

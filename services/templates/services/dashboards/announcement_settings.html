@@ -1,0 +1,74 @@
+{% extends 'services/dashboards/base_dashboard.html' %}
+
+{% block title %}Announcement Banner Settings{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            
+            <!-- Page Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="h3 mb-0 text-gray-800">📢 Announcement Banner Management</h2>
+                    <p class="text-muted">Manage the live scrolling marquee banner displayed on the portal login pages.</p>
+                </div>
+                <a href="{% url 'ceo_dashboard' %}" class="btn btn-secondary btn-sm">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+
+            <!-- Messages Alert -->
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <!-- Form Card -->
+            <div class="card shadow mb-4">
+                <div class="card-header py-3 bg-primary text-white">
+                    <h6 class="m-0 font-weight-bold">Live Banner Text Configuration</h6>
+                </div>
+                <div class="card-body">
+                    <form method="POST">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="announcement_banner" class="form-label fw-bold">Announcement Content</label>
+                            <textarea class="form-control" id="announcement_banner" name="announcement_banner" rows="4" placeholder="Enter announcement text to scroll across the login page... (e.g. NOTICE: Scheduled system maintenance on Saturday at 10 PM.)">{{ config.announcement_banner }}</textarea>
+                            <div class="form-text text-muted">Leave this blank if you do not want any announcement banner to display on the login page.</div>
+                        </div>
+
+                        <div class="d-flex justify-content-end">
+                            <button type="submit" class="btn btn-success px-4">
+                                <i class="fas fa-save"></i> Save & Publish Announcement
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Preview Card -->
+            <div class="card shadow border-left-info">
+                <div class="card-body">
+                    <h6 class="text-info fw-bold mb-2"><i class="fas fa-eye"></i> Live Preview on Login Page:</h6>
+                    <div class="p-2 bg-light border rounded text-dark overflow-hidden">
+                        <marquee behavior="scroll" direction="left" scrollamount="5">
+                            {% if config.announcement_banner %}
+                                {{ config.announcement_banner }}
+                            {% else %}
+                                <span class="text-muted fst-italic">No active announcement banner text currently set.</span>
+                            {% endif %}
+                        </marquee>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}

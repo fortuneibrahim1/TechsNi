@@ -45,10 +45,9 @@ from django.contrib.auth import login
 from django.contrib.auth.forms import AuthenticationForm
 from django.shortcuts import redirect, render
 from .models import InstructionCatalog
-
-
 def login_view(request):
   catalogs = InstructionCatalog.objects.all().order_by("order")
+  company_info = CompanyInfo.objects.first()
 
   # Robust QR Code Generation
   qr_base64 = None
@@ -98,6 +97,7 @@ def login_view(request):
       "catalogs": catalogs,
       "portal_url": portal_url,
       "qr_code_image": qr_base64,
+      "company_info": company_info,
   }
   return render(request, "services/login.html", context)
 
@@ -1132,7 +1132,6 @@ def register_view(request):
         
     return render(request, 'services/register.html', {'form': form, 'config': config})
 
-
 def verify_signup_otp_view(request):
     user_id = request.session.get('signup_user_id')
     if not user_id:
@@ -1198,6 +1197,27 @@ def ceo_jobs_view(request):
         'selected_status': status_filter
     })
 
+from .models import CompanyInfo
+
+@login_required
+def announcement_settings_view(request):
+    """Allows the CEO to update the scrolling announcement banner displayed on the login pages."""
+    request.user.refresh_from_db()
+    if not request.user.is_superuser and request.user.role != 'ceo':
+        return redirect('dashboard_router')
+        
+    config, created = CompanyInfo.objects.get_or_create(id=1)
+
+    if request.method == 'POST':
+        announcement_text = request.POST.get('announcement_banner', '').strip()
+        config.announcement_banner = announcement_text
+        config.save()
+        messages.success(request, "Scrolling announcement banner updated successfully! It will now display live on the login pages.")
+        return redirect('announcement_settings')
+
+    return render(request, 'services/dashboards/announcement_settings.html', {
+        'config': config
+    })
 
 @login_required
 def ceo_users_view(request):

@@ -327,10 +327,10 @@ class CompanyInfo(models.Model):
     about_us_text = models.TextField(default="Welcome to TechsNi Portal...")
     policy_text = models.TextField(blank=True, null=True, help_text="Company policy text displayed in registration modal")
     company_policy_pdf = models.FileField(upload_to='policies/', blank=True, null=True, help_text="Upload CEO / Admin Company Policy PDF")
+    announcement_banner = models.TextField(blank=True, null=True, help_text="Scrolling marquee announcement banner displayed on the login page")
 
     def __str__(self):
         return "Company Info & Policies (Managed by CEO)"
-
 
 class MarketerProfile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='marketer_profile')

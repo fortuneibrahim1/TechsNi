@@ -19,9 +19,24 @@
             position: relative;
         }
 
+        /* Announcement Marquee Banner Styles */
+        .announcement-banner-wrapper {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(179, 0, 0, 0.85);
+            border-bottom: 1px solid #ff4d4d;
+            color: #ffffff;
+            padding: 8px 0;
+            z-index: 1050;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(5px);
+        }
+
         .instructions-dropdown-container {
             position: fixed;
-            top: 25px;
+            top: 65px;
             left: 25px;
             z-index: 1000;
         }
@@ -84,6 +99,7 @@
             border: 1px solid rgba(138, 28, 20, 0.4);
             width: 420px;
             text-align: center;
+            margin-top: 40px;
         }
         h2, h1 {
             margin-bottom: 5px;
@@ -203,6 +219,24 @@
     </style>
 </head>
 <body>
+
+    <!-- CEO ANNOUNCEMENT MARQUEE BANNER -->
+    {% if company_info and company_info.announcement_banner %}
+    <div class="announcement-banner-wrapper">
+        <div class="container-fluid px-4">
+            <div class="d-flex align-items-center">
+                <span class="badge bg-dark text-danger fw-bold me-2 py-1 px-2 border border-danger">
+                    <i class="bi bi-megaphone-fill me-1"></i> NOTICE:
+                </span>
+                <div class="overflow-hidden w-100">
+                    <marquee behavior="scroll" direction="left" scrollamount="6" class="fw-bold text-white mb-0" style="font-size: 14px;">
+                        {{ company_info.announcement_banner }}
+                    </marquee>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <!-- SIDE BACKGROUND QR CODE & SHARE PANEL -->
     <div class="side-share-panel">

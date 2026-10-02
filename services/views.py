@@ -45,6 +45,7 @@ from django.contrib.auth import login
 from django.contrib.auth.forms import AuthenticationForm
 from django.shortcuts import redirect, render
 from .models import InstructionCatalog
+
 def login_view(request):
   catalogs = InstructionCatalog.objects.all().order_by("order")
   company_info = CompanyInfo.objects.first()
@@ -1199,25 +1200,25 @@ def ceo_jobs_view(request):
 
 from .models import CompanyInfo
 
-@login_required
+from .models import CompanyInfo, InstructionCatalog
+from django.shortcuts import render, redirect
+from django.contrib import messages
+
 def announcement_settings_view(request):
-    """Allows the CEO to update the scrolling announcement banner displayed on the login pages."""
-    request.user.refresh_from_db()
-    if not request.user.is_superuser and request.user.role != 'ceo':
-        return redirect('dashboard_router')
-        
-    config, created = CompanyInfo.objects.get_or_create(id=1)
+    # Get or create the single CompanyInfo instance
+    config, created = CompanyInfo.objects.get_or_create(pk=1)
 
-    if request.method == 'POST':
-        announcement_text = request.POST.get('announcement_banner', '').strip()
-        config.announcement_banner = announcement_text
+    if request.method == "POST":
+        banner_text = request.POST.get("announcement_banner", "")
+        config.announcement_banner = banner_text
         config.save()
-        messages.success(request, "Scrolling announcement banner updated successfully! It will now display live on the login pages.")
-        return redirect('announcement_settings')
+        messages.success(request, "Announcement banner updated successfully! It will now display live on the login pages.")
+        return redirect('announcement_settings') # Replace with your actual URL name
 
-    return render(request, 'services/dashboards/announcement_settings.html', {
-        'config': config
-    })
+    context = {
+        "config": config,
+    }
+    return render(request, "services/dashboards/announcement_settings.html", context)
 
 @login_required
 def ceo_users_view(request):

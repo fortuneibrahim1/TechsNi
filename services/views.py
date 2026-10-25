@@ -2152,17 +2152,24 @@ from openai import OpenAI
 # Initialize OpenAI client safely
 client = OpenAI(api_key="sk-proj-YOUR_ACTUAL_KEY_HERE")
 
+from django.shortcuts import render, redirect
+from django.contrib.auth import login
+from django.contrib.auth.forms import AuthenticationForm
+from services.models import InstructionCatalog
+import qrcode
+import base64
+from io import BytesIO
 
 def login_view(request):
     catalogs = InstructionCatalog.objects.all().order_by("order")
 
-    # Robust QR Code Generation
+    # Robust QR Code & URL Generation
+    portal_url = request.build_absolute_uri()
+    if not portal_url:
+        portal_url = "http://127.0.0.1:8000/"
+
     qr_base64 = None
     try:
-        portal_url = request.build_absolute_uri()
-        if not portal_url:
-            portal_url = "http://127.0.0.1:8000/"
-
         qr = qrcode.QRCode(
             version=None,
             error_correction=qrcode.constants.ERROR_CORRECT_L,
@@ -2178,7 +2185,6 @@ def login_view(request):
         qr_base64 = base64.b64encode(buffer.getvalue()).decode()
     except Exception as e:
         print("--- QR GENERATION EXCEPTION:", e)
-        portal_url = "http://127.0.0.1:8000/"
         try:
             img = qrcode.make(portal_url)
             buffer = BytesIO()
@@ -2201,7 +2207,8 @@ def login_view(request):
         "form": form,
         "catalogs": catalogs,
         "portal_url": portal_url,
-        "qr_code_image": qr_base64,
+        "qr_code": qr_base64,          # Provided for templates looking for 'qr_code'
+        "qr_code_image": qr_base64,    # Provided for templates looking for 'qr_code_image'
     }
     return render(request, "services/login.html", context)
 

@@ -211,14 +211,14 @@
         
         <!-- QR Code Image Rendered from Backend with Fallback -->
         <div class="bg-white p-2 rounded-3 mb-3 d-inline-block border border-secondary shadow-sm">
-            {% if qr_code %}
-                <img src="data:image/png;base64,{{ qr_code }}" alt="TechsNi QR Code" class="img-fluid rounded" style="width: 120px; height: 120px; display: block;">
+            {% if qr_code or qr_code_image %}
+                <img src="data:image/png;base64,{{ qr_code|default:qr_code_image }}" alt="TechsNi QR Code" class="img-fluid rounded" style="width: 120px; height: 120px; display: block;">
             {% else %}
                 <div style="width: 120px; height: 120px;" class="bg-dark text-white d-flex align-items-center justify-content-center small text-center p-2">QR Missing in View</div>
             {% endif %}
         </div>
 
-        <!-- Copy Link Field with Fallback -->
+        <!-- Copy Link Field with Robust Client-side Fallback -->
         <div class="input-group input-group-sm mb-3">
             <input type="text" id="portalLinkInput" class="form-control bg-dark border-secondary text-white" value="{{ portal_url }}" readonly style="font-size: 10px; color: #ffffff !important;">
             <button class="btn btn-outline-danger" type="button" onclick="copyPortalLink()" title="Copy Link">
@@ -226,16 +226,16 @@
             </button>
         </div>
 
-        <!-- Platform Share Dropdown Menu -->
+        <!-- Platform Share Dropdown Menu with Dynamic JS Links -->
         <div class="dropdown">
             <button class="btn btn-sm btn-danger w-100 fw-bold dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" style="background: linear-gradient(135deg, #b30000 0%, #660000 100%); border: none;">
                 <i class="bi bi-share-fill me-1"></i> Share Portal
             </button>
             <ul class="dropdown-menu dropdown-menu-dark w-100 shadow border border-secondary text-center py-2" style="font-size: 12px; background: rgba(15, 15, 18, 0.98);">
-                <li><a class="dropdown-item py-2" href="https://api.whatsapp.com/send?text=Check%20out%20TechsNi%20Portal:%20{{ portal_url }}" target="_blank"><i class="bi bi-whatsapp text-success me-2"></i> WhatsApp</a></li>
-                <li><a class="dropdown-item py-2" href="https://twitter.com/intent/tweet?text=Explore%20TechsNi%20Portal&url={{ portal_url }}" target="_blank"><i class="bi bi-twitter-x text-light me-2"></i> Twitter / X</a></li>
-                <li><a class="dropdown-item py-2" href="https://www.facebook.com/sharer/sharer.php?u={{ portal_url }}" target="_blank"><i class="bi bi-facebook text-primary me-2"></i> Facebook</a></li>
-                <li><a class="dropdown-item py-2" href="mailto:?subject=TechsNi%20Portal&body=Check%20out%20this%20link:%20{{ portal_url }}" target="_blank"><i class="bi bi-envelope-fill text-danger me-2"></i> Email</a></li>
+                <li><a class="dropdown-item py-2" id="shareWhatsapp" href="#" target="_blank"><i class="bi bi-whatsapp text-success me-2"></i> WhatsApp</a></li>
+                <li><a class="dropdown-item py-2" id="shareTwitter" href="#" target="_blank"><i class="bi bi-twitter-x text-light me-2"></i> Twitter / X</a></li>
+                <li><a class="dropdown-item py-2" id="shareFacebook" href="#" target="_blank"><i class="bi bi-facebook text-primary me-2"></i> Facebook</a></li>
+                <li><a class="dropdown-item py-2" id="shareEmail" href="#" target="_blank"><i class="bi bi-envelope-fill text-danger me-2"></i> Email</a></li>
             </ul>
         </div>
     </div>
@@ -343,6 +343,21 @@
             if (panel.classList.contains('show')) {
                 panel.classList.remove('show');
             }
+        });
+
+        // Ensure link input always displays the current URL dynamically
+        window.addEventListener('DOMContentLoaded', function() {
+            const linkInput = document.getElementById('portalLinkInput');
+            if (!linkInput.value || linkInput.value.trim() === "") {
+                linkInput.value = window.location.href;
+            }
+            const currentUrl = encodeURIComponent(linkInput.value);
+
+            // Populate sharing links dynamically
+            document.getElementById('shareWhatsapp').href = `https://api.whatsapp.com/send?text=Check%20out%20TechsNi%20Portal:%20${currentUrl}`;
+            document.getElementById('shareTwitter').href = `https://twitter.com/intent/tweet?text=Explore%20TechsNi%20Portal&url=${currentUrl}`;
+            document.getElementById('shareFacebook').href = `https://www.facebook.com/sharer/sharer.php?u=${currentUrl}`;
+            document.getElementById('shareEmail').href = `mailto:?subject=TechsNi%20Portal&body=Check%20out%20this%20link:%20${currentUrl}`;
         });
 
         // Copy Portal Link Function

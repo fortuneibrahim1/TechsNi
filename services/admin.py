@@ -4,7 +4,7 @@ from .models import (
     User, Job, Quotation, Invoice, SiteConfiguration, JobType, 
     InstructionCatalog, CompanyInfo, CompanyBankAccount,
     SupportTicket, TicketMessage, TicketRating, GameConfiguration, 
-    QuestionGame, SpinWheelOption
+    QuestionGame, SpinWheelOption, UserGameReward
 )
 
 # Customize TechsNi Admin branding headers
@@ -125,10 +125,8 @@ class TicketRatingAdmin(admin.ModelAdmin):
 # --- GAME CONFIGURATION & MANAGEMENT ADMIN ---
 @admin.register(GameConfiguration)
 class GameConfigurationAdmin(admin.ModelAdmin):
-    # Added max_winners here so you can view/edit the win cap straight from the dashboard
     list_display = ('is_active', 'discount_percentage', 'code_expiry_hours', 'max_winners')
     
-    # Restrict creation/deletion so it acts as a singleton (only 1 row allowed)
     def has_add_permission(self, request):
         return not GameConfiguration.objects.exists()
 
@@ -139,11 +137,29 @@ class GameConfigurationAdmin(admin.ModelAdmin):
 class QuestionGameAdmin(admin.ModelAdmin):
     list_display = ('id', 'question_text', 'correct_answer')
     search_fields = ('question_text', 'correct_answer')
-    list_per_page = 25  # Built-in pagination prevents memory spikes
+    list_per_page = 25 
 
 @admin.register(SpinWheelOption)
 class SpinWheelOptionAdmin(admin.ModelAdmin):
     list_display = ('id', 'label', 'is_winning', 'probability_weight')
     list_filter = ('is_winning',)
     search_fields = ('label',)
-    list_per_page = 25  # Built-in pagination prevents memory spikes
+    list_per_page = 25 
+
+
+# --- USER REWARD RESET ACTION ---
+@admin.action(description='⚠️ Delete ALL user game rewards (Reset Arena Cycle)')
+def delete_all_rewards(modeladmin, request, queryset):
+    total_count = UserGameReward.objects.count()
+    UserGameReward.objects.all().delete()
+    modeladmin.message_user(
+        request, 
+        f"Successfully deleted all {total_count} rewards! The Reward Arena has been reset for a fresh cycle."
+    )
+
+@admin.register(UserGameReward)
+class UserGameRewardAdmin(admin.ModelAdmin):
+    list_display = ('user', 'code', 'discount_percentage', 'is_used', 'created_at', 'expires_at')
+    search_fields = ('user__username', 'code')
+    list_filter = ('is_used', 'created_at')
+    actions = [delete_all_rewards]

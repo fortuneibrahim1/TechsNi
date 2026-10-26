@@ -9,8 +9,8 @@
         body { background-color: #121418; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         .wheel-container {
             position: relative;
-            width: 280px;
-            height: 280px;
+            width: 300px;
+            height: 300px;
             margin: 0 auto 20px auto;
         }
         .wheel {
@@ -21,10 +21,11 @@
             transition: transform 4s cubic-bezier(0.15, 0.90, 0.15, 1);
             position: relative;
             box-shadow: 0 0 20px rgba(255, 193, 7, 0.3);
+            overflow: hidden;
         }
         .wheel-pointer {
             position: absolute;
-            top: -15px;
+            top: -18px;
             left: 50%;
             transform: translateX(-50%);
             width: 0;
@@ -32,7 +33,7 @@
             border-left: 12px solid transparent;
             border-right: 12px solid transparent;
             border-top: 25px solid #fff;
-            z-index: 10;
+            z-index: 20;
             filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
         }
         .wheel-center {
@@ -45,6 +46,20 @@
             background: #212529;
             border: 4px solid #ffc107;
             border-radius: 50%;
+            z-index: 15;
+        }
+        /* Style for text labels sitting directly on the wheel slices */
+        .wheel-label {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform-origin: 0% 0%;
+            font-size: 11px;
+            font-weight: bold;
+            color: #ffffff;
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.9);
+            white-space: nowrap;
+            pointer-events: none;
             z-index: 5;
         }
     </style>
@@ -85,7 +100,7 @@
         </div>
     </div>
 
-    <!-- Pass backend wheel options, weights, and generate dynamic conic-gradient wheel -->
+    <!-- Pass backend wheel options, weights, and generate dynamic conic-gradient & labels -->
     <script>
         const wheelOptions = [
             {% for option in wheel_options %}
@@ -97,23 +112,47 @@
             {% endfor %}
         ];
 
-        // Generate dynamic conic-gradient background based on number of options
         function buildWheelVisual() {
             if (wheelOptions.length === 0) return;
+            const wheelElement = document.getElementById('spinWheel');
             const colors = ['#ff416c', '#ff4b2b', '#17a2b8', '#28a745', '#6f42c1', '#fd7e14', '#20c997', '#e83e8c'];
+            
             let gradientStops = [];
             let totalWeight = wheelOptions.reduce((sum, opt) => sum + opt.weight, 0);
             let currentDegrees = 0;
+
+            // Clear any old dynamically created labels first
+            document.querySelectorAll('.wheel-label').forEach(el => el.remove());
 
             wheelOptions.forEach((opt, index) => {
                 let sliceDegrees = (opt.weight / totalWeight) * 360;
                 let nextDegrees = currentDegrees + sliceDegrees;
                 let color = colors[index % colors.length];
+                
+                // Build gradient segment
                 gradientStops.push(`${color} ${currentDegrees}deg ${nextDegrees}deg`);
+
+                // Calculate middle angle of this slice for text positioning
+                let middleAngle = currentDegrees + (sliceDegrees / 2);
+                let middleAngleRad = (middleAngle - 90) * (Math.PI / 180);
+
+                // Create text label element on top of the wheel slice
+                let labelDiv = document.createElement('div');
+                labelDiv.className = 'wheel-label';
+                labelDiv.innerText = opt.label;
+
+                // Position label at a radius from the center (e.g., 75px out from center of 150px radius)
+                let radius = 85; 
+                let x = radius * Math.cos(middleAngleRad);
+                let y = radius * Math.sin(middleAngleRad);
+
+                labelDiv.style.transform = `translate(${x}px, ${y}px) rotate(${middleAngle}deg)`;
+                wheelElement.appendChild(labelDiv);
+
                 currentDegrees = nextDegrees;
             });
 
-            document.getElementById('spinWheel').style.background = `conic-gradient(${gradientStops.join(', ')})`;
+            wheelElement.style.background = `conic-gradient(${gradientStops.join(', ')})`;
         }
 
         window.onload = buildWheelVisual;
@@ -129,30 +168,39 @@
             spinBtn.disabled = true;
             spinBtn.innerText = "Spinning...";
 
-            // Weighted random selection in JS matching backend probability
+            // Weighted random selection matching backend probability
             let totalWeight = wheelOptions.reduce((sum, opt) => sum + opt.weight, 0);
             let randomWeight = Math.random() * totalWeight;
             let cumulativeWeight = 0;
             let selectedIndex = 0;
 
+            let currentDegreesSum = 0;
+            let targetSliceCenterDegrees = 0;
+
             for (let i = 0; i < wheelOptions.length; i++) {
+                let sliceDegrees = (wheelOptions[i].weight / totalWeight) * 360;
+                let startDeg = currentDegreesSum;
+                let endDeg = currentDegreesSum + sliceDegrees;
+
                 cumulativeWeight += wheelOptions[i].weight;
                 if (randomWeight <= cumulativeWeight) {
                     selectedIndex = i;
+                    targetSliceCenterDegrees = startDeg + (sliceDegrees / 2);
                     break;
                 }
+                currentDegreesSum = endDeg;
             }
 
             const chosenOption = wheelOptions[selectedIndex];
             document.getElementById('selectedOptionId').value = chosenOption.id;
 
-            // Calculate rotation angle to land on the chosen segment
-            const degreesPerSegment = 360 / wheelOptions.length;
-            const targetRotation = 1800 + (selectedIndex * degreesPerSegment) + (degreesPerSegment / 2);
+            // Rotate wheel so the top pointer (0 deg) points directly to the center of the chosen segment
+            let extraSpins = 360 * 5; // 5 full rotations
+            let targetRotation = extraSpins + (360 - targetSliceCenterDegrees);
 
             wheel.style.transform = `rotate(${targetRotation}deg)`;
 
-            // Submit form after animation finishes (4 seconds)
+            // Submit form after animation finishes (4.1 seconds)
             setTimeout(() => {
                 document.getElementById('spinForm').submit();
             }, 4100);

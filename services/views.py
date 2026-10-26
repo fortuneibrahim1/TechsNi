@@ -566,7 +566,6 @@ def pay_balance_view(request):
              
     # Redirect cleanly back to the specific job details page instead of the general dashboard
     return redirect('customer_job_detail', job_id=job.id)
-
 @login_required
 def ceo_dashboard(request):
     request.user.refresh_from_db()
@@ -590,16 +589,16 @@ def ceo_dashboard(request):
     status_filter = request.GET.get('status', '')
     
     try:
-        all_jobs = Job.objects.all().order_by('-id')
+        qs = Job.objects.all().order_by('-id')
         if status_filter:
-            all_jobs = all_jobs.filter(status=status_filter)
-        all_jobs = all_jobs[:50]
-
-        live_jobs = Job.objects.all().order_by('-id')[:25]
-        users = User.objects.all().order_by('-id')[:50]
-        workers = User.objects.filter(role='worker')[:25]
+            qs = qs.filter(status=status_filter)
+        # Wrapping in list() forces evaluation inside the try-except block
+        all_jobs = list(qs[:50])
+        live_jobs = list(Job.objects.all().order_by('-id')[:25])
+        users = list(User.objects.all().order_by('-id')[:50])
+        workers = list(User.objects.filter(role='worker')[:25])
     except Exception as e:
-        # Fallback if any database decoding issue occurs
+        # Gracefully catch any database or decoding hiccups without crashing
         all_jobs, live_jobs, users, workers = [], [], [], []
 
     return render(request, 'services/dashboards/ceo.html', {

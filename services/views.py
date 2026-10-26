@@ -1243,6 +1243,9 @@ def manager_jobs_view(request):
 
 
 
+from decimal import Decimal
+from django.contrib import messages
+from .models import UserGameReward # Ensure model import
 
 @login_required
 def download_quotation_pdf(request, job_id):
@@ -1250,6 +1253,64 @@ def download_quotation_pdf(request, job_id):
     if not request.user.is_superuser and request.user.role not in ['ceo', 'finance', 'manager', 'general_manager', 'assistant_manager'] and job.customer != request.user:
         return redirect('dashboard_router')
    
+    # Handle quotation creation / revision form submission if posted from the modal
+    if request.method == 'POST' and 'create_quote' in request.POST:
+        subtotal_amount = Decimal(request.POST.get('subtotal_amount', '0.00'))
+        discount_amount = Decimal(request.POST.get('discount_amount', '0.00'))
+        vat_amount = Decimal(request.POST.get('vat_amount', '0.00'))
+        deposit_percentage = Decimal(request.POST.get('deposit_percentage', '50'))
+        code_input = request.POST.get('discount_code', '').strip()
+        
+        applied_game_discount_pct = Decimal('0.00')
+        reward_obj = None
+
+        # Validate reward game code if entered by manager/staff
+        if code_input:
+            try:
+                # We look up by code; optionally match job.customer if codes belong strictly to the job customer
+                reward_obj = UserGameReward.objects.get(code=code_input, user=job.customer)
+                if reward_obj.is_valid():
+                    applied_game_discount_pct = reward_obj.discount_percentage
+                else:
+                    messages.error(request, "The reward code entered has expired or has already been used.")
+                    return redirect('download_quotation_pdf', job_id=job.id)
+            except UserGameReward.DoesNotExist:
+                messages.error(request, "Invalid reward discount code.")
+                return redirect('download_quotation_pdf', job_id=job.id)
+
+        # If a valid game discount code is applied, compute percentage discount from subtotal
+        if applied_game_discount_pct > 0:
+            game_discount_value = subtotal_amount * (applied_game_discount_pct / Decimal('100.00'))
+            discount_amount += game_discount_value
+
+        total_amount = (subtotal_amount - discount_amount) + vat_amount
+        deposit_amount = total_amount * (deposit_percentage / Decimal('100.00'))
+        balance_amount = total_amount - deposit_amount
+
+        # Update or create quotation record...
+        # (Assuming you link or update job.quotation here)
+        if hasattr(job, 'quotation') and job.quotation:
+            q = job.quotation
+            q.subtotal_amount = subtotal_amount
+            q.discount_amount = discount_amount
+            q.vat_amount = vat_amount
+            q.total_amount = total_amount
+            q.deposit_percentage = deposit_percentage
+            q.deposit_amount = deposit_amount
+            q.balance_amount = balance_amount
+            q.save()
+        else:
+            # Create quotation logic if not exists
+            pass
+
+        # Mark reward code as used
+        if reward_obj:
+            reward_obj.is_used = True
+            reward_obj.save()
+            messages.success(request, f"Successfully applied {applied_game_discount_pct}% game reward discount to quotation!")
+
+        return redirect('download_quotation_pdf', job_id=job.id)
+
     if hasattr(job, 'quotation') and job.quotation.quotation_pdf:
         return redirect(job.quotation.quotation_pdf.url)
    
@@ -1267,7 +1328,6 @@ def download_quotation_pdf(request, job_id):
     if quotation_items:
         for item in quotation_items:
             line_total = item.get_total()
-            # Fixed Serial Number Fallback to prevent 'N/A' when item or job serial exists
             item_serial = getattr(item, 'serial_number', None) or job.serial_number or 'N/A'
             items_html += f"""
             <tr style="border-bottom: 1px solid #ddd;">
@@ -1283,7 +1343,7 @@ def download_quotation_pdf(request, job_id):
         fallback_serial = job.serial_number or 'N/A'
         items_html = f"""
         <tr style="border-bottom: 1px solid #ddd;">
-            <td style="padding: 12px;">{job.job_type.name if job.job_type else 'Repair Service'} - {job.model_type or 'General Service'}</td>
+            <td style="padding: 12px;">{job.job_type.name if job.job_type else 'Repair Service'} {job.model_type or 'General Service'}</td>
             <td style="padding: 12px; text-align: center;">{fallback_serial}</td>
             <td style="padding: 12px; text-align: center;">1</td>
             <td style="padding: 12px; text-align: right;">₦{fallback_amt:,.2f}</td>
@@ -1291,7 +1351,6 @@ def download_quotation_pdf(request, job_id):
         </tr>
         """
 
-    # Conditional PO block for client details info section
     po_details_html = ""
     if po_record:
         po_details_html = f"""
@@ -4269,3 +4328,68 @@ def finance_confirm_po_settlement_view(request, po_id):
         messages.success(request, f"PO #{po_record.id} fully settled and ₦{revenue_amount} cleared into company revenue.")
         
     return redirect('finance_po_list')
+
+
+
+
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import user_passes_test
+from .models import GameConfiguration, QuestionGame, SpinWheelOption
+
+def is_ceo(user):
+    return user.is_superuser or getattr(user, 'role', None) == 'ceo'
+
+@user_passes_test(is_ceo)
+def ceo_game_dashboard(request):
+    config = GameConfiguration.get_solo()
+    questions = QuestionGame.objects.all()
+    wheel_options = SpinWheelOption.objects.all()
+
+    if request.method == 'POST':
+        # Handle Master Activation Toggle & General Settings
+        if 'update_config' in request.POST:
+            config.is_active = request.POST.get('is_active') == 'on'
+            config.discount_percentage = request.POST.get('discount_percentage', 10.00)
+            config.code_expiry_hours = request.POST.get('code_expiry_hours', 24)
+            config.save()
+            return redirect('ceo_game_dashboard')
+
+        # Handle Adding a Question
+        elif 'add_question' in request.POST:
+            q_text = request.POST.get('question_text')
+            ans = request.POST.get('correct_answer')
+            if q_text and ans:
+                QuestionGame.objects.create(question_text=q_text, correct_answer=ans)
+            return redirect('ceo_game_dashboard')
+
+        # Handle Adding Spin Wheel Option
+        elif 'add_wheel_option' in request.POST:
+            label = request.POST.get('label')
+            is_winning = request.POST.get('is_winning') == 'on'
+            weight = request.POST.get('probability_weight', 1)
+            if label:
+                SpinWheelOption.objects.create(
+                    label=label, 
+                    is_winning=is_winning, 
+                    probability_weight=weight
+                )
+            return redirect('ceo_game_dashboard')
+
+    context = {
+        'config': config,
+        'questions': questions,
+        'wheel_options': wheel_options,
+    }
+    return render(request, 'services/ceo_game_dashboard.html', context)
+
+@user_passes_test(is_ceo)
+def delete_question(request, q_id):
+    question = get_object_or_404(QuestionGame, id=q_id)
+    question.delete()
+    return redirect('ceo_game_dashboard')
+
+@user_passes_test(is_ceo)
+def delete_wheel_option(request, opt_id):
+    option = get_object_or_404(SpinWheelOption, id=opt_id)
+    option.delete()
+    return redirect('ceo_game_dashboard')

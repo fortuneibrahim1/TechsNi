@@ -640,3 +640,68 @@ class TaxRateProposal(models.Model):
 
     def __str__(self):
         return f"Tax Proposal: {self.proposed_percentage}% ({self.get_status_display()})"
+
+
+
+import uuid
+from django.db import models
+from django.conf import settings
+from django.utils import timezone
+
+class GameConfiguration(models.Model):
+    is_active = models.BooleanField(default=False, help_text="Global Master Switch to turn games on/off")
+    discount_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=10.00, help_text="Default reward discount percentage won from games")
+    code_expiry_hours = models.IntegerField(default=24, help_text="Hours before the generated reward code expires")
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_solo(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+    def __str__(self):
+        return f"Reward Arena Config (Active: {self.is_active})"
+
+
+class SpinWheelOption(models.Model):
+    label = models.CharField(max_length=100)
+    is_winning = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.label} ({'Winning' if self.is_winning else 'Non-Winning'})"
+
+
+class QuestionGame(models.Model):
+    question_text = models.TextField()
+    correct_answer = models.CharField(max_length=255)
+    is_active = models.BooleanField(default=True)
+
+    def __str__(self):
+        return self.question_text[:50]
+
+
+class UserGameReward(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, 
+        on_delete=models.CASCADE, 
+        related_name='store_game_rewards'  # <--- This fixes the clash!
+    )
+    code = models.CharField(max_length=20, unique=True, blank=True)
+    discount_percentage = models.DecimalField(max_digits=5, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+
+    def save(self, *args, **kwargs):
+        if not self.code:
+            self.code = f"TSN-REWARD-{uuid.uuid4().hex[:6].upper()}"
+        super().save(*args, **kwargs)
+
+    def is_valid(self):
+        return not self.is_used and timezone.now() <= self.expires_at
+
+    def __str__(self):
+        return f"{self.code} - {self.user.username} ({self.discount_percentage}%)"

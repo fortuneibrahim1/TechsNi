@@ -107,4 +107,7 @@ urlpatterns = [
     path('services/customer/job/<int:job_id>/pay-notification/', views.customer_po_payment_notification, name='customer_po_payment_notification'),
 
 
+    path('dashboard/ceo/games/', views.ceo_game_dashboard, name='ceo_game_dashboard'),
+    path('dashboard/ceo/games/question/delete/<int:q_id>/', views.delete_question, name='delete_question'),
+    path('dashboard/ceo/games/wheel/delete/<int:opt_id>/', views.delete_wheel_option, name='delete_wheel_option'),
 ]

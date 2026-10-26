@@ -425,3 +425,64 @@ class TicketRating(models.Model):
         score_stars = '★' * self.score + '☆' * (5 - self.score)
         agent_name = self.agent.username if self.agent else "Unassigned"
         return f"Rating: {score_stars} for Agent {agent_name} (Ticket #{self.ticket.id})"
+
+from django.db import models
+from django.conf import settings
+import uuid
+from datetime import timedelta
+from django.utils import timezone
+
+class GameConfiguration(models.Model):
+    # Singleton pattern or single active config row
+    is_active = models.BooleanField(default=False, help_text="Master switch to activate/deactivate games for all users")
+    discount_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=10.00, help_text="Percentage discount applied when a code is won")
+    code_expiry_hours = models.IntegerField(default=24, help_text="How many hours the reward code lasts before expiring")
+    
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def save(self, *args, **kwargs):
+        # Ensure only one config instance exists
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def get_solo(cls):
+        config, _ = cls.objects.get_or_create(pk=1)
+        return config
+
+    def __str__(self):
+        return f"Game Config (Active: {self.is_active})"
+
+
+class QuestionGame(models.Model):
+    question_text = models.TextField()
+    correct_answer = models.CharField(max_length=255)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.question_text[:50]
+
+
+class SpinWheelOption(models.Model):
+    label = models.CharField(max_length=100, help_text="Text shown on the wheel slice (e.g., '10% Off', 'Try Again', 'Jackpot!')")
+    is_winning = models.BooleanField(default=False, help_text="Check if this slice triggers a win")
+    probability_weight = models.IntegerField(default=1, help_text="Weight for wheel landing probability")
+
+    def __str__(self):
+        return f"{self.label} ({'Winner' if self.is_winning else 'Loser'})"
+
+
+class UserGameReward(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    code = models.CharField(max_length=50, unique=True, default=uuid.uuid4)
+    discount_percentage = models.DecimalField(max_digits=5, decimal_places=2)
+    is_used = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+
+    def is_valid(self):
+        return not self.is_used and timezone.now() <= self.expires_at
+
+    def __str__(self):
+        return f"Reward {self.code} for {self.user.username} ({self.discount_percentage}%)"

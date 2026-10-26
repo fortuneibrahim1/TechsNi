@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TechsNi Q&A Challenge</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-dark text-white d-flex align-items-center justify-content-center min-vh-100">
+    <div class="card bg-secondary text-white p-4 shadow" style="max-width: 500px; width: 100%;">
+        <h3 class="text-center mb-4">❓ Q&A Challenge</h3>
+        {% if question %}
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="question_id" value="{{ question.id }}">
+                <p class="fs-5 fw-bold mb-3">{{ question.question_text }}</p>
+                <div class="mb-3">
+                    <input type="text" name="user_answer" class="form-control" placeholder="Type your answer here..." required autocomplete="off">
+                </div>
+                <button type="submit" class="btn btn-warning w-100 fw-bold">Submit Answer</button>
+            </form>
+        {% else %}
+            <p class="text-center">No questions available right now. Please check back later!</p>
+            <a href="{% url 'portal_gateway' %}" class="btn btn-light w-100 mt-3">Back to Gateway</a>
+        {% endif %}
+    </div>
+</body>
+</html>

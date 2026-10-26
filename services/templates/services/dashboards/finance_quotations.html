@@ -80,6 +80,11 @@
                         <input type="number" step="0.01" name="discount_amount" class="form-control" value="{{ job.quotation.discount_amount|default:'0.00' }}">
                     </div>
                     <div class="mb-3">
+                        <label class="form-label fw-bold text-danger">Reward Game Discount Code (Optional)</label>
+                        <input type="text" name="discount_code" class="form-control" placeholder="Enter customer's 24-hr reward code...">
+                        <div class="form-text small text-muted">Automatically applies the CEO-configured percentage discount.</div>
+                    </div>
+                    <div class="mb-3">
                         <label class="form-label">VAT / Tax Amount (₦)</label>
                         <input type="number" step="0.01" name="vat_amount" class="form-control" value="{{ job.quotation.vat_amount|default:'0.00' }}">
                     </div>
@@ -138,6 +143,10 @@
                             <p class="mb-0 text-muted small">Item Model: {{ job.model_type }}</p>
                         </div>
                     </div>
+                    <div class="mb-3 bg-light p-3 border">
+                        <label class="form-label small fw-bold text-danger">Reward Game Discount Code (Optional)</label>
+                        <input type="text" name="discount_code" class="form-control form-control-sm" placeholder="Paste customer's reward code here...">
+                  </div>
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <h6 class="fw-bold mb-0 text-dark">Itemized Breakdown & Description</h6>
                         <button type="button" class="btn btn-sm btn-outline-dark add-item-row" data-job-id="pending-{{ job.id }}">
@@ -160,8 +169,8 @@
                                     <td><input type="number" step="0.01" name="item_price_1" class="form-control form-control-sm" value="{{ job.quotation.subtotal_amount|default:'' }}" placeholder="0.00" required></td>
                                 </tr>
                             </tbody>
-                        </table>
-                    </div>
+                      </table>
+                  </div>
                     <div class="row g-3">
                         <div class="col-md-4">
                             <label class="form-label small fw-bold">Subtotal Amount (₦)</label>
@@ -183,7 +192,7 @@
                             <label class="form-label small fw-bold">Validity Period (Days)</label>
                             <input type="number" name="validity_days" class="form-control" value="7" required>
                         </div>
-                    </div>
+                  </div>
                 </div>
                 <div class="modal-footer bg-light border-top">
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
@@ -267,10 +276,10 @@
                     {% empty %}
                     <tr>
                         <td colspan="5" class="text-center py-4 text-muted">No approved jobs requiring quotations at the moment.</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+                  </tr>
+                  {% endfor %}
+              </tbody>
+          </table>
         </div>
     </div>
 </div>
@@ -296,6 +305,11 @@
                     <div class="mb-3">
                         <label class="form-label">Discount Amount (₦)</label>
                         <input type="number" step="0.01" name="discount_amount" class="form-control" value="{{ job.quotation.discount_amount|default:'0.00' }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-danger">Reward Game Discount Code (Optional)</label>
+                        <input type="text" name="discount_code" class="form-control" placeholder="Enter customer's 24-hr reward code...">
+                        <div class="form-text small text-muted">Automatically applies the CEO-configured percentage discount.</div>
                     </div>
                     <div class="mb-3">
                         <label class="form-label">VAT / Tax Amount (₦)</label>
@@ -355,7 +369,11 @@
                             <p class="mb-1 text-muted small">Registered Account Profile</p>
                             <p class="mb-0 text-muted small">Item Model: {{ job.model_type }} | SN: {{ job.serial_number }}</p>
                         </div>
-                    </div>
+                  </div>
+                    <div class="mb-3 bg-light p-3 border">
+                        <label class="form-label small fw-bold text-danger">Reward Game Discount Code (Optional)</label>
+                        <input type="text" name="discount_code" class="form-control form-control-sm" placeholder="Paste customer's reward code here...">
+                  </div>
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <h6 class="fw-bold mb-0 text-dark">Itemized Breakdown & Description</h6>
                         <button type="button" class="btn btn-sm btn-outline-dark add-item-row" data-job-id="approved-{{ job.id }}">
@@ -370,7 +388,7 @@
                                     <th style="width: 100px;">Qty</th>
                                     <th style="width: 160px;">Unit Price (₦)</th>
                                 </tr>
-                            </thead>
+                          </thead>
                             <tbody id="item-rows-approved-{{ job.id }}">
                                 <tr>
                                     <td><input type="text" name="item_description_1" class="form-control form-control-sm" value="Repair & Diagnostic Service for {{ job.model_type }}" required></td>
@@ -379,7 +397,7 @@
                                 </tr>
                             </tbody>
                         </table>
-                    </div>
+                  </div>
                     <div class="row g-3">
                         <div class="col-md-4">
                             <label class="form-label small fw-bold">Subtotal Amount (₦)</label>
@@ -401,7 +419,7 @@
                             <label class="form-label small fw-bold">Validity Period (Days)</label>
                             <input type="number" name="validity_days" class="form-control" value="7" required>
                         </div>
-                    </div>
+                  </div>
                 </div>
                 <div class="modal-footer bg-light border-top">
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
@@ -449,12 +467,12 @@
                         </td>
                     </tr>
                     {% empty %}
-                    <tr>
-                        <td colspan="5" class="text-center py-4 text-muted">No final balance payments pending confirmation.</td>
-                    </tr>
-                    {% endfor %}
+                  <tr>
+                      <td colspan="5" class="text-center py-4 text-muted">No final balance payments pending confirmation.</td>
+                </tr>
+                  {% endfor %}
                 </tbody>
-            </table>
+          </table>
         </div>
     </div>
 </div>

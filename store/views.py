@@ -265,6 +265,9 @@ def cart_view(request):
         print("--- CART VIEW ERROR ---")
         traceback.print_exc()
         raise e
+from decimal import Decimal
+from django.contrib import messages
+from .models import UserGameReward # Ensure this model is imported
 
 @login_required
 def checkout_view(request):
@@ -297,7 +300,30 @@ def checkout_view(request):
         shipping_address = request.POST.get('shipping_address')
         phone_number = request.POST.get('phone_number')
         payment_choice = request.POST.get('payment_choice', 'full')
+        code_input = request.POST.get('discount_code', '').strip()
         
+        applied_discount_percentage = Decimal('0.00')
+        reward_obj = None
+
+        # Validate and apply game reward discount code if provided
+        if code_input:
+            try:
+                reward_obj = UserGameReward.objects.get(code=code_input, user=request.user)
+                if reward_obj.is_valid():
+                    applied_discount_percentage = reward_obj.discount_percentage
+                else:
+                    messages.error(request, "This reward code has expired or has already been used.")
+                    return redirect('checkout_view')
+            except UserGameReward.DoesNotExist:
+                messages.error(request, "Invalid discount code entered.")
+                return redirect('checkout_view')
+
+        # Apply percentage discount to items subtotal if valid code exists
+        subtotal_decimal = Decimal(str(items_subtotal))
+        if applied_discount_percentage > 0:
+            discount_multiplier = (Decimal('100.00') - applied_discount_percentage) / Decimal('100.00')
+            items_subtotal = float(subtotal_decimal * discount_multiplier)
+
         if items_subtotal >= threshold:
             shipping_fee = 0.00
         else:
@@ -348,14 +374,20 @@ def checkout_view(request):
             product.stock_quantity -= int(item['quantity'])
             product.save()
             
+        # Mark reward code as used if successfully applied to order
+        if reward_obj:
+            reward_obj.is_used = True
+            reward_obj.save()
+
         # Run order level vendor calculation update method
         if hasattr(order, 'update_vendor_cost'):
             order.update_vendor_cost()
             
+        discount_msg = f" with {applied_discount_percentage}% game discount" if applied_discount_percentage > 0 else ""
         ActivityAuditLog.objects.create(
             user=request.user,
             role='customer',
-            action=f"Created Store Order #{order.id} with {payment_choice.upper()} payment, items subtotal ₦{items_subtotal}, shipping ₦{shipping_fee} & deducted warehouse inventory."
+            action=f"Created Store Order #{order.id}{discount_msg} with {payment_choice.upper()} payment, items subtotal ₦{items_subtotal}, shipping ₦{shipping_fee} & deducted warehouse inventory."
         )
 
         Notification.objects.create(
@@ -2695,3 +2727,78 @@ def ceo_manage_return_policy(request):
         'policy': policy,
         'refund_reasons': refund_reasons
     })
+
+
+
+
+
+
+import random
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.utils import timezone
+from datetime import timedelta
+from .models import GameConfiguration, QuestionGame, SpinWheelOption, UserGameReward
+
+@login_required
+def play_spin_wheel(request):
+    config = GameConfiguration.get_solo()
+    if not config.is_active:
+        return redirect('portal_gateway')
+    
+    # Check if user already played/won in this cycle
+    if UserGameReward.objects.filter(user=request.user).exists():
+        return redirect('portal_gateway')
+
+    wheel_options = SpinWheelOption.objects.all()
+    
+    if request.method == 'POST':
+        selected_option_id = request.POST.get('option_id')
+        option = get_object_or_404(SpinWheelOption, id=selected_option_id)
+        
+        if option.is_winning:
+            expiry_time = timezone.now() + timedelta(hours=config.code_expiry_hours)
+            reward = UserGameReward.objects.create(
+                user=request.user,
+                discount_percentage=config.discount_percentage,
+                expires_at=expiry_time
+            )
+            return render(request, 'store/game_won.html', {'reward': reward})
+        else:
+            # Mark that they played (create a dummy or record if needed, or rely on a played flag)
+            # For simplicity, we can create a used/lost dummy record or check attempts. 
+            # Here we'll redirect to a game over page or back to gateway with a message.
+            return render(request, 'store/game_lost.html', {'message': 'Aww, you landed on a non-winning slice!'})
+
+    return render(request, 'store/spin_wheel.html', {'wheel_options': wheel_options})
+
+
+@login_required
+def play_qa_game(request):
+    config = GameConfiguration.get_solo()
+    if not config.is_active:
+        return redirect('portal_gateway')
+    
+    if UserGameReward.objects.filter(user=request.user).exists():
+        return redirect('portal_gateway')
+
+    # Grab a random active question
+    question = QuestionGame.objects.filter(is_active=True).order_by('?').first()
+
+    if request.method == 'POST':
+        q_id = request.POST.get('question_id')
+        user_answer = request.POST.get('user_answer', '').strip()
+        q_obj = get_object_or_404(QuestionGame, id=q_id)
+
+        if user_answer.lower() == q_obj.correct_answer.lower():
+            expiry_time = timezone.now() + timedelta(hours=config.code_expiry_hours)
+            reward = UserGameReward.objects.create(
+                user=request.user,
+                discount_percentage=config.discount_percentage,
+                expires_at=expiry_time
+            )
+            return render(request, 'store/game_won.html', {'reward': reward})
+        else:
+            return render(request, 'store/game_lost.html', {'message': 'Incorrect answer! Better luck next time.'})
+
+    return render(request, 'store/qa_game.html', {'question': question})

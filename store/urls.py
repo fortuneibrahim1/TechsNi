@@ -79,4 +79,9 @@ urlpatterns = [
     path('history/', views.store_user_history_view, name='store_user_history'),
     # Rider Return Status Update URL (matches the form action in your rider template)
     path('rider/return/<int:return_id>/update/', views.rider_return_status_update_view, name='rider_return_status_update'),
+
+
+    path('game/spin-wheel/', views.play_spin_wheel, name='play_spin_wheel'),
+    path('game/qa/', views.play_qa_game, name='play_qa_game'),
+
 ]

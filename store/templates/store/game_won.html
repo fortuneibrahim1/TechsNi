@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Congratulations - You Won!</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-dark text-white d-flex align-items-center justify-content-center min-vh-100">
+    <div class="card bg-success text-white p-4 shadow text-center" style="max-width: 500px; width: 100%;">
+        <h2>🎉 Congratulations!</h2>
+        <p class="lead mt-2">You successfully won a <strong>{{ reward.discount_percentage }}% discount</strong>!</p>
+        
+        <div class="bg-white text-dark p-3 rounded my-3">
+            <span class="d-block text-muted small">Your 24-Hour Reward Code:</span>
+            <strong class="fs-4 text-danger user-select-all">{{ reward.code }}</strong>
+        </div>
+        
+        <p class="small text-light">Copy this code and paste it during your Service quotation approval or Store checkout to apply your discount.</p>
+        
+        <a href="{% url 'portal_gateway' %}" class="btn btn-light fw-bold text-success mt-3">Return to Gateway</a>
+    </div>
+</body>
+</html>

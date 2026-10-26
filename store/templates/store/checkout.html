@@ -37,6 +37,15 @@
                     <input type="text" class="form-control rounded-0" id="phone_number" name="phone_number" value="{{ default_phone }}" required placeholder="e.g. 08012345678">
                 </div>
 
+                <!-- Reward Discount Code Section -->
+                <div class="mb-3 p-3 bg-light border">
+                    <label for="discount_code" class="form-label fw-bold text-dark small text-uppercase tracking-wider">Have a Reward Game Discount Code?</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control rounded-0" id="discount_code" name="discount_code" placeholder="Paste your 24-hour reward code here..." value="{{ request.POST.discount_code }}">
+                    </div>
+                    <div class="form-text small text-muted mt-1">If you won a code from the Spin Wheel or Q&A game, paste it here to automatically apply your discount.</div>
+                </div>
+
                 <div class="mb-4">
                     <label class="form-label fw-semibold">Payment Option</label>
                     <select class="form-select rounded-0" name="payment_choice" id="payment_choice" onchange="updatePaymentDisplay()">

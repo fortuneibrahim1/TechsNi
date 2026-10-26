@@ -14,6 +14,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 40px 0;
         }
         .gateway-card {
             background: rgba(255, 255, 255, 0.1);
@@ -41,17 +42,51 @@
             0%, 100% { transform: translateY(0); }
             50% { transform: translateY(-10px); }
         }
+        .game-banner {
+            background: linear-gradient(45deg, #ff416c, #ff4b2b);
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(255, 65, 108, 0.4);
+        }
     </style>
 </head>
 <body>
 
     <div class="container text-center">
         <!-- Company Logo & Greeting Header -->
-        <div class="mb-5">
+        <div class="mb-4">
             <img src="{% static 'store/logo.jpg' %}" alt="TechsNi Logo" class="company-logo">
             <h1 class="fw-bold mt-3">Hello, {% if request.user.get_full_name %}{{ request.user.get_full_name }}{% else %}{{ request.user.username }}{% endif %}!</h1>
             <p class="lead text-light">Welcome to TechsNi. Where would you like to go today?</p>
         </div>
+
+        <!-- CEO Activated Game Banner / Section -->
+        {% if config.is_active %}
+        <div class="row justify-content-center mb-4">
+            <div class="col-md-8">
+                <div class="game-banner text-white">
+                    <h3 class="fw-bold">🎮 TechsNi Reward Arena is LIVE!</h3>
+                    <p class="mb-3">Play either the Spin Wheel or Q&A Game to win a <strong>{{ config.discount_percentage }}% discount code</strong> applicable for Service quotations or Store checkouts!</p>
+                    
+                    {% if user_reward and user_reward.is_valid %}
+                        <div class="alert alert-light text-dark py-2">
+                            <span>Your Active Reward Code: <strong class="text-danger user-select-all" id="rewardCodeText">{{ user_reward.code }}</strong></span>
+                            <button class="btn btn-sm btn-dark ms-2" onclick="navigator.clipboard.writeText('{{ user_reward.code }}'); alert('Code copied to clipboard!');">Copy Code</button>
+                            <div class="small text-muted mt-1">Expires at: {{ user_reward.expires_at|date:"Y-m-d H:i" }}</div>
+                        </div>
+                    {% elif has_played %}
+                        <p class="badge bg-dark text-warning p-2 fs-6 mb-0">You have already played your turn for this active game cycle!</p>
+                    {% else %}
+                        <div class="d-flex justify-content-center gap-3">
+                            <a href="{% url 'play_spin_wheel' %}" class="btn btn-light fw-bold text-danger px-4">🎡 Play Spin Wheel</a>
+                            <a href="{% url 'play_qa_game' %}" class="btn btn-light fw-bold text-danger px-4">❓ Play Q&A Game</a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
 
         <!-- Choice Cards -->
         <div class="row justify-content-center g-4">

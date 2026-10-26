@@ -124,3 +124,5 @@ def notify_return_request_status(sender, instance, created, **kwargs):
         subject = f"Return Request #{instance.id} Status: {instance.get_status_display()}"
         message = f"Return Request #{instance.id} (Order #{instance.order.id}) updated to: {instance.get_status_display()}."
         send_clean_mail(subject, message, list(set(recipients)))
+
+

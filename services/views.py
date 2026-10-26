@@ -588,13 +588,16 @@ def ceo_dashboard(request):
             return redirect('ceo_dashboard')
 
     status_filter = request.GET.get('status', '')
+    
+    # Optimized with slicing [:100] and [:50] to prevent out-of-memory crashes on Render free tier
     all_jobs = Job.objects.all().order_by('-id')
     if status_filter:
         all_jobs = all_jobs.filter(status=status_filter)
+    all_jobs = all_jobs[:100]
 
-    live_jobs = Job.objects.all().order_by('-id')
-    users = User.objects.all().order_by('-id')
-    workers = User.objects.filter(role='worker')
+    live_jobs = Job.objects.all().order_by('-id')[:50]
+    users = User.objects.all().order_by('-id')[:100]
+    workers = User.objects.filter(role='worker')[:50]
 
     return render(request, 'services/dashboards/ceo.html', {
         'live_jobs': live_jobs,

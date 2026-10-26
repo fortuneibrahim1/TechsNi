@@ -106,5 +106,4 @@ urlpatterns = [
     path('customer/job/<int:job_id>/approve-po/', views.customer_approve_via_po, name='customer_approve_via_po'),
     path('services/customer/job/<int:job_id>/pay-notification/', views.customer_po_payment_notification, name='customer_po_payment_notification'),
 
-    path('dashboard/ceo/game/', views.ceo_game_dashboard, name='ceo_game_dashboard'),
 ]

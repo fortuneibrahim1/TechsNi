@@ -3,7 +3,8 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from .models import (
     User, Job, Quotation, Invoice, SiteConfiguration, JobType, 
     InstructionCatalog, CompanyInfo, CompanyBankAccount,
-    SupportTicket, TicketMessage, TicketRating
+    SupportTicket, TicketMessage, TicketRating,GameConfiguration, 
+    QuestionGame, SpinWheelOption
 )
 
 # Customize TechsNi Admin branding headers
@@ -119,3 +120,31 @@ class TicketMessageAdmin(admin.ModelAdmin):
 class TicketRatingAdmin(admin.ModelAdmin):
     list_display = ('id', 'ticket', 'customer', 'agent', 'score', 'created_at')
     list_filter = ('score', 'created_at')
+
+
+from django.contrib import admin
+from .models import GameConfiguration, QuestionGame, SpinWheelOption
+
+@admin.register(GameConfiguration)
+class GameConfigurationAdmin(admin.ModelAdmin):
+    list_display = ('is_active', 'discount_percentage', 'code_expiry_hours')
+    
+    # Restrict creation/deletion so it acts as a singleton (only 1 row allowed)
+    def has_add_permission(self, request):
+        return not GameConfiguration.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+@admin.register(QuestionGame)
+class QuestionGameAdmin(admin.ModelAdmin):
+    list_display = ('id', 'question_text', 'correct_answer')
+    search_fields = ('question_text', 'correct_answer')
+    list_per_page = 25  # Built-in pagination prevents memory spikes
+
+@admin.register(SpinWheelOption)
+class SpinWheelOptionAdmin(admin.ModelAdmin):
+    list_display = ('id', 'label', 'is_winning', 'probability_weight')
+    list_filter = ('is_winning',)
+    search_fields = ('label',)
+    list_per_page = 25  # Built-in pagination prevents memory spikes

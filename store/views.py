@@ -1636,9 +1636,27 @@ def delete_account_view(request):
     return render(request, 'store/delete_account_confirmation.html')
 
 
+from services.models import GameConfiguration
+from .models import UserGameReward # Make sure this model is imported or available
+
 @login_required
 def portal_gateway_view(request):
-    return render(request, 'store/portal_gateway.html')
+    # Fetch the singleton game configuration
+    try:
+        config = GameConfiguration.get_solo()
+    except Exception:
+        config = None
+
+    # Check if the user already has a reward/played code
+    user_reward = UserGameReward.objects.filter(user=request.user).first()
+    has_played = user_reward is not None  # True if they already played/won
+
+    context = {
+        'config': config,
+        'user_reward': user_reward,
+        'has_played': has_played,
+    }
+    return render(request, 'store/portal_gateway.html', context)
 
 @login_required
 def add_to_cart_view(request, product_id):
@@ -2217,11 +2235,6 @@ def delete_account_view(request):
         request.user.delete()
         return redirect('login')
     return render(request, 'store/delete_account_confirmation.html')
-
-
-@login_required
-def portal_gateway_view(request):
-    return render(request, 'store/portal_gateway.html')
 
 
 @login_required

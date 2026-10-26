@@ -25,11 +25,14 @@ def send_clean_mail(subject, plain_message, recipient_list):
     if not recipient_list:
         return
     
+    # Safe multiline replacement handled outside template/f-string to prevent syntax errors
+    formatted_message = plain_message.replace('\n', '<br>')
+    
     # Simple inline HTML wrapper that inbox providers trust
     html_message = f"""
     <html>
       <body style="font-family: Arial, sans-serif; line-height: 1.5; color: #222222; padding: 10px;">
-        <p>{plain_message.replace('\n', '<br>')}</p>
+        <p>{formatted_message}</p>
         <hr style="border: none; border-top: 1px solid #e0e0e0; margin-top: 20px;">
         <p style="font-size: 12px; color: #777777;">TechsNi Services | support@techsni.com.ng</p>
       </body>
@@ -89,8 +92,9 @@ def notify_job_status_change(sender, instance, created, **kwargs):
             recipients.append(instance.assigned_worker.email)
 
         if recipients:
-            subject = f"Job #{instance.id} Status Updated: {instance.get_status_display()}"
-            message = f"Job #{instance.id} ({instance.customer.username}) status updated to: {instance.get_status_display()}."
+            status_display = instance.get_status_display()
+            subject = f"Job #{instance.id} Status Updated: {status_display}"
+            message = f"Job #{instance.id} ({instance.customer.username}) status updated to: {status_display}."
             send_clean_mail(subject, message, list(set(recipients)))
 
 # Quotation Issued Notification
@@ -102,8 +106,10 @@ def notify_quotation_issued(sender, instance, created, **kwargs):
             recipients.append(instance.job.customer.email)
             
         if recipients:
+            total_amt = f"₦{instance.total_amount:,.2f}"
+            deposit_amt = f"₦{instance.deposit_amount:,.2f}"
             subject = f"Quotation Issued for Job #{instance.job.id}"
-            message = f"A quotation of ₦{instance.total_amount:,.2f} has been issued for Job #{instance.job.id}.\n\nDeposit Required: ₦{instance.deposit_amount:,.2f}"
+            message = f"A quotation of {total_amt} has been issued for Job #{instance.job.id}.\n\nDeposit Required: {deposit_amt}"
             send_clean_mail(subject, message, list(set(recipients)))
 
 # Purchase Order Notification
@@ -113,8 +119,9 @@ def notify_purchase_order_status(sender, instance, created, **kwargs):
     
     if created:
         recipients = list(set(po_reviewers + ([instance.customer.email] if instance.customer.email else [])))
+        po_num = instance.po_number or 'N/A'
         subject = f"PO Uploaded for Job #{instance.job.id}"
-        message = f"Purchase Order ({instance.po_number or 'N/A'}) was uploaded by {instance.customer.username} and is pending review."
+        message = f"Purchase Order ({po_num}) was uploaded by {instance.customer.username} and is pending review."
         send_clean_mail(subject, message, recipients)
 
 # Support Ticket Message Alert (Customer Chat Alerts)

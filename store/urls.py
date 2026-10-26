@@ -83,5 +83,4 @@ urlpatterns = [
 
     path('game/spin-wheel/', views.play_spin_wheel, name='play_spin_wheel'),
     path('game/qa/', views.play_qa_game, name='play_qa_game'),
-
 ]

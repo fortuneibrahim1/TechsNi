@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Spin Wheel Game</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-dark text-white d-flex align-items-center justify-content-center vh-100">
+    <div class="card p-4 bg-secondary text-white text-center shadow" style="max-width: 400px; width: 100%;">
+        <h2 class="mb-3">🎡 Spin the Wheel</h2>
+        <p class="mb-4">Select an option to test your luck and win a discount!</p>
+        
+        <form method="POST">
+            {% csrf_token %}
+            <div class="mb-3 text-start">
+                <label class="form-label fw-bold">Choose a slice:</label>
+                <select name="option_id" class="form-select" required>
+                    {% for option in wheel_options %}
+                        <option value="{{ option.id }}">{{ option.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-warning w-100 fw-bold py-2">Spin Now!</button>
+        </form>
+        <div class="mt-3">
+            <a href="{% url 'portal_gateway' %}" class="text-white-50 text-decoration-none small">Back to Portal Gateway</a>
+        </div>
+    </div>
+</body>
+</html>

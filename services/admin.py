@@ -3,7 +3,7 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from .models import (
     User, Job, Quotation, Invoice, SiteConfiguration, JobType, 
     InstructionCatalog, CompanyInfo, CompanyBankAccount,
-    SupportTicket, TicketMessage, TicketRating,GameConfiguration, 
+    SupportTicket, TicketMessage, TicketRating, GameConfiguration, 
     QuestionGame, SpinWheelOption
 )
 
@@ -122,12 +122,11 @@ class TicketRatingAdmin(admin.ModelAdmin):
     list_filter = ('score', 'created_at')
 
 
-from django.contrib import admin
-from .models import GameConfiguration, QuestionGame, SpinWheelOption
-
+# --- GAME CONFIGURATION & MANAGEMENT ADMIN ---
 @admin.register(GameConfiguration)
 class GameConfigurationAdmin(admin.ModelAdmin):
-    list_display = ('is_active', 'discount_percentage', 'code_expiry_hours')
+    # Added max_winners here so you can view/edit the win cap straight from the dashboard
+    list_display = ('is_active', 'discount_percentage', 'code_expiry_hours', 'max_winners')
     
     # Restrict creation/deletion so it acts as a singleton (only 1 row allowed)
     def has_add_permission(self, request):

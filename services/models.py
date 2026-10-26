@@ -438,6 +438,9 @@ class GameConfiguration(models.Model):
     discount_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=10.00, help_text="Percentage discount applied when a code is won")
     code_expiry_hours = models.IntegerField(default=24, help_text="How many hours the reward code lasts before expiring")
     
+    # Added field to cap total winners before automatic deactivation
+    max_winners = models.IntegerField(default=50, help_text="Maximum number of winning users before the game automatically deactivates")
+
     updated_at = models.DateTimeField(auto_now=True)
 
     def save(self, *args, **kwargs):

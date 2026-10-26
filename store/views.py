@@ -2746,13 +2746,15 @@ def ceo_manage_return_policy(request):
 
 
 import random
+import uuid
+from decimal import Decimal
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from datetime import timedelta
+from django.contrib import messages
 
-# IMPORT GAME MODELS FROM THE SERVICES APP (NOT .models)
-from services.models import GameConfiguration, QuestionGame, SpinWheelOption, UserGameReward
+# Import all required models from the services app (both Job models and Game models)
 
 @login_required
 def portal_gateway_view(request):
@@ -2779,6 +2781,13 @@ def portal_gateway_view(request):
 @login_required
 def play_spin_wheel(request):
     config = GameConfiguration.get_solo()
+    
+    # Check if max winners limit has already been reached -> auto-deactivate
+    if config.max_winners and UserGameReward.objects.count() >= config.max_winners:
+        config.is_active = False
+        config.save()
+        return redirect('portal_gateway')
+
     if not config.is_active:
         return redirect('portal_gateway')
     
@@ -2793,6 +2802,12 @@ def play_spin_wheel(request):
         option = get_object_or_404(SpinWheelOption, id=selected_option_id)
         
         if option.is_winning:
+            # Double-check winner cap right before issuing reward
+            if config.max_winners and UserGameReward.objects.count() >= config.max_winners:
+                config.is_active = False
+                config.save()
+                return redirect('portal_gateway')
+
             expiry_time = timezone.now() + timedelta(hours=config.code_expiry_hours)
             reward = UserGameReward.objects.create(
                 user=request.user,
@@ -2805,25 +2820,40 @@ def play_spin_wheel(request):
 
     return render(request, 'store/spin_wheel.html', {'wheel_options': wheel_options})
 
-
 @login_required
 def play_qa_game(request):
     config = GameConfiguration.get_solo()
+    
+    # Check if max winners limit has already been reached -> auto-deactivate
+    if config.max_winners and UserGameReward.objects.count() >= config.max_winners:
+        config.is_active = False
+        config.save()
+        return redirect('portal_gateway')
+
     if not config.is_active:
         return redirect('portal_gateway')
     
     if UserGameReward.objects.filter(user=request.user).exists():
         return redirect('portal_gateway')
 
-    # Grab a random active question
-    question = QuestionGame.objects.filter(is_active=True).order_by('?').first()
-
     if request.method == 'POST':
-        q_id = request.POST.get('question_id')
-        user_answer = request.POST.get('user_answer', '').strip()
-        q_obj = get_object_or_404(QuestionGame, id=q_id)
+        all_correct = True
+        # Loop through the submitted questions
+        for key, user_answer in request.POST.items():
+            if key.startswith('question_'):
+                q_id = key.split('_')[1]
+                q_obj = get_object_or_404(QuestionGame, id=q_id)
+                if user_answer.strip().lower() != q_obj.correct_answer.strip().lower():
+                    all_correct = False
+                    break
 
-        if user_answer.lower() == q_obj.correct_answer.lower():
+        if all_correct:
+            # Double-check winner cap right before issuing reward
+            if config.max_winners and UserGameReward.objects.count() >= config.max_winners:
+                config.is_active = False
+                config.save()
+                return redirect('portal_gateway')
+
             expiry_time = timezone.now() + timedelta(hours=config.code_expiry_hours)
             reward = UserGameReward.objects.create(
                 user=request.user,
@@ -2832,6 +2862,9 @@ def play_qa_game(request):
             )
             return render(request, 'store/game_won.html', {'reward': reward})
         else:
-            return render(request, 'store/game_lost.html', {'message': 'Incorrect answer! Better luck next time.'})
+            return render(request, 'store/game_lost.html', {'message': 'Not quite! You missed one or more answers. Better luck next time.'})
 
-    return render(request, 'store/qa_game.html', {'question': question})
+    # Grab 3 random active questions
+    questions = list(QuestionGame.objects.filter(is_active=True).order_by('?'))[:3]
+
+    return render(request, 'store/qa_game.html', {'questions': questions})

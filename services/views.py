@@ -2574,7 +2574,16 @@ def customer_jobs_list_view(request):
         return redirect('customer_dashboard')
     return redirect('customer_job_detail', job_id=job.id)
   
+
 import uuid
+from decimal import Decimal
+from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from django.utils import timezone
+from django.contrib import messages
+
+# Import models from services app
+from .models import Job, Quotation, Invoice, UserGameReward, GameConfiguration, QuestionGame, SpinWheelOption
 
 @login_required
 def customer_job_detail_view(request, job_id):
@@ -2592,7 +2601,6 @@ def customer_job_detail_view(request, job_id):
         
     # Automatically get or create invoice if it should be visible but doesn't exist yet
     if is_invoice_visible and not invoice:
-        # Always generate a unique invoice number for any job type to prevent IntegrityError
         prefix = "PO-INV" if job.is_po_job else "INV"
         inv_number = f"{prefix}-{job.id}-{uuid.uuid4().hex[:6].upper()}"
         invoice, created = Invoice.objects.get_or_create(job=job, defaults={'invoice_number': inv_number})
@@ -2627,6 +2635,60 @@ def submit_job_view(request):
             
     return redirect('customer_dashboard')
 
+
+# --- NEW: APPLY PROMO/REWARD CODE VIEW ---
+@login_required
+def apply_promo_code(request, job_id):
+    job = get_object_or_404(Job, id=job_id, customer=request.user)
+    quotation = getattr(job, 'quotation', None)
+
+    if not quotation or quotation.is_approved_by_client:
+        messages.error(request, "This quotation cannot be modified with a promo code anymore.")
+        return redirect('customer_job_detail', job_id=job.id)
+
+    if request.method == 'POST':
+        code_input = request.POST.get('promo_code', '').strip()
+        
+        try:
+            # Look up the user's reward code
+            reward = UserGameReward.objects.get(code=code_input, user=request.user)
+        except UserGameReward.DoesNotExist:
+            messages.error(request, "Invalid promo code or code does not belong to you.")
+            return redirect('customer_job_detail', job_id=job.id)
+
+        # Validate expiry and usage status
+        if not reward.is_valid():
+            messages.error(request, "This promo code has already been used or has expired.")
+            return redirect('customer_job_detail', job_id=job.id)
+
+        # Apply the discount percentage to the quotation subtotal
+        discount_rate = reward.discount_percentage / Decimal('100.0')
+        subtotal = quotation.subtotal_amount
+        discount_amt = subtotal * discount_rate
+        
+        # Recalculate totals (assuming standard tax calculation or adjusting fields based on your model structure)
+        taxable_amount = subtotal - discount_amt
+        vat_amt = getattr(quotation, 'vat_amount', Decimal('0.00')) # keeps existing vat or scales if needed
+        total_amt = taxable_amount + vat_amt
+        deposit_pct = getattr(quotation, 'deposit_percentage', Decimal('50.0'))
+        deposit_amt = total_amt * (deposit_pct / Decimal('100.0'))
+        balance_amt = total_amt - deposit_amt
+
+        # Update quotation fields
+        quotation.discount_amount = discount_amt
+        quotation.total_amount = total_amt
+        quotation.deposit_amount = deposit_amt
+        quotation.balance_amount = balance_amt
+        quotation.promo_code_used = str(reward.code)
+        quotation.save()
+
+        # Mark reward code as used so it can't be applied again
+        reward.is_used = True
+        reward.save()
+
+        messages.success(request, f"Success! {reward.discount_percentage}% discount has been applied to your quote.")
+
+    return redirect('customer_job_detail', job_id=job.id)
 
 @login_required
 def respond_quote_view(request):

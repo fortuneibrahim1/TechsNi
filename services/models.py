@@ -463,16 +463,18 @@ class GameConfiguration(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def save(self, *args, **kwargs):
-        # Ensure singleton instance
         self.pk = 1
         
-        # Check if the model already exists in DB to detect changes
-        if self.pk:
-            old_config = GameConfiguration.objects.filter(pk=self.pk).first()
-            if old_config:
-                # If admin is switching game from inactive (False) to active (True), update reset timestamp
-                if not old_config.is_active and self.is_active:
-                    self.last_reset_at = timezone.now()
+        # Check if a record already exists in the database
+        if GameConfiguration.objects.filter(pk=1).exists():
+            old_config = GameConfiguration.objects.get(pk=1)
+            # If the game was OFF and is now being turned ON, update the reset timestamp!
+            if not old_config.is_active and self.is_active:
+                self.last_reset_at = timezone.now()
+        else:
+            # If it's being created for the very first time and is active
+            if self.is_active:
+                self.last_reset_at = timezone.now()
 
         super().save(*args, **kwargs)
 
@@ -483,7 +485,7 @@ class GameConfiguration(models.Model):
 
     def __str__(self):
         return f"Game Config (Active: {self.is_active}, Last Reset: {self.last_reset_at})"
-
+    
 
 class QuestionGame(models.Model):
     question_text = models.TextField()

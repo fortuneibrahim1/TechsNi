@@ -2752,9 +2752,9 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from datetime import timedelta
-from django.contrib import messages
 
-# Import all required models from the services app (both Job models and Game models)
+# IMPORT GAME MODELS FROM THE SERVICES APP (NOT .models)
+from services.models import GameConfiguration, QuestionGame, SpinWheelOption, UserGameReward
 
 @login_required
 def portal_gateway_view(request):
@@ -2763,12 +2763,20 @@ def portal_gateway_view(request):
     except Exception:
         config = None
 
-    try:
-        user_reward = UserGameReward.objects.filter(user=request.user).first()
-    except Exception:
-        user_reward = None
-
-    has_played = user_reward is not None
+    user_reward = None
+    has_played = False
+    
+    if config and config.is_active:
+        # Check if user played in the CURRENT active cycle
+        try:
+            user_reward = UserGameReward.objects.filter(
+                user=request.user, 
+                created_at__gte=config.last_reset_at
+            ).first()
+        except Exception:
+            user_reward = None
+        
+        has_played = user_reward is not None
 
     context = {
         'config': config,
@@ -2782,17 +2790,18 @@ def portal_gateway_view(request):
 def play_spin_wheel(request):
     config = GameConfiguration.get_solo()
     
-    # Check if max winners limit has already been reached -> auto-deactivate
-    if config.max_winners and UserGameReward.objects.count() >= config.max_winners:
-        config.is_active = False
-        config.save()
-        return redirect('portal_gateway')
-
     if not config.is_active:
         return redirect('portal_gateway')
     
-    # Check if user already played/won in this cycle
-    if UserGameReward.objects.filter(user=request.user).exists():
+    # Check if max winners limit has already been reached for this cycle -> auto-deactivate
+    current_winners_count = UserGameReward.objects.filter(created_at__gte=config.last_reset_at).count()
+    if config.max_winners and current_winners_count >= config.max_winners:
+        config.is_active = False
+        config.save()
+        return redirect('portal_gateway')
+    
+    # Check if user already played/won in this specific cycle
+    if UserGameReward.objects.filter(user=request.user, created_at__gte=config.last_reset_at).exists():
         return redirect('portal_gateway')
 
     wheel_options = SpinWheelOption.objects.all()
@@ -2803,7 +2812,8 @@ def play_spin_wheel(request):
         
         if option.is_winning:
             # Double-check winner cap right before issuing reward
-            if config.max_winners and UserGameReward.objects.count() >= config.max_winners:
+            latest_winners_count = UserGameReward.objects.filter(created_at__gte=config.last_reset_at).count()
+            if config.max_winners and latest_winners_count >= config.max_winners:
                 config.is_active = False
                 config.save()
                 return redirect('portal_gateway')
@@ -2824,21 +2834,22 @@ def play_spin_wheel(request):
 def play_qa_game(request):
     config = GameConfiguration.get_solo()
     
-    # Check if max winners limit has already been reached -> auto-deactivate
-    if config.max_winners and UserGameReward.objects.count() >= config.max_winners:
-        config.is_active = False
-        config.save()
-        return redirect('portal_gateway')
-
     if not config.is_active:
         return redirect('portal_gateway')
     
-    if UserGameReward.objects.filter(user=request.user).exists():
+    # Check if max winners limit has already been reached for this cycle -> auto-deactivate
+    current_winners_count = UserGameReward.objects.filter(created_at__gte=config.last_reset_at).count()
+    if config.max_winners and current_winners_count >= config.max_winners:
+        config.is_active = False
+        config.save()
+        return redirect('portal_gateway')
+    
+    # Check if user already played in this specific cycle
+    if UserGameReward.objects.filter(user=request.user, created_at__gte=config.last_reset_at).exists():
         return redirect('portal_gateway')
 
     if request.method == 'POST':
         all_correct = True
-        # Loop through the submitted questions
         for key, user_answer in request.POST.items():
             if key.startswith('question_'):
                 q_id = key.split('_')[1]
@@ -2848,8 +2859,8 @@ def play_qa_game(request):
                     break
 
         if all_correct:
-            # Double-check winner cap right before issuing reward
-            if config.max_winners and UserGameReward.objects.count() >= config.max_winners:
+            latest_winners_count = UserGameReward.objects.filter(created_at__gte=config.last_reset_at).count()
+            if config.max_winners and latest_winners_count >= config.max_winners:
                 config.is_active = False
                 config.save()
                 return redirect('portal_gateway')

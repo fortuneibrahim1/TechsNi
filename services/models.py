@@ -426,26 +426,54 @@ class TicketRating(models.Model):
         agent_name = self.agent.username if self.agent else "Unassigned"
         return f"Rating: {score_stars} for Agent {agent_name} (Ticket #{self.ticket.id})"
 
-from django.db import models
-from django.conf import settings
 import uuid
 from datetime import timedelta
+from django.db import models
+from django.conf import settings
 from django.utils import timezone
+
 
 class GameConfiguration(models.Model):
     # Singleton pattern or single active config row
-    is_active = models.BooleanField(default=False, help_text="Master switch to activate/deactivate games for all users")
-    discount_percentage = models.DecimalField(max_digits=5, decimal_places=2, default=10.00, help_text="Percentage discount applied when a code is won")
-    code_expiry_hours = models.IntegerField(default=24, help_text="How many hours the reward code lasts before expiring")
+    is_active = models.BooleanField(
+        default=False, 
+        help_text="Master switch to activate/deactivate games for all users"
+    )
+    discount_percentage = models.DecimalField(
+        max_digits=5, 
+        decimal_places=2, 
+        default=10.00, 
+        help_text="Percentage discount applied when a code is won"
+    )
+    code_expiry_hours = models.IntegerField(
+        default=24, 
+        help_text="How many hours the reward code lasts before expiring"
+    )
+    max_winners = models.IntegerField(
+        default=50, 
+        help_text="Maximum number of winning users before the game automatically deactivates"
+    )
     
-    # Added field to cap total winners before automatic deactivation
-    max_winners = models.IntegerField(default=50, help_text="Maximum number of winning users before the game automatically deactivates")
+    # Tracks when the current cycle started
+    last_reset_at = models.DateTimeField(
+        default=timezone.now, 
+        help_text="Timestamp of when the game cycle was last started or reset"
+    )
 
     updated_at = models.DateTimeField(auto_now=True)
 
     def save(self, *args, **kwargs):
-        # Ensure only one config instance exists
+        # Ensure singleton instance
         self.pk = 1
+        
+        # Check if the model already exists in DB to detect changes
+        if self.pk:
+            old_config = GameConfiguration.objects.filter(pk=self.pk).first()
+            if old_config:
+                # If admin is switching game from inactive (False) to active (True), update reset timestamp
+                if not old_config.is_active and self.is_active:
+                    self.last_reset_at = timezone.now()
+
         super().save(*args, **kwargs)
 
     @classmethod
@@ -454,7 +482,7 @@ class GameConfiguration(models.Model):
         return config
 
     def __str__(self):
-        return f"Game Config (Active: {self.is_active})"
+        return f"Game Config (Active: {self.is_active}, Last Reset: {self.last_reset_at})"
 
 
 class QuestionGame(models.Model):
@@ -468,9 +496,18 @@ class QuestionGame(models.Model):
 
 
 class SpinWheelOption(models.Model):
-    label = models.CharField(max_length=100, help_text="Text shown on the wheel slice (e.g., '10% Off', 'Try Again', 'Jackpot!')")
-    is_winning = models.BooleanField(default=False, help_text="Check if this slice triggers a win")
-    probability_weight = models.IntegerField(default=1, help_text="Weight for wheel landing probability")
+    label = models.CharField(
+        max_length=100, 
+        help_text="Text shown on the wheel slice (e.g., '10% Off', 'Try Again', 'Jackpot!')"
+    )
+    is_winning = models.BooleanField(
+        default=False, 
+        help_text="Check if this slice triggers a win"
+    )
+    probability_weight = models.IntegerField(
+        default=1, 
+        help_text="Weight for wheel landing probability"
+    )
 
     def __str__(self):
         return f"{self.label} ({'Winner' if self.is_winning else 'Loser'})"

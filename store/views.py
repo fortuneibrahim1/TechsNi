@@ -485,10 +485,9 @@ def store_order_detail_view(request, order_id):
         return render(request, 'store/order_detail.html', context)
 
     return render(request, 'store/order_detail.html', context)
-
 @login_required
 def customer_invoices_view(request, order_id=None):
-    """Displays single or multiple customer invoices/orders."""
+    """Displays single or multiple customer invoices/orders with safe conditional promo pricing."""
     global_settings = StoreGlobalSetting.objects.first()
     
     if order_id:
@@ -500,6 +499,30 @@ def customer_invoices_view(request, order_id=None):
         orders = StoreOrder.objects.filter(customer=request.user).order_by('-created_at')
         invoices = StoreInvoice.objects.filter(order__customer=request.user).order_by('-generated_at')
 
+    # Dynamically compute line-item display prices for orders with promo/game discounts
+    for ord_obj in orders:
+        # Get order items (adjust attribute name if your related_name differs, e.g., items or orderitem_set)
+        items = ord_obj.items.all() if hasattr(ord_obj, 'items') else ord_obj.orderitem_set.all()
+        
+        raw_total = sum(item.unit_price * item.quantity for item in items) if items else 0
+        billed_total = getattr(ord_obj, 'total_amount', raw_total)
+        
+        # CONDITIONAL CHECK: Only adjust if billed total is less than raw total (discount applied)
+        if billed_total < raw_total and raw_total > 0:
+            multiplier = billed_total / raw_total
+            for item in items:
+                item.display_unit_price = item.unit_price * multiplier
+                item.display_total = item.unit_price * item.quantity * multiplier
+                item.is_promo = True
+        else:
+            for item in items:
+                item.display_unit_price = item.unit_price
+                item.display_total = item.unit_price * item.quantity
+                item.is_promo = False
+                
+        # Attach processed items list back to the order object for the template
+        ord_obj.computed_items = items
+
     return render(request, 'store/customer_invoices.html', {
         'invoice': invoices.first() if hasattr(invoices, 'first') else (invoices[0] if invoices else None),
         'order': orders[0] if orders else None,
@@ -507,7 +530,6 @@ def customer_invoices_view(request, order_id=None):
         'orders': orders,
         'global_settings': global_settings
     })
-
 
 def customer_wishlist_view(request):
     wishlist_items = Wishlist.objects.filter(customer=request.user)
@@ -797,10 +819,12 @@ def store_finance_dashboard(request):
     if not request.user.is_superuser and user_role not in ['store_finance', 'Finance', 'general_manager']:
         return redirect('store_home')
         
-    pending_orders = StoreOrder.objects.filter(status__in=['pending_payment', 'partial_payment_submitted', 'balance_payment_submitted'])
+    pending_orders = StoreOrder.objects.filter(
+        status__in=['pending_payment', 'partial_payment_submitted', 'balance_payment_submitted']
+    ).prefetch_related('items__product')
     
-    # Base querysets for filtering
-    all_orders = StoreOrder.objects.all().order_by('-id')
+    # Base querysets for filtering with prefected items
+    all_orders = StoreOrder.objects.all().order_by('-id').prefetch_related('items__product')
     
     # Filtering for Transactions & Invoice Ledger / Vendor Splits
     filter_date = request.GET.get('date')

@@ -129,7 +129,12 @@
                                 <tbody>
                                     {% for order in pending_orders %}
                                         <tr>
-                                            <td class="fw-bold text-dark">#{{ order.id }}</td>
+                                            <td class="fw-bold text-dark">
+                                                #{{ order.id }}
+                                                <button class="btn btn-sm btn-outline-secondary py-0 px-1 ms-1" type="button" data-bs-toggle="collapse" data-bs-target="#items-pending-{{ order.id }}" aria-expanded="false" title="View Order Items">
+                                                    <i class="fas fa-eye small"></i> Items
+                                                </button>
+                                            </td>
                                             <td>
                                                 <div class="fw-bold text-dark">
                                                     {% if order.customer.get_full_name %}
@@ -157,7 +162,7 @@
                                             </td>
                                             <td><span class="badge bg-warning text-dark">{{ order.get_status_display }}</span></td>
                                             <td class="text-end">
-                                                <form method="POST">
+                                                <form method="POST" class="d-inline">
                                                     {% csrf_token %}
                                                     <input type="hidden" name="order_id" value="{{ order.id }}">
                                                     {% if order.status == 'balance_payment_submitted' or order.status == 'balance_paid' %}
@@ -171,6 +176,21 @@
                                                         <button type="submit" class="btn btn-success btn-sm fw-bold rounded-0 px-3">Confirm Payment & Invoice</button>
                                                     {% endif %}
                                                 </form>
+                                            </td>
+                                        </tr>
+                                        <!-- Collapsible Item Details Row -->
+                                        <tr>
+                                            <td colspan="7" class="p-0 border-0">
+                                                <div class="collapse bg-light p-3 border-bottom" id="items-pending-{{ order.id }}">
+                                                    <h6 class="fw-bold text-dark mb-2"><i class="fas fa-shopping-cart text-success me-1"></i> Order #{{ order.id }} Item Breakdown:</h6>
+                                                    <ul class="mb-0 ps-3 small">
+                                                        {% for item in order.items.all %}
+                                                            <li><strong>{{ item.product.name }}</strong> &times; {{ item.quantity }} — Unit: ₦{{ item.unit_price }} | Total: ₦{{ item.total_price }}</li>
+                                                        {% empty %}
+                                                            <li class="text-muted">No items recorded for this order.</li>
+                                                        {% endfor %}
+                                                    </ul>
+                                                </div>
                                             </td>
                                         </tr>
                                     {% endfor %}
@@ -364,7 +384,12 @@
                                 <tbody>
                                     {% for order in all_orders %}
                                         <tr>
-                                            <td class="fw-bold text-dark">#{{ order.id }}</td>
+                                            <td class="fw-bold text-dark">
+                                                #{{ order.id }}
+                                                <button class="btn btn-sm btn-outline-secondary py-0 px-1 ms-1" type="button" data-bs-toggle="collapse" data-bs-target="#items-ledger-{{ order.id }}" aria-expanded="false" title="View Order Items">
+                                                    <i class="fas fa-eye small"></i> Items
+                                                </button>
+                                            </td>
                                             <td>
                                                 <div class="fw-bold text-dark">
                                                     {% if order.customer.get_full_name %}
@@ -379,6 +404,21 @@
                                             <td class="fw-bold text-success">₦{{ order.total_amount }}</td>
                                             <td><span class="badge bg-light text-dark border">{{ order.get_status_display }}</span></td>
                                             <td class="text-muted small">{{ order.created_at|date:"M d, Y H:i" }}</td>
+                                        </tr>
+                                        <!-- Collapsible Item Details Row -->
+                                        <tr>
+                                            <td colspan="6" class="p-0 border-0">
+                                                <div class="collapse bg-light p-3 border-bottom" id="items-ledger-{{ order.id }}">
+                                                    <h6 class="fw-bold text-dark mb-2"><i class="fas fa-shopping-cart text-success me-1"></i> Order #{{ order.id }} Item Breakdown:</h6>
+                                                    <ul class="mb-0 ps-3 small">
+                                                        {% for item in order.items.all %}
+                                                            <li><strong>{{ item.product.name }}</strong> &times; {{ item.quantity }} — Unit: ₦{{ item.unit_price }} | Total: ₦{{ item.total_price }}</li>
+                                                        {% empty %}
+                                                            <li class="text-muted">No items recorded for this order.</li>
+                                                        {% endfor %}
+                                                    </ul>
+                                                </div>
+                                            </td>
                                         </tr>
                                     {% endfor %}
                                 </tbody>

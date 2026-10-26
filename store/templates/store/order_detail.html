@@ -28,7 +28,13 @@
                         <div>
                             <span class="fw-semibold">{{ item.product.name }}</span> (x{{ item.quantity }})
                         </div>
-                        <span class="fw-bold">₦{{ item.total_price }}</span>
+                        <span class="fw-bold">
+                            {% if order.raw_total and order.items_subtotal < order.raw_total and order.raw_total > 0 %}
+                                ₦{{ item.unit_price|stringformat:".2f" }}
+                            {% else %}
+                                ₦{{ item.total_price }}
+                            {% endif %}
+                        </span>
                     </li>
                 {% endfor %}
             </ul>
@@ -233,9 +239,15 @@
                                         <tr>
                                             <td class="fw-semibold text-dark">{{ item.product.name }}</td>
                                             <td class="text-center">{{ item.quantity }}</td>
-                                            <!-- Updated to use item.unit_price instead of item.product.price -->
-                                            <td class="text-end">₦{{ item.unit_price }}</td>
-                                            <td class="text-end fw-bold">₦{{ item.total_price }}</td>
+                                            
+                                            <!-- CONDITIONAL PROMO DISPLAY LOGIC FOR UNIT PRICE & LINE TOTAL -->
+                                            {% if item.display_unit_price %}
+                                                <td class="text-end">₦{{ item.display_unit_price|floatformat:2 }}</td>
+                                                <td class="text-end fw-bold">₦{{ item.display_total|floatformat:2 }}</td>
+                                            {% else %}
+                                                <td class="text-end">₦{{ item.unit_price }}</td>
+                                                <td class="text-end fw-bold">₦{{ item.total_price }}</td>
+                                            {% endif %}
                                         </tr>
                                     {% endfor %}
                                 </tbody>

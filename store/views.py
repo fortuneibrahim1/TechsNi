@@ -2745,13 +2745,36 @@ def ceo_manage_return_policy(request):
 
 
 
-
 import random
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from datetime import timedelta
-from .models import GameConfiguration, QuestionGame, SpinWheelOption, UserGameReward
+
+# IMPORT GAME MODELS FROM THE SERVICES APP (NOT .models)
+from services.models import GameConfiguration, QuestionGame, SpinWheelOption, UserGameReward
+
+@login_required
+def portal_gateway_view(request):
+    try:
+        config = GameConfiguration.get_solo()
+    except Exception:
+        config = None
+
+    try:
+        user_reward = UserGameReward.objects.filter(user=request.user).first()
+    except Exception:
+        user_reward = None
+
+    has_played = user_reward is not None
+
+    context = {
+        'config': config,
+        'user_reward': user_reward,
+        'has_played': has_played,
+    }
+    return render(request, 'store/portal_gateway.html', context)
+
 
 @login_required
 def play_spin_wheel(request):
@@ -2778,9 +2801,6 @@ def play_spin_wheel(request):
             )
             return render(request, 'store/game_won.html', {'reward': reward})
         else:
-            # Mark that they played (create a dummy or record if needed, or rely on a played flag)
-            # For simplicity, we can create a used/lost dummy record or check attempts. 
-            # Here we'll redirect to a game over page or back to gateway with a message.
             return render(request, 'store/game_lost.html', {'message': 'Aww, you landed on a non-winning slice!'})
 
     return render(request, 'store/spin_wheel.html', {'wheel_options': wheel_options})

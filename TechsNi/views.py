@@ -28,6 +28,27 @@ def custom_login_view(request):
         'catalogs': catalogs,
     }
     return render(request, 'services/login.html', context)
+
+from services.models import GameConfiguration
+from services.models import UserGameReward  # or whichever app holds UserGameReward
+
 @login_required
 def portal_gateway_view(request):
-    return render(request, 'store/portal_gateway.html')
+    try:
+        config = GameConfiguration.get_solo()
+    except Exception:
+        config = None
+
+    try:
+        user_reward = UserGameReward.objects.filter(user=request.user).first()
+    except Exception:
+        user_reward = None
+
+    has_played = user_reward is not None
+
+    context = {
+        'config': config,
+        'user_reward': user_reward,
+        'has_played': has_played,
+    }
+    return render(request, 'store/portal_gateway.html', context)

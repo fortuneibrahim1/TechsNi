@@ -2576,14 +2576,9 @@ def customer_jobs_list_view(request):
   
 
 import uuid
-from decimal import Decimal
-from django.shortcuts import render, redirect, get_object_or_404
+from django.shortcuts import render, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.utils import timezone
-from django.contrib import messages
-
-# Import models from services app
-from .models import Job, Quotation, Invoice, UserGameReward, GameConfiguration, QuestionGame, SpinWheelOption
+from .models import Job, Quotation, Invoice, GameConfiguration # <-- Make sure GameConfiguration is imported
 
 @login_required
 def customer_job_detail_view(request, job_id):
@@ -2608,11 +2603,18 @@ def customer_job_detail_view(request, job_id):
     # Flag for "I Have Paid" button (only for PO jobs that aren't settled yet)
     show_po_payment_button = job.is_po_job and is_invoice_visible and job.status != 'settled'
 
+    # Get the active game/promo configuration safely
+    try:
+        config = GameConfiguration.get_solo()
+    except Exception:
+        config = None
+
     return render(request, 'services/dashboards/customer_job_detail.html', {
         'job': job,
         'quotation': quotation,
         'invoice': invoice if is_invoice_visible else None,
         'show_po_payment_button': show_po_payment_button,
+        'config': config, # <--- Passed config here so templates know if the promo is active!
     })
   
 @login_required

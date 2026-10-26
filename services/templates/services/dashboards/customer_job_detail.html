@@ -115,10 +115,11 @@
                                 <!-- Quotation Standard Approval Actions -->
                                 {% if not quotation.is_approved_by_client and job.status == 'quote_sent' %}
                                     
-                                    <!-- PROMO / REWARD CODE INPUT SECTION -->
+                                    <!-- PROMO / REWARD CODE INPUT SECTION (Only shows if config.is_active is True) -->
+                                    {% if config and config.is_active %}
                                     <div class="card bg-light border-secondary p-2.5 mb-3">
                                         <form method="POST" action="{% url 'apply_promo_code' job.id %}">
-                                            {% csrf_token %>
+                                            {% csrf_token %}
                                             <label class="form-label small fw-bold mb-1"><i class="fas fa-ticket text-warning me-1"></i> Have a Reward / Promo Code?</label>
                                             <div class="input-group input-group-sm">
                                                 <input type="text" name="promo_code" class="form-control" placeholder="Enter code (e.g. UUID)" required>
@@ -126,9 +127,10 @@
                                             </div>
                                         </form>
                                     </div>
+                                    {% endif %}
 
                                     <form method="POST" action="{% url 'respond_quote' %}" class="mt-2">
-                                        {% csrf_token %>
+                                        {% csrf_token %}
                                         <input type="hidden" name="quote_id" value="{{ quotation.id }}">
                                         
                                         <div class="d-flex gap-2">
@@ -143,7 +145,7 @@
 
                                     <div class="collapse mt-2" id="rejectReasonBox">
                                         <form method="POST" action="{% url 'respond_quote' %}">
-                                            {% csrf_token %>
+                                            {% csrf_token %}
                                             <input type="hidden" name="quote_id" value="{{ quotation.id }}">
                                             <input type="hidden" name="action" value="reject">
                                             <textarea name="rejection_reason" class="form-control mb-2" placeholder="State reason for rejection..." required></textarea>
@@ -163,7 +165,7 @@
                                         <p class="small text-muted mb-3">Provide your official documentation details manually below to route this job straight to finance review.</p>
                                         
                                         <form method="POST" action="{% url 'customer_approve_via_po' job.id %}" enctype="multipart/form-data">
-                                            {% csrf_token -->
+                                            {% csrf_token %}
                                             
                                             <div class="mb-2">
                                                 <label class="form-label small fw-bold">Customer PO Number</label>

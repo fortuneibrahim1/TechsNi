@@ -528,3 +528,9 @@ class UserGameReward(models.Model):
 
     def __str__(self):
         return f"Reward {self.code} for {self.user.username} ({self.discount_percentage}%)"
+
+
+class UserGameAttempt(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    game_type = models.CharField(max_length=20) # 'wheel' or 'qa'
+    created_at = models.DateTimeField(auto_now_add=True)

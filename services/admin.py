@@ -4,7 +4,7 @@ from .models import (
     User, Job, Quotation, Invoice, SiteConfiguration, JobType, 
     InstructionCatalog, CompanyInfo, CompanyBankAccount,
     SupportTicket, TicketMessage, TicketRating, GameConfiguration, 
-    QuestionGame, SpinWheelOption, UserGameReward
+    QuestionGame, SpinWheelOption, UserGameReward, UserGameAttempt
 )
 
 # Customize TechsNi Admin branding headers
@@ -125,7 +125,7 @@ class TicketRatingAdmin(admin.ModelAdmin):
 # --- GAME CONFIGURATION & MANAGEMENT ADMIN ---
 @admin.register(GameConfiguration)
 class GameConfigurationAdmin(admin.ModelAdmin):
-    list_display = ('is_active', 'discount_percentage', 'code_expiry_hours', 'max_winners')
+    list_display = ('is_active', 'discount_percentage', 'code_expiry_hours', 'max_winners', 'last_reset_at')
     
     def has_add_permission(self, request):
         return not GameConfiguration.objects.exists()
@@ -142,24 +142,36 @@ class QuestionGameAdmin(admin.ModelAdmin):
 @admin.register(SpinWheelOption)
 class SpinWheelOptionAdmin(admin.ModelAdmin):
     list_display = ('id', 'label', 'is_winning', 'probability_weight')
+    list_editable = ('is_winning', 'probability_weight')
     list_filter = ('is_winning',)
     search_fields = ('label',)
     list_per_page = 25 
 
 
 # --- USER REWARD RESET ACTION ---
-@admin.action(description='⚠️ Delete ALL user game rewards (Reset Arena Cycle)')
+@admin.action(description='⚠️ Delete ALL rewards & attempts (Reset Arena Cycle)')
 def delete_all_rewards(modeladmin, request, queryset):
-    total_count = UserGameReward.objects.count()
+    rewards_count = UserGameReward.objects.count()
+    attempts_count = UserGameAttempt.objects.count()
+    
     UserGameReward.objects.all().delete()
+    UserGameAttempt.objects.all().delete()
+    
     modeladmin.message_user(
         request, 
-        f"Successfully deleted all {total_count} rewards! The Reward Arena has been reset for a fresh cycle."
+        f"Successfully deleted {rewards_count} rewards and {attempts_count} attempts! The Reward Arena has been fully reset for a fresh cycle."
     )
-
+    
 @admin.register(UserGameReward)
 class UserGameRewardAdmin(admin.ModelAdmin):
     list_display = ('user', 'code', 'discount_percentage', 'is_used', 'created_at', 'expires_at')
     search_fields = ('user__username', 'code')
     list_filter = ('is_used', 'created_at')
+    actions = [delete_all_rewards]
+
+@admin.register(UserGameAttempt)
+class UserGameAttemptAdmin(admin.ModelAdmin):
+    list_display = ('user', 'game_type', 'created_at')
+    search_fields = ('user__username', 'game_type')
+    list_filter = ('game_type', 'created_at')
     actions = [delete_all_rewards]

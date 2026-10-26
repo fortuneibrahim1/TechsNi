@@ -589,15 +589,18 @@ def ceo_dashboard(request):
 
     status_filter = request.GET.get('status', '')
     
-    # Optimized with slicing [:100] and [:50] to prevent out-of-memory crashes on Render free tier
-    all_jobs = Job.objects.all().order_by('-id')
-    if status_filter:
-        all_jobs = all_jobs.filter(status=status_filter)
-    all_jobs = all_jobs[:100]
+    try:
+        all_jobs = Job.objects.all().order_by('-id')
+        if status_filter:
+            all_jobs = all_jobs.filter(status=status_filter)
+        all_jobs = all_jobs[:50]
 
-    live_jobs = Job.objects.all().order_by('-id')[:50]
-    users = User.objects.all().order_by('-id')[:100]
-    workers = User.objects.filter(role='worker')[:50]
+        live_jobs = Job.objects.all().order_by('-id')[:25]
+        users = User.objects.all().order_by('-id')[:50]
+        workers = User.objects.filter(role='worker')[:25]
+    except Exception as e:
+        # Fallback if any database decoding issue occurs
+        all_jobs, live_jobs, users, workers = [], [], [], []
 
     return render(request, 'services/dashboards/ceo.html', {
         'live_jobs': live_jobs,
@@ -4341,23 +4344,27 @@ from .models import GameConfiguration, QuestionGame, SpinWheelOption
 
 def is_ceo(user):
     return user.is_superuser or getattr(user, 'role', None) == 'ceo'
-
 @user_passes_test(is_ceo)
 def ceo_game_dashboard(request):
-    config = GameConfiguration.get_solo()
-    questions = QuestionGame.objects.all()
-    wheel_options = SpinWheelOption.objects.all()
+    try:
+        config = GameConfiguration.get_solo()
+    except Exception:
+        config = None
+
+    try:
+        questions = QuestionGame.objects.all().order_by('-id')[:50]
+        wheel_options = SpinWheelOption.objects.all().order_by('-id')[:50]
+    except Exception:
+        questions, wheel_options = [], []
 
     if request.method == 'POST':
-        # Handle Master Activation Toggle & General Settings
-        if 'update_config' in request.POST:
+        if 'update_config' in request.POST and config:
             config.is_active = request.POST.get('is_active') == 'on'
             config.discount_percentage = request.POST.get('discount_percentage', 10.00)
             config.code_expiry_hours = request.POST.get('code_expiry_hours', 24)
             config.save()
             return redirect('ceo_game_dashboard')
 
-        # Handle Adding a Question
         elif 'add_question' in request.POST:
             q_text = request.POST.get('question_text')
             ans = request.POST.get('correct_answer')
@@ -4365,7 +4372,6 @@ def ceo_game_dashboard(request):
                 QuestionGame.objects.create(question_text=q_text, correct_answer=ans)
             return redirect('ceo_game_dashboard')
 
-        # Handle Adding Spin Wheel Option
         elif 'add_wheel_option' in request.POST:
             label = request.POST.get('label')
             is_winning = request.POST.get('is_winning') == 'on'
